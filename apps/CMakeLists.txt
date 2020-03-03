@@ -16,10 +16,12 @@ target_compile_features(vulkan_practice PUBLIC cxx_std_17)
 set(extern_dir ${CMAKE_CURRENT_SOURCE_DIR}/../extern)
 
 add_subdirectory(${extern_dir}/glfw ${CMAKE_CURRENT_BINARY_DIR}/glfw)
-target_link_libraries(vulkan_practice PUBLIC glfw)
+target_link_libraries(vulkan_practice PRIVATE glfw)
 
 add_subdirectory(${extern_dir}/glm ${CMAKE_CURRENT_BINARY_DIR}/glm)
-target_link_libraries(vulkan_practice PUBLIC glm)
+target_link_libraries(vulkan_practice PRIVATE glm)
 
-find_package(Vulkan REQUIRED FATAL_ERROR)
-target_link_libraries (vulkan_practice PUBLIC ${VULKAN_LIB_LIST})
+find_package(Vulkan REQUIRED)
+target_compile_definitions(vulkan_practice PRIVATE VK_USE_PLATFORM_WIN32_KHR)
+target_include_directories(vulkan_practice PRIVATE Vulkan::Vulkan)
+target_link_libraries(vulkan_practice PRIVATE Vulkan::Vulkan)
