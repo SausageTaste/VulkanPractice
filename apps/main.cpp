@@ -5,7 +5,7 @@
 
 int main(int argc, char* argv) {
     try {
-        dal::VulkanWindowGLFW window{ 800, 450 };
+        dal::VulkanWindowGLFW window;
 
         while ( !window.isOughtToClose() ) {
             window.update();

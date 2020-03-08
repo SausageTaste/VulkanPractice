@@ -27,7 +27,7 @@ namespace dal {
 #endif
 
     public:
-        VulkanWindowGLFW(const unsigned width, const unsigned height);
+        VulkanWindowGLFW(void);
         ~VulkanWindowGLFW(void);
 
         void update(void);

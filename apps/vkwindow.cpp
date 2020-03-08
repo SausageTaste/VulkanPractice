@@ -3,7 +3,7 @@
 #include <iostream>
 #include <exception>
 
-#include "vkextension.h"
+#include "konst.h"
 
 /*
 #define GLM_FORCE_RADIANS
@@ -206,8 +206,8 @@ namespace {
 
 namespace dal {
 
-    VulkanWindowGLFW::VulkanWindowGLFW(const unsigned width, const unsigned height) {
-        this->m_window = createWindowGLFW(width, height, WINDOW_TITLE);
+    VulkanWindowGLFW::VulkanWindowGLFW(void) {
+        this->m_window = createWindowGLFW(WIN_WIDTH, WIN_HEIGHT, WINDOW_TITLE);
         createVulkanInstance(this->m_instance);
 #ifndef NDEBUG
         setupDebugMessenger(this->m_instance, this->m_debugMessenger);
