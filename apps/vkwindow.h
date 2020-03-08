@@ -10,22 +10,22 @@ namespace dal {
     class VulkanWindowGLFW {
 
     private:
+        using extList_t = std::vector<const char*>;
+
+    private:
         GLFWwindow* m_window = nullptr;
         VkInstance m_instance = nullptr;
 
+#ifndef NDEBUG
+        VkDebugUtilsMessengerEXT m_debugMessenger = nullptr;
+#endif
+
     public:
-        VulkanWindowGLFW(const int width, const int height);
+        VulkanWindowGLFW(const unsigned width, const unsigned height);
         ~VulkanWindowGLFW(void);
 
         void update(void);
         bool isOughtToClose(void);
-
-    private:
-        VkInstanceCreateInfo makeInstCreateInfo(const VkApplicationInfo& appInfo) const;
-        std::vector<const char*> getRequiredExtensions(void) const;
-
-        static VkApplicationInfo makeAppInfo(void);
-        static bool checkValidationLayerSupport(void);
 
     };
 

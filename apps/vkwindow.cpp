@@ -22,76 +22,106 @@ namespace {
 }
 
 
-namespace dal {
+namespace {
 
-    VulkanWindowGLFW::VulkanWindowGLFW(const int width, const int height) {
-        {
-            glfwInit();
-            glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-            glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    GLFWwindow* createWindowGLFW(const unsigned width, const unsigned height, const char* const title) {
+        glfwInit();
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-            this->m_window = glfwCreateWindow(width, height, WINDOW_TITLE, nullptr, nullptr);
-            if ( nullptr == this->m_window ) {
-                throw std::runtime_error{ "Failed to create window." };
-            }
+        auto window = glfwCreateWindow(width, height, title, nullptr, nullptr);
+        if ( nullptr == window )
+            throw std::runtime_error{ "Failed to create window." };
+
+        return window;
+    }
+
+}
+
+
+// Vulkan functions
+namespace {
+
+#ifndef NDEBUG
+    VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+        VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
+    {
+        switch ( messageSeverity ) {
+
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+            std::cerr << "[VERB] ";
+            break;
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
+            std::cerr << "[INFO] ";
+            break;
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+            std::cerr << "[WARN] ";
+            break;
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+            std::cerr << "[ERRO] ";
+            break;
+        default:
+            std::cerr << "[WTF?] ";
+            break;
+
         }
 
-        {
-            const auto appInfo = this->makeAppInfo();
-            auto createInfo = this->makeInstCreateInfo(appInfo);
+        std::cerr << "Vulkan Debug: " << pCallbackData->pMessage << std::endl;
+        return VK_FALSE;
+    }
 
-            const auto extensions = this->getRequiredExtensions();
-            createInfo.enabledExtensionCount = extensions.size();
-            createInfo.ppEnabledExtensionNames = extensions.data();
-
-            if ( VK_SUCCESS != vkCreateInstance(&createInfo, nullptr, &this->m_instance) ) {
-                throw std::runtime_error{ "Failed to create vulkan instance. " };
-            }
+    VkResult createDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
+        const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
+        auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+        if ( func != nullptr ) {
+            return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
+        }
+        else {
+            return VK_ERROR_EXTENSION_NOT_PRESENT;
         }
     }
 
-    VulkanWindowGLFW::~VulkanWindowGLFW(void) {
-        vkDestroyInstance(this->m_instance, nullptr);
-        this->m_instance = nullptr;
-
-        glfwDestroyWindow(this->m_window);
-        this->m_window = nullptr;
-        glfwTerminate();
-    }
-
-    void VulkanWindowGLFW::update(void) {
-        glfwPollEvents();
-    }
-
-    bool VulkanWindowGLFW::isOughtToClose(void) {
-        return glfwWindowShouldClose(this->m_window);
-    }
-
-    // Private
-
-    VkInstanceCreateInfo VulkanWindowGLFW::makeInstCreateInfo(const VkApplicationInfo& appInfo) const {
-        VkInstanceCreateInfo createInfo = {};
-
-        createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-        createInfo.pApplicationInfo = &appInfo;
-
-        {
-#ifdef NDEBUG
-            createInfo.enabledLayerCount = 0;
-#else
-            if ( !this->checkValidationLayerSupport() ) {
-                throw std::runtime_error{ "validation layers requested, but not available!" };
-            }
-
-            createInfo.enabledLayerCount = static_cast<uint32_t>(VAL_LAYERS_TO_USE.size());
-            createInfo.ppEnabledLayerNames = VAL_LAYERS_TO_USE.data();
-#endif
+    void destroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) {
+        auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+        if ( func != nullptr ) {
+            func(instance, debugMessenger, pAllocator);
         }
+    }
+
+    VkDebugUtilsMessengerCreateInfoEXT makeDebugMessengerCreateInfo(void) {
+        VkDebugUtilsMessengerCreateInfoEXT createInfo = {};
+
+        createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+        createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+        createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+        createInfo.pfnUserCallback = debugCallback;
 
         return createInfo;
     }
 
-    std::vector<const char*> VulkanWindowGLFW::getRequiredExtensions(void) const {
+    void setupDebugMessenger(const VkInstance& instance, VkDebugUtilsMessengerEXT& debugMsger) {
+        const auto createInfo = makeDebugMessengerCreateInfo();
+
+        if ( VK_SUCCESS != createDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMsger) ) {
+            throw std::runtime_error{ "Failed to set up debug messenger!" };
+        }
+    }
+#endif
+
+    VkApplicationInfo makeVKAppInfo(void) {
+        VkApplicationInfo appInfo = {};
+
+        appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+        appInfo.pApplicationName = WINDOW_TITLE;
+        appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+        appInfo.pEngineName = "No Engine";
+        appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+        appInfo.apiVersion = VK_API_VERSION_1_0;
+
+        return appInfo;
+    }
+
+    std::vector<const char*> getRequiredExtensions(void) {
         uint32_t glfwExtCount = 0;
         const char** glfwExtensions;
         glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtCount);
@@ -105,22 +135,7 @@ namespace dal {
         return extensions;
     }
 
-    // Private static
-
-    VkApplicationInfo VulkanWindowGLFW::makeAppInfo(void) {
-        VkApplicationInfo appInfo = {};
-
-        appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-        appInfo.pApplicationName = "Vulkan Practice";
-        appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-        appInfo.pEngineName = "No Engine";
-        appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-        appInfo.apiVersion = VK_API_VERSION_1_0;
-
-        return appInfo;
-    }
-
-    bool VulkanWindowGLFW::checkValidationLayerSupport(void) {
+    bool checkValidationLayerSupport(void) {
         uint32_t layerCount;
         vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
         std::vector<VkLayerProperties> availableLayers(layerCount);
@@ -141,6 +156,81 @@ namespace dal {
         }
 
         return true;
+    }
+
+    void createVulkanInstance(VkInstance& instance) {
+        const auto appInfo = makeVKAppInfo();
+        const auto extensions = getRequiredExtensions();
+#ifndef NDEBUG
+        const auto debugCreateInfo = makeDebugMessengerCreateInfo();
+#endif
+
+        VkInstanceCreateInfo createInfo = {};
+        {
+            createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+            createInfo.pApplicationInfo = &appInfo;
+
+            createInfo.enabledExtensionCount = extensions.size();
+            createInfo.ppEnabledExtensionNames = extensions.data();
+
+            {
+#ifdef NDEBUG
+                createInfo.enabledLayerCount = 0;
+                createInfo.pNext = nullptr;
+#else
+                if ( !checkValidationLayerSupport() ) {
+                    throw std::runtime_error{ "validation layers requested, but not available!" };
+                }
+
+                createInfo.enabledLayerCount = static_cast<uint32_t>(VAL_LAYERS_TO_USE.size());
+                createInfo.ppEnabledLayerNames = VAL_LAYERS_TO_USE.data();
+
+                createInfo.pNext = reinterpret_cast<const VkDebugUtilsMessengerCreateInfoEXT*>(&debugCreateInfo);
+#endif
+            }
+        }
+
+        if ( VK_SUCCESS != vkCreateInstance(&createInfo, nullptr, &instance) ) {
+            throw std::runtime_error{ "Failed to create vulkan instance. " };
+        }
+    }
+
+}
+
+
+namespace dal {
+
+    VulkanWindowGLFW::VulkanWindowGLFW(const unsigned width, const unsigned height) {
+        this->m_window = createWindowGLFW(width, height, WINDOW_TITLE);
+        createVulkanInstance(this->m_instance);
+
+#ifndef NDEBUG
+        setupDebugMessenger(this->m_instance, this->m_debugMessenger);
+#endif
+
+        std::cout << "Window created\n";
+    }
+
+    VulkanWindowGLFW::~VulkanWindowGLFW(void) {
+#ifndef NDEBUG
+        destroyDebugUtilsMessengerEXT(this->m_instance, this->m_debugMessenger, nullptr);
+        this->m_debugMessenger = nullptr;
+#endif
+
+        vkDestroyInstance(this->m_instance, nullptr);
+        this->m_instance = nullptr;
+
+        glfwDestroyWindow(this->m_window);
+        this->m_window = nullptr;
+        glfwTerminate();
+    }
+
+    void VulkanWindowGLFW::update(void) {
+        glfwPollEvents();
+    }
+
+    bool VulkanWindowGLFW::isOughtToClose(void) {
+        return glfwWindowShouldClose(this->m_window);
     }
 
 }
