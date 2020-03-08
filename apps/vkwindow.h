@@ -1,8 +1,12 @@
+#pragma once
+
 #include <array>
 #include <vector>
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
+
+#include "vkdevice.h"
 
 
 namespace dal {
@@ -14,10 +18,11 @@ namespace dal {
 
     private:
         GLFWwindow* m_window = nullptr;
-        VkInstance m_instance = nullptr;
+        VkInstance m_instance = VK_NULL_HANDLE;
+        GraphicDevice m_device;
 
 #ifndef NDEBUG
-        VkDebugUtilsMessengerEXT m_debugMessenger = nullptr;
+        VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
 #endif
 
     public:

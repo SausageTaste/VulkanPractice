@@ -3,6 +3,8 @@
 #include <iostream>
 #include <exception>
 
+#include "vkextension.h"
+
 /*
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -14,10 +16,6 @@
 namespace {
 
     const char* const WINDOW_TITLE = "Vulkan Practice";
-
-    const std::array<const char*, 1> VAL_LAYERS_TO_USE = {
-        "VK_LAYER_KHRONOS_validation"
-    };
 
 }
 
@@ -141,7 +139,7 @@ namespace {
         std::vector<VkLayerProperties> availableLayers(layerCount);
         vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
-        for ( const char* layerName : VAL_LAYERS_TO_USE ) {
+        for ( const char* layerName : dal::VAL_LAYERS_TO_USE ) {
             bool layerFound = false;
 
             for ( const auto& layerProperties : availableLayers ) {
@@ -182,8 +180,8 @@ namespace {
                     throw std::runtime_error{ "validation layers requested, but not available!" };
                 }
 
-                createInfo.enabledLayerCount = static_cast<uint32_t>(VAL_LAYERS_TO_USE.size());
-                createInfo.ppEnabledLayerNames = VAL_LAYERS_TO_USE.data();
+                createInfo.enabledLayerCount = static_cast<uint32_t>(dal::VAL_LAYERS_TO_USE.size());
+                createInfo.ppEnabledLayerNames = dal::VAL_LAYERS_TO_USE.data();
 
                 createInfo.pNext = reinterpret_cast<const VkDebugUtilsMessengerCreateInfoEXT*>(&debugCreateInfo);
 #endif
@@ -208,17 +206,21 @@ namespace dal {
         setupDebugMessenger(this->m_instance, this->m_debugMessenger);
 #endif
 
+        this->m_device.init(this->m_instance);
+
         std::cout << "Window created\n";
     }
 
     VulkanWindowGLFW::~VulkanWindowGLFW(void) {
+        this->m_device.destroy();
+
 #ifndef NDEBUG
         destroyDebugUtilsMessengerEXT(this->m_instance, this->m_debugMessenger, nullptr);
-        this->m_debugMessenger = nullptr;
+        this->m_debugMessenger = VK_NULL_HANDLE;
 #endif
 
         vkDestroyInstance(this->m_instance, nullptr);
-        this->m_instance = nullptr;
+        this->m_instance = VK_NULL_HANDLE;
 
         glfwDestroyWindow(this->m_window);
         this->m_window = nullptr;

@@ -7,7 +7,9 @@ project(Vulkan-Practice
 
 add_executable(vulkan_practice
     main.cpp
-    vkwindow.h  vkwindow.cpp
+    vkwindow.h     vkwindow.cpp
+    vkdevice.h     vkdevice.cpp
+    vkextension.h
 )
 target_compile_features(vulkan_practice PUBLIC cxx_std_17)
 
