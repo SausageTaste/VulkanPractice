@@ -4,6 +4,8 @@
 
 #include <vulkan/vulkan.h>
 
+#include "swapchain_images.h"
+
 
 namespace dal {
 
@@ -16,11 +18,10 @@ namespace dal {
         VkQueue m_presentQueue = VK_NULL_HANDLE;
         VkSwapchainKHR m_swapChain = VK_NULL_HANDLE;
 
-        std::vector<VkImage> m_swapChainImages;
         VkFormat m_swapChainImageFormat;
         VkExtent2D m_swapChainExtent;
 
-        std::vector<VkImageView> m_swapChainImageViews;
+        SwapchainImages m_swapchainImages;
 
     public:
         ~GraphicDevice(void);

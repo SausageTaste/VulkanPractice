@@ -7,9 +7,10 @@ project(Vulkan-Practice
 
 add_executable(vulkan_practice
     main.cpp
-    vkwindow.h     vkwindow.cpp
-    vkdevice.h     vkdevice.cpp
+    vkwindow.h             vkwindow.cpp
+    vkdevice.h             vkdevice.cpp
     konst.h
+    swapchain_images.h     swapchain_images.cpp
 )
 target_compile_features(vulkan_practice PUBLIC cxx_std_17)
 

@@ -405,47 +405,11 @@ namespace dal {
         std::tie(this->m_logicalDevice, this->m_graphicsQueue, this->m_presentQueue) = createLogicalDevice(surface, this->m_physicalDevice);
         std::tie(this->m_swapChain, this->m_swapChainImageFormat, this->m_swapChainExtent) = createSwapChain(surface, this->m_physicalDevice, this->m_logicalDevice);
 
-        // Get swap chain images.
-        {
-            uint32_t imageCount;
-            vkGetSwapchainImagesKHR(this->m_logicalDevice, this->m_swapChain, &imageCount, nullptr);
-            this->m_swapChainImages.resize(imageCount);
-            vkGetSwapchainImagesKHR(this->m_logicalDevice, this->m_swapChain, &imageCount, this->m_swapChainImages.data());
-        }
-
-        // Create image views
-        {
-            this->m_swapChainImageViews.resize(this->m_swapChainImages.size());
-            for ( size_t i = 0; i < this->m_swapChainImages.size(); i++ ) {
-                VkImageViewCreateInfo createInfo = {};
-                createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-                createInfo.image = this->m_swapChainImages[i];
-                createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-                createInfo.format = this->m_swapChainImageFormat;
-
-                createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-                createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-                createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-                createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-
-                createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-                createInfo.subresourceRange.baseMipLevel = 0;
-                createInfo.subresourceRange.levelCount = 1;
-                createInfo.subresourceRange.baseArrayLayer = 0;
-                createInfo.subresourceRange.layerCount = 1;
-
-                if ( vkCreateImageView(this->m_logicalDevice, &createInfo, nullptr, &this->m_swapChainImageViews[i]) != VK_SUCCESS ) {
-                    throw std::runtime_error("failed to create image views!");
-                }
-            }
-        }
+        this->m_swapchainImages.init(this->m_logicalDevice, this->m_swapChain, this->m_swapChainImageFormat, this->m_swapChainExtent);
     }
 
     void GraphicDevice::destroy(void) {
-        for ( auto imageView : this->m_swapChainImageViews ) {
-            vkDestroyImageView(this->m_logicalDevice, imageView, nullptr);
-        }
-        this->m_swapChainImageViews.clear();
+        this->m_swapchainImages.destroy(this->m_logicalDevice);
 
         vkDestroySwapchainKHR(this->m_logicalDevice, this->m_swapChain, nullptr);
         this->m_swapChain = VK_NULL_HANDLE;
