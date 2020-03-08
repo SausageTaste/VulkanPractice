@@ -214,8 +214,6 @@ namespace dal {
 #endif
         this->m_surface = createSurface(this->m_instance, this->m_window);
         this->m_device.init(this->m_instance, this->m_surface);
-
-        std::cout << "Window created\n";
     }
 
     VulkanWindowGLFW::~VulkanWindowGLFW(void) {

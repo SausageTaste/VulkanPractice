@@ -20,6 +20,8 @@ namespace dal {
         VkFormat m_swapChainImageFormat;
         VkExtent2D m_swapChainExtent;
 
+        std::vector<VkImageView> m_swapChainImageViews;
+
     public:
         ~GraphicDevice(void);
 

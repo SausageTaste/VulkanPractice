@@ -6,6 +6,7 @@
 int main(int argc, char* argv) {
     try {
         dal::VulkanWindowGLFW window;
+        std::cout << "Window and Vulkan is ready.\n";
 
         while ( !window.isOughtToClose() ) {
             window.update();
