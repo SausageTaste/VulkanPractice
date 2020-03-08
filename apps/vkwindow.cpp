@@ -193,6 +193,14 @@ namespace {
         }
     }
 
+    VkSurfaceKHR createSurface(const VkInstance instance, GLFWwindow* const window) {
+        VkSurfaceKHR surface = VK_NULL_HANDLE;
+        if ( VK_SUCCESS != glfwCreateWindowSurface(instance, window, nullptr, &surface) ) {
+            throw std::runtime_error{ "failed to create window surface!" };
+        }
+        return surface;
+    }
+
 }
 
 
@@ -201,12 +209,11 @@ namespace dal {
     VulkanWindowGLFW::VulkanWindowGLFW(const unsigned width, const unsigned height) {
         this->m_window = createWindowGLFW(width, height, WINDOW_TITLE);
         createVulkanInstance(this->m_instance);
-
 #ifndef NDEBUG
         setupDebugMessenger(this->m_instance, this->m_debugMessenger);
 #endif
-
-        this->m_device.init(this->m_instance);
+        this->m_surface = createSurface(this->m_instance, this->m_window);
+        this->m_device.init(this->m_instance, this->m_surface);
 
         std::cout << "Window created\n";
     }
@@ -218,6 +225,9 @@ namespace dal {
         destroyDebugUtilsMessengerEXT(this->m_instance, this->m_debugMessenger, nullptr);
         this->m_debugMessenger = VK_NULL_HANDLE;
 #endif
+
+        vkDestroySurfaceKHR(this->m_instance, this->m_surface, nullptr);
+        this->m_surface = VK_NULL_HANDLE;
 
         vkDestroyInstance(this->m_instance, nullptr);
         this->m_instance = VK_NULL_HANDLE;

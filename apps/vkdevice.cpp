@@ -1,5 +1,7 @@
 #include "vkdevice.h"
 
+#include <set>
+#include <tuple>
 #include <vector>
 #include <optional>
 #include <iostream>
@@ -13,13 +15,17 @@ namespace {
 
     struct QueueFamilyIndices {
         std::optional<uint32_t> m_graphicsFamily;
+        std::optional<uint32_t> m_presentFamily;
 
         bool isComplete(void) const {
-            return this->m_graphicsFamily.has_value();
+            if ( !this->m_graphicsFamily.has_value() ) return false;
+            if ( !this->m_presentFamily.has_value() ) return false;
+
+            return true;
         }
     };
 
-    QueueFamilyIndices findQueueFamilies(const VkPhysicalDevice device) {
+    QueueFamilyIndices findQueueFamilies(const VkPhysicalDevice device, const VkSurfaceKHR surface) {
         QueueFamilyIndices indices;
 
         uint32_t queueFamilyCount = 0;
@@ -32,6 +38,12 @@ namespace {
         for ( const auto& queueFamily : queueFamilies ) {
             if ( queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT )
                 indices.m_graphicsFamily = i;
+
+            VkBool32 presentSupport = false;
+            vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
+            if ( presentSupport ) {
+                indices.m_presentFamily = i;
+            }
 
             if ( indices.isComplete() )
                 break;
@@ -93,7 +105,7 @@ namespace {
         std::cout << "         max image cube dimension : " << properties.limits.maxImageDimensionCube << '\n';
     }
 
-    unsigned rateDeviceSuitability(VkPhysicalDevice device) {
+    unsigned rateDeviceSuitability(const VkSurfaceKHR surface, const VkPhysicalDevice device) {
         unsigned score = 0;
 
         VkPhysicalDeviceProperties properties;
@@ -117,7 +129,7 @@ namespace {
             if ( !features.geometryShader )
                 return 0;
 
-            if ( !findQueueFamilies(device).isComplete() )
+            if ( !findQueueFamilies(device, surface).isComplete() )
                 return 0;
         }
 
@@ -128,16 +140,13 @@ namespace {
         return score;
     }
 
-    VkPhysicalDevice pickDevice(const VkInstance instance) {
+    VkPhysicalDevice pickDevice(const VkInstance instance, const VkSurfaceKHR surface) {
         auto deviceCount = [instance](void) {
             uint32_t deviceCount = 0;
             vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
 
             if ( deviceCount == 0 ) {
                 throw std::runtime_error{ "failed to find GPUs with Vulkan support!" };
-            }
-            else {
-                std::cout << "There are " << deviceCount << " devices found.\n";
             }
 
             return deviceCount;
@@ -150,7 +159,7 @@ namespace {
         unsigned bestScore = -1;
 
         for ( auto device : devices ) {
-            const auto score = rateDeviceSuitability(device);
+            const auto score = rateDeviceSuitability(surface, device);
             if ( score < bestScore ) {
                 seleted = device;
                 bestScore = score;
@@ -161,19 +170,22 @@ namespace {
     }
 
 
-    std::pair<VkDevice, VkQueue> createLogicalDevice(const VkPhysicalDevice physicalDevice) {
-        std::pair<VkDevice, VkQueue> result{ VK_NULL_HANDLE, VK_NULL_HANDLE };
+    std::tuple<VkDevice, VkQueue, VkQueue> createLogicalDevice(const VkSurfaceKHR surface, const VkPhysicalDevice physicalDevice) {
+        const auto indices = findQueueFamilies(physicalDevice, surface);
 
-        const auto indices = findQueueFamilies(physicalDevice);
-
-        VkDeviceQueueCreateInfo queueCreateInfo = {};
+        std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
         {
-            queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-            queueCreateInfo.queueFamilyIndex = indices.m_graphicsFamily.value();
-            queueCreateInfo.queueCount = 1;
+            std::set<uint32_t> uniqueQueueFamilies = { indices.m_graphicsFamily.value(), indices.m_presentFamily.value() };
 
-            const float queuePriority = 1.f;
-            queueCreateInfo.pQueuePriorities = &queuePriority;
+            float queuePriority = 1.f;
+            for ( const uint32_t queueFamily : uniqueQueueFamilies ) {
+                VkDeviceQueueCreateInfo queueCreateInfo = {};
+                queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+                queueCreateInfo.queueFamilyIndex = queueFamily;
+                queueCreateInfo.queueCount = 1;
+                queueCreateInfo.pQueuePriorities = &queuePriority;
+                queueCreateInfos.push_back(queueCreateInfo);
+            }
         }
 
         VkPhysicalDeviceFeatures deviceFeatures = {};
@@ -182,8 +194,9 @@ namespace {
         {
             createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 
-            createInfo.pQueueCreateInfos = &queueCreateInfo;
-            createInfo.queueCreateInfoCount = 1;
+            createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
+            createInfo.pQueueCreateInfos = queueCreateInfos.data();
+
             createInfo.pEnabledFeatures = &deviceFeatures;
 
             createInfo.enabledExtensionCount = 0;
@@ -196,13 +209,16 @@ namespace {
 #endif
         }
 
-        if ( VK_SUCCESS != vkCreateDevice(physicalDevice, &createInfo, nullptr, &result.first) ) {
+        VkDevice logicalDevice = VK_NULL_HANDLE;
+        if ( VK_SUCCESS != vkCreateDevice(physicalDevice, &createInfo, nullptr, &logicalDevice) ) {
             throw std::runtime_error{ "failed to create logical device!" };
         }
 
-        vkGetDeviceQueue(result.first, indices.m_graphicsFamily.value(), 0, &result.second);
+        VkQueue graphicQ = VK_NULL_HANDLE, presentQ = VK_NULL_HANDLE;
+        vkGetDeviceQueue(logicalDevice, indices.m_graphicsFamily.value(), 0, &graphicQ);
+        vkGetDeviceQueue(logicalDevice, indices.m_presentFamily.value(), 0, &presentQ);
 
-        return result;
+        return std::make_tuple(logicalDevice, graphicQ, presentQ);
     }
 
 }
@@ -214,8 +230,8 @@ namespace dal {
         this->destroy();
     }
 
-    void GraphicDevice::init(const VkInstance instance) {
-        this->m_physicalDevice = pickDevice(instance);
+    void GraphicDevice::init(const VkInstance instance, const VkSurfaceKHR surface) {
+        this->m_physicalDevice = pickDevice(instance, surface);
         if ( VK_NULL_HANDLE == this->m_physicalDevice ) {
             throw std::runtime_error{ "failed to find a sutable graphic device." };
         }
@@ -224,7 +240,7 @@ namespace dal {
         vkGetPhysicalDeviceProperties(this->m_physicalDevice, &properties);
         std::cout << "Selected graphic device: " << properties.deviceName << '\n';
 
-        std::tie(this->m_logicalDevice, this->m_graphicsQueue) = createLogicalDevice(this->m_physicalDevice);
+        std::tie(this->m_logicalDevice, this->m_graphicsQueue, this->m_presentQueue) = createLogicalDevice(surface, this->m_physicalDevice);
     }
 
     void GraphicDevice::destroy(void) {

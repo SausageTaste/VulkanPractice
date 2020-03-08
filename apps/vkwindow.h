@@ -19,6 +19,7 @@ namespace dal {
     private:
         GLFWwindow* m_window = nullptr;
         VkInstance m_instance = VK_NULL_HANDLE;
+        VkSurfaceKHR m_surface = VK_NULL_HANDLE;
         GraphicDevice m_device;
 
 #ifndef NDEBUG
