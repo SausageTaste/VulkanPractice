@@ -8,7 +8,7 @@
 
 #include "konst.h"
 
-#define DAL_PRINT_DEVICE_INFO false
+#define DAL_PRINT_DEVICE_INFO true
 
 
 namespace {
@@ -97,8 +97,106 @@ namespace {
         return details;
     }
 
+}
 
-    void printDeviceInfo(const VkPhysicalDeviceProperties& properties, const VkPhysicalDeviceFeatures& features) {
+
+// PhysDevice
+namespace dal {
+
+    void PhysDevice::init(VkInstance instance, VkSurfaceKHR surface) {
+        auto deviceCount = [instance](void) {
+            uint32_t deviceCount = 0;
+            vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
+
+            if ( deviceCount == 0 ) {
+                throw std::runtime_error{ "failed to find GPUs with Vulkan support!" };
+            }
+
+            return deviceCount;
+        }();
+
+        std::vector<VkPhysicalDevice> devices(deviceCount);
+        vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
+
+        unsigned bestScore = -1;
+
+        for ( auto device : devices ) {
+            const auto score = rateDeviceSuitability(surface, device);
+            if ( score < bestScore ) {
+                this->m_handle = device;
+                bestScore = score;
+            }
+        }
+
+        if ( VK_NULL_HANDLE == this->m_handle ) {
+            throw std::runtime_error{ "failed to find a sutable graphic device." };
+        }
+    }
+
+    // static private
+
+    unsigned PhysDevice::rateDeviceSuitability(VkSurfaceKHR surface, VkPhysicalDevice physDevice) {
+        VkPhysicalDeviceProperties properties;
+        vkGetPhysicalDeviceProperties(physDevice, &properties);
+        VkPhysicalDeviceFeatures features;
+        vkGetPhysicalDeviceFeatures(physDevice, &features);
+
+#if DAL_PRINT_DEVICE_INFO
+        printDeviceInfo(properties, features);
+#endif
+
+        // Invalid device condition
+        {
+            // Application can't function without geometry shaders
+            if ( !features.geometryShader )
+                return 0;
+
+            if ( !findQueueFamilies(physDevice, surface).isComplete() )
+                return 0;
+
+            if ( !checkDeviceExtensionSupport(physDevice) )
+                return 0;
+
+            const auto swapChainSupport = querySwapChainSupport(surface, physDevice);
+            const auto swapChainAdequate = !(swapChainSupport.formats.empty() || swapChainSupport.presentModes.empty());
+            if ( !swapChainAdequate )
+                return 0;
+        }
+
+        unsigned score = 0;
+        {
+            // Discrete GPUs have a significant performance advantage
+            if ( VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU == properties.deviceType )
+                score += 5000;
+
+            // Maximum possible size of textures affects graphics quality
+            score += properties.limits.maxImageDimension2D;
+        }
+
+#if DAL_PRINT_DEVICE_INFO
+        std::cout << "         score                    : " << score << '\n';
+#endif
+
+        return score;
+    }
+
+    bool PhysDevice::checkDeviceExtensionSupport(VkPhysicalDevice device) {
+        uint32_t extensionCount;
+        vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
+
+        std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+        vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
+
+        std::set<std::string> requiredExtensions(DEVICE_EXTENSIONS.begin(), DEVICE_EXTENSIONS.end());
+
+        for ( const auto& extension : availableExtensions ) {
+            requiredExtensions.erase(extension.extensionName);
+        }
+
+        return requiredExtensions.empty();
+    }
+
+    void PhysDevice::printDeviceInfo(const VkPhysicalDeviceProperties& properties, const VkPhysicalDeviceFeatures& features) {
         std::cout << "physical device \"" << properties.deviceName << "\"\n";
 
         std::cout << "         type                     : ";
@@ -148,191 +246,82 @@ namespace {
         std::cout << "         max image cube dimension : " << properties.limits.maxImageDimensionCube << '\n';
     }
 
-    bool checkDeviceExtensionSupport(const VkPhysicalDevice device) {
-        uint32_t extensionCount;
-        vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
+}
 
-        std::vector<VkExtensionProperties> availableExtensions(extensionCount);
-        vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
 
-        std::set<std::string> requiredExtensions(DEVICE_EXTENSIONS.begin(), DEVICE_EXTENSIONS.end());
+// LogiDeviceAndQueue
+namespace dal {
 
-        for ( const auto& extension : availableExtensions ) {
-            requiredExtensions.erase(extension.extensionName);
-        }
+    void LogiDeviceAndQueue::init(VkSurfaceKHR surface, VkPhysicalDevice physDevice) {
+        const auto indices = findQueueFamilies(physDevice, surface);
 
-        return requiredExtensions.empty();
-    }
-
-    unsigned rateDeviceSuitability(const VkSurfaceKHR surface, const VkPhysicalDevice device) {
-        VkPhysicalDeviceProperties properties;
-        vkGetPhysicalDeviceProperties(device, &properties);
-        VkPhysicalDeviceFeatures features;
-        vkGetPhysicalDeviceFeatures(device, &features);
-
-#if DAL_PRINT_DEVICE_INFO
-        printDeviceInfo(properties, features);
-#endif
-
-        // Invalid device condition
+        // Create vulkan device
         {
-            // Application can't function without geometry shaders
-            if ( !features.geometryShader )
-                return 0;
+            std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+            {
+                std::set<uint32_t> uniqueQueueFamilies = { indices.m_graphicsFamily.value(), indices.m_presentFamily.value() };
 
-            if ( !findQueueFamilies(device, surface).isComplete() )
-                return 0;
-
-            if ( !checkDeviceExtensionSupport(device) )
-                return 0;
-
-            const auto swapChainSupport = querySwapChainSupport(surface, device);
-            const auto swapChainAdequate = !(swapChainSupport.formats.empty() || swapChainSupport.presentModes.empty());
-            if ( !swapChainAdequate )
-                return 0;
-        }
-
-        unsigned score = 0;
-        {
-            // Discrete GPUs have a significant performance advantage
-            if ( VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU == properties.deviceType )
-                score += 5000;
-
-            // Maximum possible size of textures affects graphics quality
-            score += properties.limits.maxImageDimension2D;
-        }
-
-#if DAL_PRINT_DEVICE_INFO
-        std::cout << "         score                    : " << score << '\n';
-#endif
-
-        return score;
-    }
-
-    VkPhysicalDevice pickDevice(const VkInstance instance, const VkSurfaceKHR surface) {
-        auto deviceCount = [instance](void) {
-            uint32_t deviceCount = 0;
-            vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
-
-            if ( deviceCount == 0 ) {
-                throw std::runtime_error{ "failed to find GPUs with Vulkan support!" };
+                float queuePriority = 1.f;
+                for ( const uint32_t queueFamily : uniqueQueueFamilies ) {
+                    VkDeviceQueueCreateInfo queueCreateInfo = {};
+                    queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+                    queueCreateInfo.queueFamilyIndex = queueFamily;
+                    queueCreateInfo.queueCount = 1;
+                    queueCreateInfo.pQueuePriorities = &queuePriority;
+                    queueCreateInfos.push_back(queueCreateInfo);
+                }
             }
 
-            return deviceCount;
-        }();
+            VkPhysicalDeviceFeatures deviceFeatures = {};
 
-        std::vector<VkPhysicalDevice> devices(deviceCount);
-        vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
+            VkDeviceCreateInfo createInfo = {};
+            {
+                createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 
-        VkPhysicalDevice seleted = VK_NULL_HANDLE;
-        unsigned bestScore = -1;
+                createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
+                createInfo.pQueueCreateInfos = queueCreateInfos.data();
 
-        for ( auto device : devices ) {
-            const auto score = rateDeviceSuitability(surface, device);
-            if ( score < bestScore ) {
-                seleted = device;
-                bestScore = score;
-            }
-        }
+                createInfo.pEnabledFeatures = &deviceFeatures;
 
-        return seleted;
-    }
-
-    std::tuple<VkDevice, VkQueue, VkQueue> createLogicalDevice(const VkSurfaceKHR surface, const VkPhysicalDevice physicalDevice) {
-        const auto indices = findQueueFamilies(physicalDevice, surface);
-
-        std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-        {
-            std::set<uint32_t> uniqueQueueFamilies = { indices.m_graphicsFamily.value(), indices.m_presentFamily.value() };
-
-            float queuePriority = 1.f;
-            for ( const uint32_t queueFamily : uniqueQueueFamilies ) {
-                VkDeviceQueueCreateInfo queueCreateInfo = {};
-                queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-                queueCreateInfo.queueFamilyIndex = queueFamily;
-                queueCreateInfo.queueCount = 1;
-                queueCreateInfo.pQueuePriorities = &queuePriority;
-                queueCreateInfos.push_back(queueCreateInfo);
-            }
-        }
-
-        VkPhysicalDeviceFeatures deviceFeatures = {};
-
-        VkDeviceCreateInfo createInfo = {};
-        {
-            createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-
-            createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
-            createInfo.pQueueCreateInfos = queueCreateInfos.data();
-
-            createInfo.pEnabledFeatures = &deviceFeatures;
-
-            createInfo.enabledExtensionCount = static_cast<uint32_t>(DEVICE_EXTENSIONS.size());
-            createInfo.ppEnabledExtensionNames = DEVICE_EXTENSIONS.data();
+                createInfo.enabledExtensionCount = static_cast<uint32_t>(DEVICE_EXTENSIONS.size());
+                createInfo.ppEnabledExtensionNames = DEVICE_EXTENSIONS.data();
 
 #ifndef NDEBUG
-            createInfo.enabledLayerCount = static_cast<uint32_t>(dal::VAL_LAYERS_TO_USE.size());
-            createInfo.ppEnabledLayerNames = dal::VAL_LAYERS_TO_USE.data();
+                createInfo.enabledLayerCount = static_cast<uint32_t>(dal::VAL_LAYERS_TO_USE.size());
+                createInfo.ppEnabledLayerNames = dal::VAL_LAYERS_TO_USE.data();
 #else
-            createInfo.enabledLayerCount = 0;
+                createInfo.enabledLayerCount = 0;
 #endif
-        }
+            }
 
-        VkDevice logicalDevice = VK_NULL_HANDLE;
-        if ( VK_SUCCESS != vkCreateDevice(physicalDevice, &createInfo, nullptr, &logicalDevice) ) {
-            throw std::runtime_error{ "failed to create logical device!" };
-        }
-
-        VkQueue graphicQ = VK_NULL_HANDLE, presentQ = VK_NULL_HANDLE;
-        vkGetDeviceQueue(logicalDevice, indices.m_graphicsFamily.value(), 0, &graphicQ);
-        vkGetDeviceQueue(logicalDevice, indices.m_presentFamily.value(), 0, &presentQ);
-
-        return std::make_tuple(logicalDevice, graphicQ, presentQ);
-    }
-
-
-    VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
-        for ( const auto& availableFormat : availableFormats ) {
-            if ( availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR ) {
-                return availableFormat;
+            if ( VK_SUCCESS != vkCreateDevice(physDevice, &createInfo, nullptr, &this->m_logiDevice) ) {
+                throw std::runtime_error{ "failed to create logical device!" };
             }
         }
 
-        return availableFormats[0];
+        vkGetDeviceQueue(this->m_logiDevice, indices.m_graphicsFamily.value(), 0, &this->m_graphicsQueue);
+        vkGetDeviceQueue(this->m_logiDevice, indices.m_presentFamily.value(), 0, &this->m_presentQueue);
     }
 
-    VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) {
-        for ( const auto& availablePresentMode : availablePresentModes ) {
-            // This is the triple buffering.
-            if ( VK_PRESENT_MODE_MAILBOX_KHR == availablePresentMode ) {
-                return availablePresentMode;
-            }
-        }
+    void LogiDeviceAndQueue::destroy(void) {
+        // Queue is destoryed implicitly when the corresponding VkDevice is destroyed.
 
-        return VK_PRESENT_MODE_FIFO_KHR;
+        vkDestroyDevice(this->m_logiDevice, nullptr);
+        this->m_logiDevice = VK_NULL_HANDLE;
     }
 
-    VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) {
-        if ( capabilities.currentExtent.width != UINT32_MAX ) {
-            return capabilities.currentExtent;
-        }
-        else {
-            VkExtent2D actualExtent = { dal::WIN_WIDTH, dal::WIN_HEIGHT };
+}
 
-            actualExtent.width = clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
-            actualExtent.height = clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
 
-            return actualExtent;
-        }
-    }
+// Swapchain
+namespace dal {
 
-    std::tuple<VkSwapchainKHR, VkFormat, VkExtent2D> createSwapChain(const VkSurfaceKHR surface, const VkPhysicalDevice physicalDevice, const VkDevice logicalDevice)
-    {
-        SwapChainSupportDetails swapChainSupport = querySwapChainSupport(surface, physicalDevice);
+    void Swapchain::init(VkSurfaceKHR surface, VkPhysicalDevice physDevice, VkDevice logiDevice) {
+        const SwapChainSupportDetails swapChainSupport = querySwapChainSupport(surface, physDevice);
 
-        VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
-        VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
-        VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities);
+        const VkSurfaceFormatKHR surfaceFormat = this->chooseSwapSurfaceFormat(swapChainSupport.formats);
+        const VkPresentModeKHR presentMode = this->chooseSwapPresentMode(swapChainSupport.presentModes);
+        const VkExtent2D extent = this->chooseSwapExtent(swapChainSupport.capabilities);
 
         // Simply sticking to this minimum means that we may sometimes have to wait on the driver to complete
         // internal operations before we can acquire another image to render to. Therefore it is recommended to
@@ -342,8 +331,10 @@ namespace {
             imageCount = swapChainSupport.capabilities.maxImageCount;
         }
 
-        VkSwapchainCreateInfoKHR createInfo = {};
+        // Create swap chain
         {
+            VkSwapchainCreateInfoKHR createInfo = {};
+
             createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
             createInfo.surface = surface;
 
@@ -354,7 +345,7 @@ namespace {
             createInfo.imageArrayLayers = 1;
             createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-            QueueFamilyIndices indices = findQueueFamilies(physicalDevice, surface);
+            QueueFamilyIndices indices = findQueueFamilies(physDevice, surface);
             uint32_t queueFamilyIndices[] = { indices.m_graphicsFamily.value(), indices.m_presentFamily.value() };
 
             if ( indices.m_graphicsFamily != indices.m_presentFamily ) {
@@ -373,52 +364,75 @@ namespace {
             createInfo.presentMode = presentMode;
             createInfo.clipped = VK_TRUE;
             createInfo.oldSwapchain = VK_NULL_HANDLE;
+
+            if ( vkCreateSwapchainKHR(logiDevice, &createInfo, nullptr, &this->m_swapChain) != VK_SUCCESS ) {
+                throw std::runtime_error("failed to create swap chain!");
+            }
         }
 
-        VkSwapchainKHR swapChain = VK_NULL_HANDLE;
-        if ( vkCreateSwapchainKHR(logicalDevice, &createInfo, nullptr, &swapChain) != VK_SUCCESS ) {
-            throw std::runtime_error("failed to create swap chain!");
+        this->m_imageFormat = surfaceFormat.format;
+        this->m_extent = extent;
+    }
+
+    void Swapchain::destroy(VkDevice logiDevice) {
+        vkDestroySwapchainKHR(logiDevice, this->m_swapChain, nullptr);
+        this->m_swapChain = VK_NULL_HANDLE;
+    }
+
+    // Private
+
+    VkSurfaceFormatKHR Swapchain::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
+        for ( const auto& availableFormat : availableFormats ) {
+            if ( availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR ) {
+                return availableFormat;
+            }
         }
 
-        return std::make_tuple(swapChain, surfaceFormat.format, extent);
+        return availableFormats[0];
+    }
+
+    VkPresentModeKHR Swapchain::chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) {
+        for ( const auto& availablePresentMode : availablePresentModes ) {
+            // This is the triple buffering.
+            if ( VK_PRESENT_MODE_MAILBOX_KHR == availablePresentMode ) {
+                return availablePresentMode;
+            }
+        }
+
+        return VK_PRESENT_MODE_FIFO_KHR;
+    }
+
+    VkExtent2D Swapchain::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) {
+        if ( capabilities.currentExtent.width != UINT32_MAX ) {
+            return capabilities.currentExtent;
+        }
+        else {
+            VkExtent2D actualExtent = { dal::WIN_WIDTH, dal::WIN_HEIGHT };
+
+            actualExtent.width = clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+            actualExtent.height = clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+
+            return actualExtent;
+        }
     }
 
 }
 
 
+// GraphicDevice
 namespace dal {
 
-    GraphicDevice::~GraphicDevice(void) {
-        this->destroy();
-    }
-
     void GraphicDevice::init(const VkInstance instance, const VkSurfaceKHR surface) {
-        this->m_physicalDevice = pickDevice(instance, surface);
-        if ( VK_NULL_HANDLE == this->m_physicalDevice ) {
-            throw std::runtime_error{ "failed to find a sutable graphic device." };
-        }
-
-        VkPhysicalDeviceProperties properties;
-        vkGetPhysicalDeviceProperties(this->m_physicalDevice, &properties);
-        std::cout << "Selected graphic device: " << properties.deviceName << '\n';
-
-        std::tie(this->m_logicalDevice, this->m_graphicsQueue, this->m_presentQueue) = createLogicalDevice(surface, this->m_physicalDevice);
-        std::tie(this->m_swapChain, this->m_swapChainImageFormat, this->m_swapChainExtent) = createSwapChain(surface, this->m_physicalDevice, this->m_logicalDevice);
-
-        this->m_swapchainImages.init(this->m_logicalDevice, this->m_swapChain, this->m_swapChainImageFormat, this->m_swapChainExtent);
+        this->m_physDevice.init(instance, surface);
+        this->m_logiDevice.init(surface, this->m_physDevice.get());
+        this->m_swapchain.init(surface, this->m_physDevice.get(), this->m_logiDevice.get());
+        this->m_swapchainImages.init(this->m_logiDevice.get(), this->m_swapchain.get(), this->m_swapchain.imageFormat(), this->m_swapchain.extent());
     }
 
     void GraphicDevice::destroy(void) {
-        this->m_swapchainImages.destroy(this->m_logicalDevice);
-
-        vkDestroySwapchainKHR(this->m_logicalDevice, this->m_swapChain, nullptr);
-        this->m_swapChain = VK_NULL_HANDLE;
-
-        vkDestroyDevice(this->m_logicalDevice, nullptr);
-        this->m_logicalDevice = VK_NULL_HANDLE;
-
-        // Physical device is destoryed implicitly when the corresponding VkInstance is destroyed.
-        // Queue is destoryed implicitly when the corresponding VkDevice is destroyed.
+        this->m_swapchainImages.destroy(this->m_logiDevice.get());
+        this->m_swapchain.destroy(this->m_logiDevice.get());
+        this->m_logiDevice.destroy();
     }
 
 }
