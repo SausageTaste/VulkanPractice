@@ -13,6 +13,11 @@
 
 namespace {
 
+    const std::array<const char*, 1> DEVICE_EXTENSIONS = {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME
+    };
+
+
     struct QueueFamilyIndices {
         std::optional<uint32_t> m_graphicsFamily;
         std::optional<uint32_t> m_presentFamily;
@@ -52,6 +57,34 @@ namespace {
         }
 
         return indices;
+    }
+
+    struct SwapChainSupportDetails {
+        VkSurfaceCapabilitiesKHR capabilities;
+        std::vector<VkSurfaceFormatKHR> formats;
+        std::vector<VkPresentModeKHR> presentModes;
+    };
+
+    SwapChainSupportDetails querySwapChainSupport(const VkSurfaceKHR surface, const VkPhysicalDevice device) {
+        SwapChainSupportDetails details;
+
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
+
+        uint32_t formatCount = 0;
+        vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
+        if ( 0 != formatCount ) {
+            details.formats.resize(formatCount);
+            vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.formats.data());
+        }
+
+        uint32_t presentModeCount = 0;
+        vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
+        if ( 0 != presentModeCount ) {
+            details.presentModes.resize(presentModeCount);
+            vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.presentModes.data());
+        }
+
+        return details;
     }
 
 
@@ -105,9 +138,23 @@ namespace {
         std::cout << "         max image cube dimension : " << properties.limits.maxImageDimensionCube << '\n';
     }
 
-    unsigned rateDeviceSuitability(const VkSurfaceKHR surface, const VkPhysicalDevice device) {
-        unsigned score = 0;
+    bool checkDeviceExtensionSupport(const VkPhysicalDevice device) {
+        uint32_t extensionCount;
+        vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
 
+        std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+        vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
+
+        std::set<std::string> requiredExtensions(DEVICE_EXTENSIONS.begin(), DEVICE_EXTENSIONS.end());
+
+        for ( const auto& extension : availableExtensions ) {
+            requiredExtensions.erase(extension.extensionName);
+        }
+
+        return requiredExtensions.empty();
+    }
+
+    unsigned rateDeviceSuitability(const VkSurfaceKHR surface, const VkPhysicalDevice device) {
         VkPhysicalDeviceProperties properties;
         vkGetPhysicalDeviceProperties(device, &properties);
         VkPhysicalDeviceFeatures features;
@@ -117,6 +164,25 @@ namespace {
         printDeviceInfo(properties, features);
 #endif
 
+        // Invalid device condition
+        {
+            // Application can't function without geometry shaders
+            if ( !features.geometryShader )
+                return 0;
+
+            if ( !findQueueFamilies(device, surface).isComplete() )
+                return 0;
+
+            if ( !checkDeviceExtensionSupport(device) )
+                return 0;
+
+            const auto swapChainSupport = querySwapChainSupport(surface, device);
+            const auto swapChainAdequate = !(swapChainSupport.formats.empty() || swapChainSupport.presentModes.empty());
+            if ( !swapChainAdequate )
+                return 0;
+        }
+
+        unsigned score = 0;
         {
             // Discrete GPUs have a significant performance advantage
             if ( VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU == properties.deviceType )
@@ -124,13 +190,6 @@ namespace {
 
             // Maximum possible size of textures affects graphics quality
             score += properties.limits.maxImageDimension2D;
-
-            // Application can't function without geometry shaders
-            if ( !features.geometryShader )
-                return 0;
-
-            if ( !findQueueFamilies(device, surface).isComplete() )
-                return 0;
         }
 
 #if DAL_PRINT_DEVICE_INFO
@@ -169,7 +228,6 @@ namespace {
         return seleted;
     }
 
-
     std::tuple<VkDevice, VkQueue, VkQueue> createLogicalDevice(const VkSurfaceKHR surface, const VkPhysicalDevice physicalDevice) {
         const auto indices = findQueueFamilies(physicalDevice, surface);
 
@@ -199,7 +257,8 @@ namespace {
 
             createInfo.pEnabledFeatures = &deviceFeatures;
 
-            createInfo.enabledExtensionCount = 0;
+            createInfo.enabledExtensionCount = static_cast<uint32_t>(DEVICE_EXTENSIONS.size());
+            createInfo.ppEnabledExtensionNames = DEVICE_EXTENSIONS.data();
 
 #ifndef NDEBUG
             createInfo.enabledLayerCount = static_cast<uint32_t>(dal::VAL_LAYERS_TO_USE.size());
