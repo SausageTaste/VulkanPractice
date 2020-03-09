@@ -33,7 +33,7 @@ namespace dal {
         }
 
     private:
-        static unsigned PhysDevice::rateDeviceSuitability(VkSurfaceKHR surface, VkPhysicalDevice physDevice);
+        static unsigned rateDeviceSuitability(VkSurfaceKHR surface, VkPhysicalDevice physDevice);
         static bool checkDeviceExtensionSupport(VkPhysicalDevice physDevice);
         static void printDeviceInfo(const VkPhysicalDeviceProperties& properties, const VkPhysicalDeviceFeatures& features);
 
