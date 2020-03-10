@@ -14,6 +14,7 @@ add_executable(vulkan_practice
     shader.h            shader.cpp
     renderpass.h        renderpass.cpp
     util_windows.h      util_windows.cpp
+    fbufmanager.h       fbufmanager.cpp
 )
 target_compile_features(vulkan_practice PUBLIC cxx_std_17)
 

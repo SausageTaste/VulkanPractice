@@ -18,6 +18,10 @@ namespace dal {
         void init(VkDevice logicalDevice, VkSwapchainKHR swapChain, VkFormat swapChainImageFormat, VkExtent2D swapChainExtent);
         void destroy(VkDevice logicalDevice);
 
+        auto& getViews(void) const {
+            return this->m_swapChainImageViews;
+        }
+
     };
 
 }

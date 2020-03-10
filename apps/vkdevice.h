@@ -7,6 +7,7 @@
 #include "swapchain_images.h"
 #include "shader.h"
 #include "renderpass.h"
+#include "fbufmanager.h"
 
 
 namespace dal {
@@ -99,6 +100,7 @@ namespace dal {
         SwapchainImages m_swapchainImages;
         RenderPass m_renderPass;
         ShaderPipeline m_pipeline;
+        FbufManager m_fbuf;
 
     public:
         void init(const VkInstance instance, const VkSurfaceKHR surface);
