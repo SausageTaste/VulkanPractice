@@ -17,6 +17,9 @@ add_executable(vulkan_practice
     fbufmanager.h       fbufmanager.cpp
     vkommand.h          vkommand.cpp
     util_vulkan.h       util_vulkan.cpp
+    physdevice.h        physdevice.cpp
+    swapchain.h         swapchain.cpp
+    logidevice.h        logidevice.cpp
 )
 target_compile_features(vulkan_practice PUBLIC cxx_std_17)
 

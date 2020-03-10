@@ -1,7 +1,8 @@
 #pragma once
 
-#include <optional>
+#include <vector>
 #include <cstdint>
+#include <optional>
 
 #include <vulkan/vulkan.h>
 
@@ -21,5 +22,14 @@ namespace dal {
     };
 
     QueueFamilyIndices findQueueFamilies(const VkPhysicalDevice device, const VkSurfaceKHR surface);
+
+
+    struct SwapChainSupportDetails {
+        VkSurfaceCapabilitiesKHR capabilities;
+        std::vector<VkSurfaceFormatKHR> formats;
+        std::vector<VkPresentModeKHR> presentModes;
+    };
+
+    SwapChainSupportDetails querySwapChainSupport(const VkSurfaceKHR surface, const VkPhysicalDevice device);
 
 }

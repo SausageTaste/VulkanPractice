@@ -12,4 +12,8 @@ namespace dal {
        "VK_LAYER_KHRONOS_validation"
     };
 
+    const std::array<const char*, 1> DEVICE_EXTENSIONS = {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME
+    };
+
 }

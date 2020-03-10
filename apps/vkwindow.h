@@ -20,7 +20,7 @@ namespace dal {
         GLFWwindow* m_window = nullptr;
         VkInstance m_instance = VK_NULL_HANDLE;
         VkSurfaceKHR m_surface = VK_NULL_HANDLE;
-        GraphicDevice m_device;
+        VulkanMaster m_device;
 
 #ifndef NDEBUG
         VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
