@@ -8,10 +8,11 @@ namespace dal {
     class ShaderPipeline {
 
     private:
-        VkPipelineLayout m_pipelineLayout;
+        VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
+        VkPipeline m_graphicsPipeline = VK_NULL_HANDLE;
 
     public:
-        void init(VkDevice device, const VkExtent2D& extent);
+        void init(VkDevice device, VkRenderPass renderPass, const VkExtent2D& extent);
         void destroy(VkDevice device);
 
     };

@@ -14,6 +14,10 @@ namespace dal {
         void init(VkDevice logiDevice, const VkFormat swapChainImageFormat);
         void destroy(VkDevice logiDevice);
 
+        auto get(void) const {
+            return this->m_renderPass;
+        }
+
     };
 
 }

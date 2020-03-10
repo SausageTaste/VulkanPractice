@@ -428,7 +428,7 @@ namespace dal {
         this->m_swapchain.init(surface, this->m_physDevice.get(), this->m_logiDevice.get());
         this->m_swapchainImages.init(this->m_logiDevice.get(), this->m_swapchain.get(), this->m_swapchain.imageFormat(), this->m_swapchain.extent());
         this->m_renderPass.init(this->m_logiDevice.get(), this->m_swapchain.imageFormat());
-        this->m_pipeline.init(this->m_logiDevice.get(), this->m_swapchain.extent());
+        this->m_pipeline.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchain.extent());
     }
 
     void GraphicDevice::destroy(void) {

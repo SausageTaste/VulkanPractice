@@ -50,9 +50,7 @@ namespace {
         return shaderModule;
     }
 
-    VkPipelineLayout createGraphicsPipeline(VkDevice device, const VkExtent2D& extent) {
-        VkPipelineLayout result;
-
+    std::pair<VkPipelineLayout, VkPipeline> createGraphicsPipeline(VkDevice device, VkRenderPass renderPass, const VkExtent2D& extent) {
         const auto vertShaderCode = readFile("shader/triangle_v.spv");
         const auto fragShaderCode = readFile("shader/triangle_f.spv");
 
@@ -207,8 +205,34 @@ namespace {
         pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
         pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
 
-        if ( vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &result) != VK_SUCCESS ) {
+        VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+        if ( vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS ) {
             throw std::runtime_error("failed to create pipeline layout!");
+        }
+
+        // Pipeline, finally
+
+        VkGraphicsPipelineCreateInfo pipelineInfo = {};
+        pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+        pipelineInfo.stageCount = 2;
+        pipelineInfo.pStages = shaderStages.data();
+        pipelineInfo.pVertexInputState = &vertexInputInfo;
+        pipelineInfo.pInputAssemblyState = &inputAssembly;
+        pipelineInfo.pViewportState = &viewportState;
+        pipelineInfo.pRasterizationState = &rasterizer;
+        pipelineInfo.pMultisampleState = &multisampling;
+        pipelineInfo.pDepthStencilState = nullptr; // Optional
+        pipelineInfo.pColorBlendState = &colorBlending;
+        pipelineInfo.pDynamicState = nullptr; // Optional
+        pipelineInfo.layout = pipelineLayout;
+        pipelineInfo.renderPass = renderPass;
+        pipelineInfo.subpass = 0;
+        pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
+        pipelineInfo.basePipelineIndex = -1; // Optional
+
+        VkPipeline graphicsPipeline = VK_NULL_HANDLE;
+        if ( vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS ) {
+            throw std::runtime_error("failed to create graphics pipeline!");
         }
 
         // Cleap up
@@ -216,7 +240,7 @@ namespace {
         vkDestroyShaderModule(device, fragShaderModule, nullptr);
         vkDestroyShaderModule(device, vertShaderModule, nullptr);
 
-        return result;
+        return { pipelineLayout, graphicsPipeline };
     }
 
 }
@@ -225,12 +249,16 @@ namespace {
 // ShaderPipeline
 namespace dal {
 
-    void ShaderPipeline::init(VkDevice device, const VkExtent2D& extent) {
-        this->m_pipelineLayout = createGraphicsPipeline(device, extent);
+    void ShaderPipeline::init(VkDevice device, VkRenderPass renderPass, const VkExtent2D& extent) {
+        std::tie(this->m_pipelineLayout, this->m_graphicsPipeline) = createGraphicsPipeline(device, renderPass, extent);
     }
 
     void ShaderPipeline::destroy(VkDevice device) {
+        vkDestroyPipeline(device, this->m_graphicsPipeline, nullptr);
+        this->m_graphicsPipeline = VK_NULL_HANDLE;
+
         vkDestroyPipelineLayout(device, this->m_pipelineLayout, nullptr);
+        this->m_pipelineLayout = VK_NULL_HANDLE;
     }
 
 }
