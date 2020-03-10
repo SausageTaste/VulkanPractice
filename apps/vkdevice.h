@@ -8,6 +8,7 @@
 #include "shader.h"
 #include "renderpass.h"
 #include "fbufmanager.h"
+#include "vkommand.h"
 
 
 namespace dal {
@@ -101,6 +102,7 @@ namespace dal {
         RenderPass m_renderPass;
         ShaderPipeline m_pipeline;
         FbufManager m_fbuf;
+        CommandPool m_command;
 
     public:
         void init(const VkInstance instance, const VkSurfaceKHR surface);

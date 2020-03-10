@@ -15,6 +15,8 @@ add_executable(vulkan_practice
     renderpass.h        renderpass.cpp
     util_windows.h      util_windows.cpp
     fbufmanager.h       fbufmanager.cpp
+    vkommand.h          vkommand.cpp
+    util_vulkan.h       util_vulkan.cpp
 )
 target_compile_features(vulkan_practice PUBLIC cxx_std_17)
 

@@ -16,6 +16,10 @@ namespace dal {
         void init(VkDevice device, VkRenderPass renderPass, const std::vector<VkImageView>& swapChainImageViews, const VkExtent2D& extent);
         void destroy(VkDevice device);
 
+        auto& getList(void) const {
+            return this->m_swapChainFbufs;
+        }
+
     };
 
 }

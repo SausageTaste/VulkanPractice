@@ -7,6 +7,7 @@
 #include <iostream>
 
 #include "konst.h"
+#include "util_vulkan.h"
 
 #define DAL_PRINT_DEVICE_INFO true
 
@@ -27,47 +28,6 @@ namespace {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
     };
 
-
-    struct QueueFamilyIndices {
-        std::optional<uint32_t> m_graphicsFamily;
-        std::optional<uint32_t> m_presentFamily;
-
-        bool isComplete(void) const {
-            if ( !this->m_graphicsFamily.has_value() ) return false;
-            if ( !this->m_presentFamily.has_value() ) return false;
-
-            return true;
-        }
-    };
-
-    QueueFamilyIndices findQueueFamilies(const VkPhysicalDevice device, const VkSurfaceKHR surface) {
-        QueueFamilyIndices indices;
-
-        uint32_t queueFamilyCount = 0;
-        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
-
-        std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
-
-        int i = 0;
-        for ( const auto& queueFamily : queueFamilies ) {
-            if ( queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT )
-                indices.m_graphicsFamily = i;
-
-            VkBool32 presentSupport = false;
-            vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
-            if ( presentSupport ) {
-                indices.m_presentFamily = i;
-            }
-
-            if ( indices.isComplete() )
-                break;
-
-            i++;
-        }
-
-        return indices;
-    }
 
     struct SwapChainSupportDetails {
         VkSurfaceCapabilitiesKHR capabilities;
@@ -430,9 +390,11 @@ namespace dal {
         this->m_renderPass.init(this->m_logiDevice.get(), this->m_swapchain.imageFormat());
         this->m_pipeline.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchain.extent());
         this->m_fbuf.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchainImages.getViews(), this->m_swapchain.extent());
+        this->m_command.init(this->m_physDevice.get(), this->m_logiDevice.get(), surface, this->m_fbuf.getList().size());
     }
 
     void GraphicDevice::destroy(void) {
+        this->m_command.destroy(this->m_logiDevice.get());
         this->m_fbuf.destroy(this->m_logiDevice.get());
         this->m_pipeline.destroy(this->m_logiDevice.get());
         this->m_renderPass.destroy(this->m_logiDevice.get());
