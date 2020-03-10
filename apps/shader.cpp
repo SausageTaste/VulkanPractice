@@ -53,8 +53,8 @@ namespace {
     VkPipelineLayout createGraphicsPipeline(VkDevice device, const VkExtent2D& extent) {
         VkPipelineLayout result;
 
-        const auto vertShaderCode = readFile("shaders/vert.spv");
-        const auto fragShaderCode = readFile("shaders/frag.spv");
+        const auto vertShaderCode = readFile("shader/triangle_v.spv");
+        const auto fragShaderCode = readFile("shader/triangle_f.spv");
 
         const VkShaderModule vertShaderModule = createShaderModule(vertShaderCode, device);
         const VkShaderModule fragShaderModule = createShaderModule(fragShaderCode, device);
@@ -215,6 +215,8 @@ namespace {
 
         vkDestroyShaderModule(device, fragShaderModule, nullptr);
         vkDestroyShaderModule(device, vertShaderModule, nullptr);
+
+        return result;
     }
 
 }

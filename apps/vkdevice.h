@@ -5,6 +5,8 @@
 #include <vulkan/vulkan.h>
 
 #include "swapchain_images.h"
+#include "shader.h"
+#include "renderpass.h"
 
 
 namespace dal {
@@ -95,6 +97,8 @@ namespace dal {
         LogiDeviceAndQueue m_logiDevice;
         Swapchain m_swapchain;
         SwapchainImages m_swapchainImages;
+        RenderPass m_renderPass;
+        ShaderPipeline m_pipeline;
 
     public:
         void init(const VkInstance instance, const VkSurfaceKHR surface);

@@ -12,6 +12,8 @@ add_executable(vulkan_practice
     konst.h
     swapchain_images.h  swapchain_images.cpp
     shader.h            shader.cpp
+    renderpass.h        renderpass.cpp
+    util_windows.h      util_windows.cpp
 )
 target_compile_features(vulkan_practice PUBLIC cxx_std_17)
 
