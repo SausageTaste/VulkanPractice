@@ -32,6 +32,7 @@ namespace dal {
 
         void update(void);
         bool isOughtToClose(void);
+        void waitSafeExit(void);
 
     };
 

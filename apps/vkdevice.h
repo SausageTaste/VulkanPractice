@@ -12,6 +12,7 @@
 #include "renderpass.h"
 #include "fbufmanager.h"
 #include "vkommand.h"
+#include "semaphore.h"
 
 
 namespace dal {
@@ -27,10 +28,16 @@ namespace dal {
         ShaderPipeline m_pipeline;
         FbufManager m_fbuf;
         CommandPool m_command;
+        SyncMaster m_syncMas;
+
+        unsigned m_currentFrame = 0;
 
     public:
         void init(const VkInstance instance, const VkSurfaceKHR surface);
         void destroy(void);
+
+        void render(void);
+        void waitLogiDeviceIdle(void) const;
 
     };
 

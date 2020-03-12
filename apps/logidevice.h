@@ -19,6 +19,12 @@ namespace dal {
         auto get(void) const {
             return this->m_logiDevice;
         }
+        auto graphicsQ(void) const {
+            return this->m_graphicsQueue;
+        }
+        auto presentQ(void) const {
+            return this->m_presentQueue;
+        }
 
     };
 

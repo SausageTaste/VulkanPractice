@@ -1,5 +1,6 @@
 #include "swapchain_images.h"
 
+#include <cassert>
 #include <stdexcept>
 
 
@@ -10,17 +11,17 @@ namespace dal {
         {
             uint32_t imageCount;
             vkGetSwapchainImagesKHR(logicalDevice, swapChain, &imageCount, nullptr);
-            this->m_swapChainImages.resize(imageCount);
-            vkGetSwapchainImagesKHR(logicalDevice, swapChain, &imageCount, this->m_swapChainImages.data());
+            this->m_images.resize(imageCount);
+            vkGetSwapchainImagesKHR(logicalDevice, swapChain, &imageCount, this->m_images.data());
         }
 
         // Create image views
         {
-            this->m_swapChainImageViews.resize(this->m_swapChainImages.size());
-            for ( size_t i = 0; i < this->m_swapChainImages.size(); i++ ) {
+            this->m_views.resize(this->m_images.size());
+            for ( size_t i = 0; i < this->m_images.size(); i++ ) {
                 VkImageViewCreateInfo createInfo = {};
                 createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-                createInfo.image = this->m_swapChainImages[i];
+                createInfo.image = this->m_images[i];
                 createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
                 createInfo.format = swapChainImageFormat;
 
@@ -35,7 +36,7 @@ namespace dal {
                 createInfo.subresourceRange.baseArrayLayer = 0;
                 createInfo.subresourceRange.layerCount = 1;
 
-                if ( vkCreateImageView(logicalDevice, &createInfo, nullptr, &this->m_swapChainImageViews[i]) != VK_SUCCESS ) {
+                if ( vkCreateImageView(logicalDevice, &createInfo, nullptr, &this->m_views[i]) != VK_SUCCESS ) {
                     throw std::runtime_error("failed to create image views!");
                 }
             }
@@ -43,10 +44,15 @@ namespace dal {
     }
 
     void SwapchainImages::destroy(VkDevice logicalDevice) {
-        for ( auto imageView : this->m_swapChainImageViews ) {
+        for ( auto imageView : this->m_views ) {
             vkDestroyImageView(logicalDevice, imageView, nullptr);
         }
-        this->m_swapChainImageViews.clear();
+        this->m_views.clear();
+    }
+
+    size_t SwapchainImages::size(void) const {
+        assert(this->m_images.size() == this->m_views.size());
+        return this->m_images.size();
     }
 
 }

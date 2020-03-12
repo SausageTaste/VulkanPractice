@@ -237,10 +237,15 @@ namespace dal {
 
     void VulkanWindowGLFW::update(void) {
         glfwPollEvents();
+        this->m_device.render();
     }
 
     bool VulkanWindowGLFW::isOughtToClose(void) {
         return glfwWindowShouldClose(this->m_window);
+    }
+
+    void VulkanWindowGLFW::waitSafeExit(void) {
+        this->m_device.waitLogiDeviceIdle();
     }
 
 }

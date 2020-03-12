@@ -20,6 +20,7 @@ add_executable(vulkan_practice
     physdevice.h        physdevice.cpp
     swapchain.h         swapchain.cpp
     logidevice.h        logidevice.cpp
+    semaphore.h         semaphore.cpp
 )
 target_compile_features(vulkan_practice PUBLIC cxx_std_17)
 

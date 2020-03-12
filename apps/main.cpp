@@ -11,6 +11,8 @@ int main(int argc, char** argv) {
         while ( !window.isOughtToClose() ) {
             window.update();
         }
+
+        window.waitSafeExit();
     }
     catch ( const std::exception & e ) {
         std::cout << "Fatal Exception: " << e.what() << std::endl;

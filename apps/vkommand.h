@@ -18,6 +18,10 @@ namespace dal {
             VkPipeline graphicsPipeline, const VkExtent2D& extent, const std::vector<VkFramebuffer>& swapChainFbufs);
         void destroy(VkDevice logiDevice);
 
+        auto& buffers(void) const {
+            return this->m_buffers;
+        }
+
     };
 
 }
