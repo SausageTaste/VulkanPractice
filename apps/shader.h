@@ -15,6 +15,10 @@ namespace dal {
         void init(VkDevice device, VkRenderPass renderPass, const VkExtent2D& extent);
         void destroy(VkDevice device);
 
+        auto getPipeline(void) const {
+            return this->m_graphicsPipeline;
+        }
+
     };
 
 }

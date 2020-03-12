@@ -14,8 +14,8 @@ namespace dal {
         std::vector<VkCommandBuffer> m_buffers;
 
     public:
-        // cmdBufSize must be size of swapChainFramebuffers.
-        void init(VkPhysicalDevice physDevice, VkDevice logiDevice, VkSurfaceKHR surface, const unsigned cmdBufSize);
+        void init(VkPhysicalDevice physDevice, VkDevice logiDevice, VkSurfaceKHR surface, VkRenderPass renderPass,
+            VkPipeline graphicsPipeline, const VkExtent2D& extent, const std::vector<VkFramebuffer>& swapChainFbufs);
         void destroy(VkDevice logiDevice);
 
     };
