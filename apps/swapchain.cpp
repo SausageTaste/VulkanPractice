@@ -1,6 +1,7 @@
 #include "swapchain.h"
 
 #include <vector>
+#include <algorithm>
 
 #include "konst.h"
 #include "util_vulkan.h"
@@ -9,18 +10,8 @@
 namespace {
 
     template <typename T>
-    constexpr T d_min(const T x, const T y) {
-        return x < y ? x : y;
-    }
-
-    template <typename T>
-    constexpr T d_max(const T x, const T y) {
-        return x > y ? x : y;
-    }
-
-    template <typename T>
     constexpr T clamp(const T v, const T minv, const T maxv) {
-        return d_max(minv, d_min(maxv, v));
+        return std::max<T>(minv, std::min<T>(maxv, v));
     }
 
 
