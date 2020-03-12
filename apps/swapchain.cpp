@@ -9,8 +9,18 @@
 namespace {
 
     template <typename T>
+    constexpr T d_min(const T x, const T y) {
+        return x < y ? x : y;
+    }
+
+    template <typename T>
+    constexpr T d_max(const T x, const T y) {
+        return x > y ? x : y;
+    }
+
+    template <typename T>
     constexpr T clamp(const T v, const T minv, const T maxv) {
-        return max(minv, min(maxv, v));
+        return d_max(minv, d_min(maxv, v));
     }
 
 
@@ -83,10 +93,10 @@ namespace dal {
             createInfo.imageArrayLayers = 1;
             createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-            QueueFamilyIndices indices = findQueueFamilies(physDevice, surface);
-            uint32_t queueFamilyIndices[] = { indices.m_graphicsFamily.value(), indices.m_presentFamily.value() };
+            const QueueFamilyIndices indices = findQueueFamilies(physDevice, surface);
+            uint32_t queueFamilyIndices[] = { indices.graphicsFamily(), indices.presentFamily() };
 
-            if ( indices.m_graphicsFamily != indices.m_presentFamily ) {
+            if ( indices.graphicsFamily() != indices.presentFamily() ) {
                 createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
                 createInfo.queueFamilyIndexCount = 2;
                 createInfo.pQueueFamilyIndices = queueFamilyIndices;

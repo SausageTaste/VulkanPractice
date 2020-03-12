@@ -17,7 +17,7 @@ namespace dal {
         {
             std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
             {
-                std::set<uint32_t> uniqueQueueFamilies = { indices.m_graphicsFamily.value(), indices.m_presentFamily.value() };
+                std::set<uint32_t> uniqueQueueFamilies = { indices.graphicsFamily(), indices.presentFamily() };
 
                 float queuePriority = 1.f;
                 for ( const uint32_t queueFamily : uniqueQueueFamilies ) {
@@ -57,8 +57,8 @@ namespace dal {
             }
         }
 
-        vkGetDeviceQueue(this->m_logiDevice, indices.m_graphicsFamily.value(), 0, &this->m_graphicsQueue);
-        vkGetDeviceQueue(this->m_logiDevice, indices.m_presentFamily.value(), 0, &this->m_presentQueue);
+        vkGetDeviceQueue(this->m_logiDevice, indices.graphicsFamily(), 0, &this->m_graphicsQueue);
+        vkGetDeviceQueue(this->m_logiDevice, indices.presentFamily(), 0, &this->m_presentQueue);
     }
 
     void LogiDeviceAndQueue::destroy(void) {

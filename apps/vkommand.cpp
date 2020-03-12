@@ -12,7 +12,7 @@ namespace {
 
         VkCommandPoolCreateInfo poolInfo = {};
         poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        poolInfo.queueFamilyIndex = queueFamilyIndices.m_graphicsFamily.value();
+        poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily();
         poolInfo.flags = 0; // Optional
 
         VkCommandPool commandPool = VK_NULL_HANDLE;

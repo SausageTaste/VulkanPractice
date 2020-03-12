@@ -22,7 +22,7 @@ add_executable(vulkan_practice
     logidevice.h        logidevice.cpp
     semaphore.h         semaphore.cpp
 )
-target_compile_features(vulkan_practice PUBLIC cxx_std_17)
+target_compile_features(vulkan_practice PUBLIC cxx_std_14)
 
 
 # Library

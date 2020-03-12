@@ -1,9 +1,25 @@
 #include "util_vulkan.h"
 
 #include <vector>
+#include <stdexcept>
 
 
 namespace dal {
+
+    uint32_t QueueFamilyIndices::graphicsFamily(void) const {
+        if ( this->NULL_VAL == this->m_graphicsFamily ) {
+            throw std::runtime_error{ "graphics family hasn't been set!" };
+        }
+        return this->m_graphicsFamily;
+    }
+
+    uint32_t QueueFamilyIndices::presentFamily(void) const {
+        if ( this->NULL_VAL == this->m_presentFamily ) {
+            throw std::runtime_error{ "present family hasn't been set!" };
+        }
+        return this->m_presentFamily;
+    }
+
 
     QueueFamilyIndices findQueueFamilies(const VkPhysicalDevice device, const VkSurfaceKHR surface) {
         QueueFamilyIndices indices;
@@ -17,12 +33,12 @@ namespace dal {
         int i = 0;
         for ( const auto& queueFamily : queueFamilies ) {
             if ( queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT )
-                indices.m_graphicsFamily = i;
+                indices.setGraphicsFamily(i);
 
             VkBool32 presentSupport = false;
             vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
             if ( presentSupport ) {
-                indices.m_presentFamily = i;
+                indices.setPresentFamily(i);
             }
 
             if ( indices.isComplete() )
