@@ -4,6 +4,8 @@
 #include <vector>
 #include <fstream>
 
+#include "util_windows.h"
+
 #define DAL_ALPHA_BLEND false
 
 
@@ -30,6 +32,10 @@ namespace {
         return buffer;
     }
 
+    std::vector<char> readFile(const std::string& path) {
+        return readFile(path.c_str());
+    }
+
 }
 
 
@@ -51,8 +57,9 @@ namespace {
     }
 
     std::pair<VkPipelineLayout, VkPipeline> createGraphicsPipeline(VkDevice device, VkRenderPass renderPass, const VkExtent2D& extent) {
-        const auto vertShaderCode = readFile("shader/triangle_v.spv");
-        const auto fragShaderCode = readFile("shader/triangle_f.spv");
+        const auto resdir = dal::findResPath();
+        const auto vertShaderCode = readFile(resdir + "/shader/triangle_v.spv");
+        const auto fragShaderCode = readFile(resdir + "/shader/triangle_f.spv");
 
         const VkShaderModule vertShaderModule = createShaderModule(vertShaderCode, device);
         const VkShaderModule fragShaderModule = createShaderModule(fragShaderCode, device);
