@@ -156,6 +156,12 @@ namespace dal {
             }
         }
 
+#if DAL_PRINT_DEVICE_INFO
+        VkPhysicalDeviceProperties properties;
+        vkGetPhysicalDeviceProperties(this->m_handle, &properties);
+        std::cout << "Selected GPU: " << properties.deviceName << '\n';
+#endif
+
         if ( VK_NULL_HANDLE == this->m_handle ) {
             throw std::runtime_error{ "failed to find a sutable graphic device." };
         }

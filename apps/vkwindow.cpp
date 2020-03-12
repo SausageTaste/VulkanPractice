@@ -4,6 +4,7 @@
 #include <exception>
 
 #include "konst.h"
+#include "timer.h"
 
 /*
 #define GLM_FORCE_RADIANS
@@ -16,6 +17,9 @@
 namespace {
 
     const char* const WINDOW_TITLE = "Vulkan Practice";
+
+    dal::Timer g_timer;
+    size_t g_fpsCounter = 0;
 
 }
 
@@ -236,6 +240,18 @@ namespace dal {
     }
 
     void VulkanWindowGLFW::update(void) {
+        // Print FPS
+        {
+            if ( g_timer.getElapsed() > 1.0 ) {
+                std::cout << "FPS: " << g_fpsCounter << std::endl;
+                g_timer.check();
+                g_fpsCounter = 0;
+            }
+            else {
+                g_fpsCounter++;
+            }
+        }
+
         glfwPollEvents();
         this->m_device.render();
     }

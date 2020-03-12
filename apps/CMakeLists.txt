@@ -21,6 +21,7 @@ add_executable(vulkan_practice
     swapchain.h         swapchain.cpp
     logidevice.h        logidevice.cpp
     semaphore.h         semaphore.cpp
+    timer.h             timer.cpp
 )
 target_compile_features(vulkan_practice PUBLIC cxx_std_14)
 
