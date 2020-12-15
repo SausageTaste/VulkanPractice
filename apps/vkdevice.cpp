@@ -4,16 +4,35 @@
 #include <stdexcept>
 
 
+namespace {
+
+    bool isResizeNeeded(const VkResult res) {
+        if (VK_ERROR_OUT_OF_DATE_KHR  == res) {
+            return true;
+        }
+        else if (VK_SUBOPTIMAL_KHR == res) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+
+}
+
+
 // VulkanMaster
 namespace dal {
 
-    void VulkanMaster::init(const VkInstance instance, const VkSurfaceKHR surface) {
+    void VulkanMaster::init(const VkInstance instance, const VkSurfaceKHR surface, const unsigned w, const unsigned h) {
         this->m_physDevice.init(instance, surface);
         this->m_logiDevice.init(surface, this->m_physDevice.get());
 
         this->initSwapChain(surface);
 
         this->m_currentFrame = 0;
+        this->m_scrWidth = w;
+        this->m_scrHeight = h;
     }
 
     void VulkanMaster::destroy(void) {
@@ -22,19 +41,24 @@ namespace dal {
         this->m_logiDevice.destroy();
     }
 
-    void VulkanMaster::render(void) {
+    void VulkanMaster::render(const VkSurfaceKHR surface) {
         auto& currentFence = this->m_syncMas.fenceInFlight(this->m_currentFrame);
         currentFence.wait(this->m_logiDevice.get());
 
         const auto imageIndex = this->m_syncMas.acquireGetNextImgIndex(this->m_currentFrame, this->m_logiDevice.get(), this->m_swapchain.get());
-        {
+        if (this->m_needResize || ::isResizeNeeded(imageIndex.second)) {
+            this->recreateSwapChain(surface);
+            this->m_needResize = false;
+            return;
+        }
+        else {
             auto& imagesInFlight = this->m_syncMas.fencesImageInFlight();
             // Check if a previous frame is using this image (i.e. there is its fence to wait on)
-            if ( imagesInFlight[imageIndex] != VK_NULL_HANDLE ) {
-                vkWaitForFences(this->m_logiDevice.get(), 1, &imagesInFlight[imageIndex], VK_TRUE, UINT64_MAX);
+            if ( imagesInFlight[imageIndex.first] != VK_NULL_HANDLE ) {
+                vkWaitForFences(this->m_logiDevice.get(), 1, &imagesInFlight[imageIndex.first], VK_TRUE, UINT64_MAX);
             }
             // Mark the image as now being in use by this frame
-            imagesInFlight[imageIndex] = this->m_syncMas.fenceInFlight(this->m_currentFrame).get();
+            imagesInFlight[imageIndex.first] = this->m_syncMas.fenceInFlight(this->m_currentFrame).get();
         }
 
         VkSubmitInfo submitInfo = {};
@@ -47,7 +71,7 @@ namespace dal {
         submitInfo.pWaitDstStageMask = waitStages.data();
 
         submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &this->m_command.buffers()[imageIndex];
+        submitInfo.pCommandBuffers = &this->m_command.buffers()[imageIndex.first];
 
         const std::array<VkSemaphore, 1> signalSemaphores = { this->m_syncMas.semaphRenderFinished(this->m_currentFrame).get() };
         submitInfo.signalSemaphoreCount = signalSemaphores.size();
@@ -66,7 +90,7 @@ namespace dal {
         std::array<VkSwapchainKHR, 1> swapChains = { this->m_swapchain.get() };
         presentInfo.swapchainCount = swapChains.size();
         presentInfo.pSwapchains = swapChains.data();
-        presentInfo.pImageIndices = &imageIndex;
+        presentInfo.pImageIndices = &imageIndex.first;
         presentInfo.pResults = nullptr; // Optional
 
         vkQueuePresentKHR(this->m_logiDevice.presentQ(), &presentInfo);
@@ -89,8 +113,14 @@ namespace dal {
         this->initSwapChain(surface);
     }
 
+    void VulkanMaster::notifyScreenResize(const unsigned w, const unsigned h) {
+        this->m_needResize = true;
+        this->m_scrWidth = w;
+        this->m_scrHeight = h;
+    }
+
     void VulkanMaster::initSwapChain(const VkSurfaceKHR surface) {
-        this->m_swapchain.init(surface, this->m_physDevice.get(), this->m_logiDevice.get());
+        this->m_swapchain.init(surface, this->m_physDevice.get(), this->m_logiDevice.get(), this->m_scrWidth, this->m_scrHeight);
         this->m_swapchainImages.init(this->m_logiDevice.get(), this->m_swapchain.get(), this->m_swapchain.imageFormat(), this->m_swapchain.extent());
         this->m_renderPass.init(this->m_logiDevice.get(), this->m_swapchain.imageFormat());
         this->m_pipeline.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchain.extent());

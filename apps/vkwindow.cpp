@@ -26,14 +26,21 @@ namespace {
 
 namespace {
 
+    static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
+        auto app = reinterpret_cast<dal::VulkanWindowGLFW*>(glfwGetWindowUserPointer(window));
+        app->onResize(width, height);
+    }
+
     GLFWwindow* createWindowGLFW(const unsigned width, const unsigned height, const char* const title) {
         glfwInit();
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
         auto window = glfwCreateWindow(width, height, title, nullptr, nullptr);
         if ( nullptr == window )
             throw std::runtime_error{ "Failed to create window." };
+
+        glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
 
         return window;
     }
@@ -212,12 +219,14 @@ namespace dal {
 
     VulkanWindowGLFW::VulkanWindowGLFW(void) {
         this->m_window = createWindowGLFW(WIN_WIDTH, WIN_HEIGHT, WINDOW_TITLE);
+        glfwSetWindowUserPointer(this->m_window, this);
+
         createVulkanInstance(this->m_instance);
 #ifndef NDEBUG
         setupDebugMessenger(this->m_instance, this->m_debugMessenger);
 #endif
         this->m_surface = createSurface(this->m_instance, this->m_window);
-        this->m_device.init(this->m_instance, this->m_surface);
+        this->m_device.init(this->m_instance, this->m_surface, WIN_WIDTH, WIN_HEIGHT);
     }
 
     VulkanWindowGLFW::~VulkanWindowGLFW(void) {
@@ -253,7 +262,7 @@ namespace dal {
         }
 
         glfwPollEvents();
-        this->m_device.render();
+        this->m_device.render(this->m_surface);
     }
 
     bool VulkanWindowGLFW::isOughtToClose(void) {
@@ -262,6 +271,10 @@ namespace dal {
 
     void VulkanWindowGLFW::waitSafeExit(void) {
         this->m_device.waitLogiDeviceIdle();
+    }
+
+    void VulkanWindowGLFW::onResize(const unsigned w, const unsigned h) {
+        this->m_device.notifyScreenResize(w, h);
     }
 
 }

@@ -2,6 +2,7 @@
 
 #include <array>
 #include <vector>
+#include <utility>
 
 #include <vulkan/vulkan.h>
 
@@ -79,7 +80,7 @@ namespace dal {
             return this->m_imageInFlight;
         }
 
-        uint32_t acquireGetNextImgIndex(const unsigned index, VkDevice device, VkSwapchainKHR swapChain);
+        std::pair<uint32_t, VkResult> acquireGetNextImgIndex(const unsigned index, VkDevice device, VkSwapchainKHR swapChain);
 
     };
 

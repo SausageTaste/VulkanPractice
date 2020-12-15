@@ -37,12 +37,12 @@ namespace {
         return VK_PRESENT_MODE_FIFO_KHR;
     }
 
-    VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) {
+    VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, const unsigned w, const unsigned h) {
         if ( capabilities.currentExtent.width != UINT32_MAX ) {
             return capabilities.currentExtent;
         }
         else {
-            VkExtent2D actualExtent = { dal::WIN_WIDTH, dal::WIN_HEIGHT };
+            VkExtent2D actualExtent = { w, h };
 
             actualExtent.width = clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
             actualExtent.height = clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
@@ -56,12 +56,12 @@ namespace {
 // Swapchain
 namespace dal {
 
-    void Swapchain::init(VkSurfaceKHR surface, VkPhysicalDevice physDevice, VkDevice logiDevice) {
+    void Swapchain::init(VkSurfaceKHR surface, VkPhysicalDevice physDevice, VkDevice logiDevice, const unsigned w, const unsigned h) {
         const SwapChainSupportDetails swapChainSupport = querySwapChainSupport(surface, physDevice);
 
         const VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
         const VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
-        const VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities);
+        const VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities, w, h);
 
         // Simply sticking to this minimum means that we may sometimes have to wait on the driver to complete
         // internal operations before we can acquire another image to render to. Therefore it is recommended to

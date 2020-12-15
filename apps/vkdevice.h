@@ -31,14 +31,18 @@ namespace dal {
         SyncMaster m_syncMas;
 
         unsigned m_currentFrame = 0;
+        bool m_needResize = false;
+        unsigned m_scrWidth, m_scrHeight;
 
     public:
-        void init(const VkInstance instance, const VkSurfaceKHR surface);
+        void init(const VkInstance instance, const VkSurfaceKHR surface, const unsigned w, const unsigned h);
         void destroy(void);
 
-        void render(void);
+        void render(const VkSurfaceKHR surface);
         void waitLogiDeviceIdle(void) const;
         void recreateSwapChain(const VkSurfaceKHR surface);
+
+        void notifyScreenResize(const unsigned w, const unsigned h);
 
     private:
         void initSwapChain(const VkSurfaceKHR surface);

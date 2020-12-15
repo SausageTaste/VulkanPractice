@@ -33,6 +33,7 @@ namespace dal {
         void update(void);
         bool isOughtToClose(void);
         void waitSafeExit(void);
+        void onResize(const unsigned w, const unsigned h);
 
     };
 

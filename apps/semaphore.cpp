@@ -104,10 +104,10 @@ namespace dal {
         }
     }
 
-    uint32_t SyncMaster::acquireGetNextImgIndex(const unsigned index, VkDevice device, VkSwapchainKHR swapChain) {
+    std::pair<uint32_t, VkResult> SyncMaster::acquireGetNextImgIndex(const unsigned index, VkDevice device, VkSwapchainKHR swapChain) {
         uint32_t imageIndex;
-        vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, this->m_imageAvailable[index].get(), VK_NULL_HANDLE, &imageIndex);
-        return imageIndex;
+        const VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, this->m_imageAvailable[index].get(), VK_NULL_HANDLE, &imageIndex);
+        return {imageIndex, result};
     }
 
 }

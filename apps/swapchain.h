@@ -14,7 +14,7 @@ namespace dal {
         VkExtent2D m_extent;
 
     public:
-        void init(VkSurfaceKHR surface, VkPhysicalDevice physDevice, VkDevice logiDevice);
+        void init(VkSurfaceKHR surface, VkPhysicalDevice physDevice, VkDevice logiDevice, const unsigned w, const unsigned h);
         void destroy(VkDevice logiDevice);
 
         VkSwapchainKHR get(void) {
