@@ -274,6 +274,14 @@ namespace dal {
     }
 
     void VulkanWindowGLFW::onResize(const unsigned w, const unsigned h) {
+        int width = 0, height = 0;
+        glfwGetFramebufferSize(this->m_window, &width, &height);
+        while (width == 0 || height == 0) {
+            printf("wait\n");
+            glfwGetFramebufferSize(this->m_window, &width, &height);
+            glfwWaitEvents();
+        }
+
         this->m_device.notifyScreenResize(w, h);
     }
 
