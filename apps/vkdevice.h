@@ -38,6 +38,7 @@ namespace dal {
 
         void render(void);
         void waitLogiDeviceIdle(void) const;
+        void recreateSwapChain(const VkSurfaceKHR surface);
 
     private:
         void initSwapChain(const VkSurfaceKHR surface);

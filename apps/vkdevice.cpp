@@ -83,6 +83,12 @@ namespace dal {
         vkDeviceWaitIdle(this->m_logiDevice.get());
     }
 
+    void VulkanMaster::recreateSwapChain(const VkSurfaceKHR surface) {
+        this->waitLogiDeviceIdle();
+        this->destroySwapChain();
+        this->initSwapChain(surface);
+    }
+
     void VulkanMaster::initSwapChain(const VkSurfaceKHR surface) {
         this->m_swapchain.init(surface, this->m_physDevice.get(), this->m_logiDevice.get());
         this->m_swapchainImages.init(this->m_logiDevice.get(), this->m_swapchain.get(), this->m_swapchain.imageFormat(), this->m_swapchain.extent());
