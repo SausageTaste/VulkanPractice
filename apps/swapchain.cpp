@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <algorithm>
+#include <stdexcept>
 
 #include "konst.h"
 #include "util_vulkan.h"
