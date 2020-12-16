@@ -6,6 +6,7 @@
 #include <fstream>
 
 #include "util_windows.h"
+#include "vert_data.h"
 
 #define DAL_ALPHA_BLEND false
 
@@ -85,11 +86,15 @@ namespace {
         // Vertex input
 
         VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
+
+        auto bindingDesc = dal::Vertex::getBindingDesc();
+        auto attribDesc = dal::Vertex::getAttributeDescriptions();
+
         vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-        vertexInputInfo.vertexBindingDescriptionCount = 0;
-        vertexInputInfo.pVertexBindingDescriptions = nullptr;  // Optional
-        vertexInputInfo.vertexAttributeDescriptionCount = 0;
-        vertexInputInfo.pVertexAttributeDescriptions = nullptr;  // Optional
+        vertexInputInfo.vertexBindingDescriptionCount = 1;
+        vertexInputInfo.pVertexBindingDescriptions = &bindingDesc;
+        vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attribDesc.size());
+        vertexInputInfo.pVertexAttributeDescriptions = attribDesc.data();
 
         // Input assembly
 
