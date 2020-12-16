@@ -34,6 +34,7 @@ add_subdirectory(${extern_dir}/glfw ${CMAKE_CURRENT_BINARY_DIR}/glfw)
 target_link_libraries(vulkan_practice PRIVATE glfw)
 
 add_subdirectory(${extern_dir}/glm ${CMAKE_CURRENT_BINARY_DIR}/glm)
+target_include_directories(vulkan_practice PRIVATE ${extern_dir}/glm)
 target_link_libraries(vulkan_practice PRIVATE glm)
 
 find_package(Vulkan REQUIRED)
