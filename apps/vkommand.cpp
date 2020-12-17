@@ -28,24 +28,39 @@ namespace {
 
 namespace dal {
 
-    void CommandPool::initPool(VkPhysicalDevice physDevice, VkDevice logiDevice, VkSurfaceKHR surface) {
-        this->m_pool = createCommandPool(physDevice, logiDevice, surface);
+    void CommandPool::init(VkPhysicalDevice physDevice, VkDevice logiDevice, VkSurfaceKHR surface) {
+        this->destroy(logiDevice);
 
+        this->m_pool = createCommandPool(physDevice, logiDevice, surface);
     }
 
-    void CommandPool::initCmdBuffers(
+    void CommandPool::destroy(const VkDevice logiDevice) {
+        if (VK_NULL_HANDLE != this->m_pool) {
+            vkDestroyCommandPool(logiDevice, this->m_pool, nullptr);
+            this->m_pool = VK_NULL_HANDLE;
+        }
+    }
+
+}
+
+
+namespace dal {
+
+    void CommandBuffers::init(
         VkDevice logiDevice, VkRenderPass renderPass, VkPipeline graphicsPipeline,
-        const VkExtent2D& extent, const std::vector<VkFramebuffer>& swapChainFbufs,
+        const VkExtent2D& extent, const std::vector<VkFramebuffer>& swapChainFbufs, VkCommandPool cmdPool,
         const VkBuffer vertBuf, const uint32_t vertSize, const VkBuffer indexBuffer, const uint32_t indexSize,
         VkPipelineLayout pipelineLayout, const std::vector<VkDescriptorSet>& descriptorSets
     ) {
+        this->destroy(logiDevice, cmdPool);
+
         // Create command buffers
         {
             this->m_buffers.resize(swapChainFbufs.size());
 
             VkCommandBufferAllocateInfo allocInfo = {};
             allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-            allocInfo.commandPool = this->m_pool;
+            allocInfo.commandPool = cmdPool;
             allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
             allocInfo.commandBufferCount = static_cast<uint32_t>(this->m_buffers.size());
 
@@ -103,11 +118,11 @@ namespace dal {
         }
     }
 
-    void CommandPool::destroy(VkDevice logiDevice) {
-        vkDestroyCommandPool(logiDevice, this->m_pool, nullptr);
-        this->m_pool = VK_NULL_HANDLE;
-
-        this->m_buffers.clear();
+    void CommandBuffers::destroy(const VkDevice logiDevice, const VkCommandPool cmdPool) {
+        if (0 != this->m_buffers.size()) {
+            vkFreeCommandBuffers(logiDevice, cmdPool, this->m_buffers.size(), this->m_buffers.data());
+            this->m_buffers.clear();
+        }
     }
 
 }

@@ -29,7 +29,8 @@ namespace dal {
         RenderPass m_renderPass;
         ShaderPipeline m_pipeline;
         FbufManager m_fbuf;
-        CommandPool m_command;
+        CommandPool m_cmdPool;
+        CommandBuffers m_cmdBuffers;
         SyncMaster m_syncMas;
         DescriptorSetLayout m_descSetLayout;
         UniformBuffers m_uniformBufs;

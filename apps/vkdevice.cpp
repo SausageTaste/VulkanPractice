@@ -33,21 +33,21 @@ namespace dal {
         this->m_descSetLayout.init(this->m_logiDevice.get());
         this->m_pipeline.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchain.extent(), this->m_descSetLayout.get());
         this->m_fbuf.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchainImages.getViews(), this->m_swapchain.extent());
-        this->m_command.initPool(this->m_physDevice.get(), this->m_logiDevice.get(), surface);
+        this->m_cmdPool.init(this->m_physDevice.get(), this->m_logiDevice.get(), surface);
         this->m_demoVertBuf.init(
             dal::getDemoVertices(), this->m_logiDevice.get(), this->m_physDevice.get(),
-            this->m_command.pool(), this->m_logiDevice.graphicsQ()
+            this->m_cmdPool.pool(), this->m_logiDevice.graphicsQ()
         );
         this->m_demoIndexBuf.init(
             dal::getDemoIndices(), this->m_logiDevice.get(), this->m_physDevice.get(),
-            this->m_command.pool(), this->m_logiDevice.graphicsQ()
+            this->m_cmdPool.pool(), this->m_logiDevice.graphicsQ()
         );
         this->m_uniformBufs.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchainImages.size());
         this->m_descPool.initPool(this->m_logiDevice.get(), this->m_swapchainImages.size());
         this->m_descPool.initSets(this->m_logiDevice.get(), this->m_swapchainImages.size(), this->m_descSetLayout.get(), this->m_uniformBufs.buffers());
-        this->m_command.initCmdBuffers(
+        this->m_cmdBuffers.init(
             this->m_logiDevice.get(), this->m_renderPass.get(), this->m_pipeline.getPipeline(), this->m_swapchain.extent(), this->m_fbuf.getList(),
-            this->m_demoVertBuf.getBuf(), this->m_demoVertBuf.size(), this->m_demoIndexBuf.getBuf(), this->m_demoIndexBuf.size(),
+            this->m_cmdPool.pool(), this->m_demoVertBuf.getBuf(), this->m_demoVertBuf.size(), this->m_demoIndexBuf.getBuf(), this->m_demoIndexBuf.size(),
             this->m_pipeline.layout(), this->m_descPool.descSets()
         );
         this->m_syncMas.init(this->m_logiDevice.get(), this->m_swapchainImages.size());
@@ -59,11 +59,12 @@ namespace dal {
 
     void VulkanMaster::destroy(void) {
         this->m_syncMas.destroy(this->m_logiDevice.get());
-        this->m_command.destroy(this->m_logiDevice.get());
+        //this->m_cmdBuffers.destroy(this->m_logiDevice.get(), this->m_cmdPool.pool());
         this->m_descPool.destroy(this->m_logiDevice.get());
         this->m_uniformBufs.destroy(this->m_logiDevice.get());
         this->m_demoIndexBuf.destroy(this->m_logiDevice.get());
         this->m_demoVertBuf.destroy(this->m_logiDevice.get());
+        this->m_cmdPool.destroy(this->m_logiDevice.get());
         this->m_fbuf.destroy(this->m_logiDevice.get());
         this->m_pipeline.destroy(this->m_logiDevice.get());
         this->m_descSetLayout.destroy(this->m_logiDevice.get());
@@ -99,13 +100,13 @@ namespace dal {
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
         const std::array<VkSemaphore, 1> waitSemaphores = { this->m_syncMas.semaphImageAvailable(this->m_currentFrame).get() };
-        const std::array <VkPipelineStageFlags, 1> waitStages = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+        const std::array<VkPipelineStageFlags, 1> waitStages = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
         submitInfo.waitSemaphoreCount = waitSemaphores.size();
         submitInfo.pWaitSemaphores = waitSemaphores.data();
         submitInfo.pWaitDstStageMask = waitStages.data();
 
         submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &this->m_command.buffers()[imageIndex.first];
+        submitInfo.pCommandBuffers = &this->m_cmdBuffers.buffers()[imageIndex.first];
 
         const std::array<VkSemaphore, 1> signalSemaphores = { this->m_syncMas.semaphRenderFinished(this->m_currentFrame).get() };
         submitInfo.signalSemaphoreCount = signalSemaphores.size();
@@ -146,7 +147,7 @@ namespace dal {
 
         {
             this->m_syncMas.destroy(this->m_logiDevice.get());
-            this->m_command.destroy(this->m_logiDevice.get());
+            this->m_cmdBuffers.destroy(this->m_logiDevice.get(), this->m_cmdPool.pool());
             this->m_descPool.destroy(this->m_logiDevice.get());
             this->m_uniformBufs.destroy(this->m_logiDevice.get());
             this->m_fbuf.destroy(this->m_logiDevice.get());
@@ -162,13 +163,12 @@ namespace dal {
             this->m_renderPass.init(this->m_logiDevice.get(), this->m_swapchain.imageFormat());
             this->m_pipeline.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchain.extent(), this->m_descSetLayout.get());
             this->m_fbuf.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchainImages.getViews(), this->m_swapchain.extent());
-            this->m_command.initPool(this->m_physDevice.get(), this->m_logiDevice.get(), surface);
             this->m_uniformBufs.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchainImages.size());
             this->m_descPool.initPool(this->m_logiDevice.get(), this->m_swapchainImages.size());
             this->m_descPool.initSets(this->m_logiDevice.get(), this->m_swapchainImages.size(), this->m_descSetLayout.get(), this->m_uniformBufs.buffers());
-            this->m_command.initCmdBuffers(
+            this->m_cmdBuffers.init(
                 this->m_logiDevice.get(), this->m_renderPass.get(), this->m_pipeline.getPipeline(), this->m_swapchain.extent(), this->m_fbuf.getList(),
-                this->m_demoVertBuf.getBuf(), this->m_demoVertBuf.size(), this->m_demoIndexBuf.getBuf(), this->m_demoIndexBuf.size(),
+                this->m_cmdPool.pool(), this->m_demoVertBuf.getBuf(), this->m_demoVertBuf.size(), this->m_demoIndexBuf.getBuf(), this->m_demoIndexBuf.size(),
                 this->m_pipeline.layout(), this->m_descPool.descSets()
             );
             this->m_syncMas.init(this->m_logiDevice.get(), this->m_swapchainImages.size());
