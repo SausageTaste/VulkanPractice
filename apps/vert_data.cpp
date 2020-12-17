@@ -115,26 +115,6 @@ namespace dal {
         return result;
     }
 
-
-    const std::vector<Vertex>& getDemoVertices() {
-        static const std::vector<Vertex> VERTICES = {
-            {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
-            {{ 0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}},
-            {{ 0.5f,  0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}},
-            {{-0.5f,  0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}}
-        };
-
-        return VERTICES;
-    }
-
-    const std::vector<uint16_t>& getDemoIndices() {
-        static const std::vector<uint16_t> DATA = {
-            0, 1, 2, 2, 3, 0
-        };
-
-        return DATA;
-    }
-
 }
 
 

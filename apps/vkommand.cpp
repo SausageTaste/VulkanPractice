@@ -46,12 +46,7 @@ namespace dal {
 
 namespace dal {
 
-    void CommandBuffers::init(
-        VkDevice logiDevice, VkRenderPass renderPass, VkPipeline graphicsPipeline,
-        const VkExtent2D& extent, const std::vector<VkFramebuffer>& swapChainFbufs, VkCommandPool cmdPool,
-        const VkBuffer vertBuf, const uint32_t vertSize, const VkBuffer indexBuffer, const uint32_t indexSize,
-        VkPipelineLayout pipelineLayout, const std::vector<VkDescriptorSet>& descriptorSets
-    ) {
+    void CommandBuffers::init(VkDevice logiDevice, const std::vector<VkFramebuffer>& swapChainFbufs, VkCommandPool cmdPool) {
         this->destroy(logiDevice, cmdPool);
 
         // Create command buffers
@@ -68,52 +63,54 @@ namespace dal {
                 throw std::runtime_error("failed to allocate command buffers!");
             }
         }
+    }
 
-        // Record to buffers
-        {
-            for ( size_t i = 0; i < this->m_buffers.size(); i++ ) {
-                VkCommandBufferBeginInfo beginInfo = {};
-                beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-                beginInfo.flags = 0; // Optional
-                beginInfo.pInheritanceInfo = nullptr; // Optional
+    void CommandBuffers::record(
+        VkRenderPass renderPass, VkPipeline graphicsPipeline, const VkExtent2D& extent, const std::vector<VkFramebuffer>& swapChainFbufs,
+        VkPipelineLayout pipelineLayout, const std::vector<VkDescriptorSet>& descriptorSets, const IndexedVertices& indexed_vertices
+    ) {
+        for ( size_t i = 0; i < this->m_buffers.size(); i++ ) {
+            VkCommandBufferBeginInfo beginInfo = {};
+            beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+            beginInfo.flags = 0; // Optional
+            beginInfo.pInheritanceInfo = nullptr; // Optional
 
-                if ( VK_SUCCESS != vkBeginCommandBuffer(this->m_buffers[i], &beginInfo) ) {
-                    throw std::runtime_error("failed to begin recording command buffer!");
-                }
+            if ( VK_SUCCESS != vkBeginCommandBuffer(this->m_buffers[i], &beginInfo) ) {
+                throw std::runtime_error("failed to begin recording command buffer!");
+            }
+            {
+                VkRenderPassBeginInfo renderPassInfo = {};
+                renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+                renderPassInfo.renderPass = renderPass;
+                renderPassInfo.framebuffer = swapChainFbufs[i];
+                renderPassInfo.renderArea.offset = { 0, 0 };
+                renderPassInfo.renderArea.extent = extent;
+                const VkClearValue clearColor = { 0.f, 0.f, 0.f, 1.f };
+                renderPassInfo.clearValueCount = 1;
+                renderPassInfo.pClearValues = &clearColor;
+
+                vkCmdBeginRenderPass(this->m_buffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
                 {
-                    VkRenderPassBeginInfo renderPassInfo = {};
-                    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-                    renderPassInfo.renderPass = renderPass;
-                    renderPassInfo.framebuffer = swapChainFbufs[i];
-                    renderPassInfo.renderArea.offset = { 0, 0 };
-                    renderPassInfo.renderArea.extent = extent;
-                    const VkClearValue clearColor = { 0.f, 0.f, 0.f, 1.f };
-                    renderPassInfo.clearValueCount = 1;
-                    renderPassInfo.pClearValues = &clearColor;
+                    vkCmdBindPipeline(this->m_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
-                    vkCmdBeginRenderPass(this->m_buffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-                    {
-                        vkCmdBindPipeline(this->m_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+                    VkBuffer vertBuffers[] = {indexed_vertices.vert_buffer};
+                    VkDeviceSize offsets[] = {0};
+                    vkCmdBindVertexBuffers(this->m_buffers[i], 0, 1, vertBuffers, offsets);
+                    vkCmdBindIndexBuffer(this->m_buffers[i], indexed_vertices.index_buffer, 0, VK_INDEX_TYPE_UINT16);
 
-                        VkBuffer vertBuffers[] = {vertBuf};
-                        VkDeviceSize offsets[] = {0};
-                        vkCmdBindVertexBuffers(this->m_buffers[i], 0, 1, vertBuffers, offsets);
-                        vkCmdBindIndexBuffer(this->m_buffers[i], indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+                    vkCmdBindDescriptorSets(
+                        this->m_buffers[i],
+                        VK_PIPELINE_BIND_POINT_GRAPHICS,
+                        pipelineLayout,
+                        0, 1, &descriptorSets[i], 0, nullptr
+                    );
 
-                        vkCmdBindDescriptorSets(
-                            this->m_buffers[i],
-                            VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            pipelineLayout,
-                            0, 1, &descriptorSets[i], 0, nullptr
-                        );
-
-                        vkCmdDrawIndexed(this->m_buffers[i], indexSize, 1, 0, 0, 0);
-                    }
-                    vkCmdEndRenderPass(this->m_buffers[i]);
+                    vkCmdDrawIndexed(this->m_buffers[i], indexed_vertices.index_buffer_size, 1, 0, 0, 0);
                 }
-                if ( VK_SUCCESS != vkEndCommandBuffer(this->m_buffers[i]) ) {
-                    throw std::runtime_error("failed to record command buffer!");
-                }
+                vkCmdEndRenderPass(this->m_buffers[i]);
+            }
+            if ( VK_SUCCESS != vkEndCommandBuffer(this->m_buffers[i]) ) {
+                throw std::runtime_error("failed to record command buffer!");
             }
         }
     }

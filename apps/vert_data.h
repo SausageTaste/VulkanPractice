@@ -17,9 +17,6 @@ namespace dal {
         static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions();
     };
 
-    const std::vector<Vertex>& getDemoVertices();
-    const std::vector<uint16_t>& getDemoIndices();
-
 
     class VertexBuffer {
 

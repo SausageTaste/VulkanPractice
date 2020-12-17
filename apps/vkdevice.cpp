@@ -34,23 +34,45 @@ namespace dal {
         this->m_pipeline.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchain.extent(), this->m_descSetLayout.get());
         this->m_fbuf.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchainImages.getViews(), this->m_swapchain.extent());
         this->m_cmdPool.init(this->m_physDevice.get(), this->m_logiDevice.get(), surface);
-        this->m_demoVertBuf.init(
-            dal::getDemoVertices(), this->m_logiDevice.get(), this->m_physDevice.get(),
-            this->m_cmdPool.pool(), this->m_logiDevice.graphicsQ()
-        );
-        this->m_demoIndexBuf.init(
-            dal::getDemoIndices(), this->m_logiDevice.get(), this->m_physDevice.get(),
-            this->m_cmdPool.pool(), this->m_logiDevice.graphicsQ()
-        );
+
         this->m_uniformBufs.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchainImages.size());
         this->m_descPool.initPool(this->m_logiDevice.get(), this->m_swapchainImages.size());
         this->m_descPool.initSets(this->m_logiDevice.get(), this->m_swapchainImages.size(), this->m_descSetLayout.get(), this->m_uniformBufs.buffers());
-        this->m_cmdBuffers.init(
-            this->m_logiDevice.get(), this->m_renderPass.get(), this->m_pipeline.getPipeline(), this->m_swapchain.extent(), this->m_fbuf.getList(),
-            this->m_cmdPool.pool(), this->m_demoVertBuf.getBuf(), this->m_demoVertBuf.size(), this->m_demoIndexBuf.getBuf(), this->m_demoIndexBuf.size(),
-            this->m_pipeline.layout(), this->m_descPool.descSets()
-        );
+        this->m_cmdBuffers.init(this->m_logiDevice.get(), this->m_fbuf.getList(), this->m_cmdPool.pool());
         this->m_syncMas.init(this->m_logiDevice.get(), this->m_swapchainImages.size());
+
+        {
+            static const std::vector<Vertex> VERTICES = {
+                {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
+                {{ 0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}},
+                {{ 0.5f,  0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}},
+                {{-0.5f,  0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}}
+            };
+
+            static const std::vector<uint16_t> INDICES = {
+                0, 1, 2, 2, 3, 0
+            };
+
+            this->m_demoVertBuf.init(
+                VERTICES, this->m_logiDevice.get(), this->m_physDevice.get(),
+                this->m_cmdPool.pool(), this->m_logiDevice.graphicsQ()
+            );
+
+            this->m_demoIndexBuf.init(
+                INDICES, this->m_logiDevice.get(), this->m_physDevice.get(),
+                this->m_cmdPool.pool(), this->m_logiDevice.graphicsQ()
+            );
+
+            dal::IndexedVertices verticesInfo;
+            verticesInfo.vert_buffer = this->m_demoVertBuf.getBuf();
+            verticesInfo.index_buffer = this->m_demoIndexBuf.getBuf();
+            verticesInfo.index_buffer_size = this->m_demoIndexBuf.size();
+
+            this->m_cmdBuffers.record(
+                this->m_renderPass.get(), this->m_pipeline.getPipeline(), this->m_swapchain.extent(),
+                this->m_fbuf.getList(), this->m_pipeline.layout(), this->m_descPool.descSets(), verticesInfo
+            );
+        }
 
         this->m_currentFrame = 0;
         this->m_scrWidth = w;
@@ -166,12 +188,20 @@ namespace dal {
             this->m_uniformBufs.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchainImages.size());
             this->m_descPool.initPool(this->m_logiDevice.get(), this->m_swapchainImages.size());
             this->m_descPool.initSets(this->m_logiDevice.get(), this->m_swapchainImages.size(), this->m_descSetLayout.get(), this->m_uniformBufs.buffers());
-            this->m_cmdBuffers.init(
-                this->m_logiDevice.get(), this->m_renderPass.get(), this->m_pipeline.getPipeline(), this->m_swapchain.extent(), this->m_fbuf.getList(),
-                this->m_cmdPool.pool(), this->m_demoVertBuf.getBuf(), this->m_demoVertBuf.size(), this->m_demoIndexBuf.getBuf(), this->m_demoIndexBuf.size(),
-                this->m_pipeline.layout(), this->m_descPool.descSets()
-            );
+            this->m_cmdBuffers.init(this->m_logiDevice.get(), this->m_fbuf.getList(), this->m_cmdPool.pool());
             this->m_syncMas.init(this->m_logiDevice.get(), this->m_swapchainImages.size());
+        }
+
+        {
+            dal::IndexedVertices verticesInfo;
+            verticesInfo.vert_buffer = this->m_demoVertBuf.getBuf();
+            verticesInfo.index_buffer = this->m_demoIndexBuf.getBuf();
+            verticesInfo.index_buffer_size = this->m_demoIndexBuf.size();
+
+            this->m_cmdBuffers.record(
+                this->m_renderPass.get(), this->m_pipeline.getPipeline(), this->m_swapchain.extent(),
+                this->m_fbuf.getList(), this->m_pipeline.layout(), this->m_descPool.descSets(), verticesInfo
+            );
         }
     }
 
