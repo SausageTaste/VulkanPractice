@@ -27,8 +27,30 @@ namespace dal {
     void VulkanMaster::init(const VkInstance instance, const VkSurfaceKHR surface, const unsigned w, const unsigned h) {
         this->m_physDevice.init(instance, surface);
         this->m_logiDevice.init(surface, this->m_physDevice.get());
-
-        this->initSwapChain(surface);
+        this->m_swapchain.init(surface, this->m_physDevice.get(), this->m_logiDevice.get(), this->m_scrWidth, this->m_scrHeight);
+        this->m_swapchainImages.init(this->m_logiDevice.get(), this->m_swapchain.get(), this->m_swapchain.imageFormat(), this->m_swapchain.extent());
+        this->m_renderPass.init(this->m_logiDevice.get(), this->m_swapchain.imageFormat());
+        this->m_descSetLayout.init(this->m_logiDevice.get());
+        this->m_pipeline.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchain.extent(), this->m_descSetLayout.get());
+        this->m_fbuf.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchainImages.getViews(), this->m_swapchain.extent());
+        this->m_command.initPool(this->m_physDevice.get(), this->m_logiDevice.get(), surface);
+        this->m_demoVertBuf.init(
+            dal::getDemoVertices(), this->m_logiDevice.get(), this->m_physDevice.get(),
+            this->m_command.pool(), this->m_logiDevice.graphicsQ()
+        );
+        this->m_demoIndexBuf.init(
+            dal::getDemoIndices(), this->m_logiDevice.get(), this->m_physDevice.get(),
+            this->m_command.pool(), this->m_logiDevice.graphicsQ()
+        );
+        this->m_uniformBufs.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchainImages.size());
+        this->m_descPool.initPool(this->m_logiDevice.get(), this->m_swapchainImages.size());
+        this->m_descPool.initSets(this->m_logiDevice.get(), this->m_swapchainImages.size(), this->m_descSetLayout.get(), this->m_uniformBufs.buffers());
+        this->m_command.initCmdBuffers(
+            this->m_logiDevice.get(), this->m_renderPass.get(), this->m_pipeline.getPipeline(), this->m_swapchain.extent(), this->m_fbuf.getList(),
+            this->m_demoVertBuf.getBuf(), this->m_demoVertBuf.size(), this->m_demoIndexBuf.getBuf(), this->m_demoIndexBuf.size(),
+            this->m_pipeline.layout(), this->m_descPool.descSets()
+        );
+        this->m_syncMas.init(this->m_logiDevice.get(), this->m_swapchainImages.size());
 
         this->m_currentFrame = 0;
         this->m_scrWidth = w;
@@ -36,9 +58,18 @@ namespace dal {
     }
 
     void VulkanMaster::destroy(void) {
-
-        this->destroySwapChain();
-
+        this->m_syncMas.destroy(this->m_logiDevice.get());
+        this->m_command.destroy(this->m_logiDevice.get());
+        this->m_descPool.destroy(this->m_logiDevice.get());
+        this->m_uniformBufs.destroy(this->m_logiDevice.get());
+        this->m_demoIndexBuf.destroy(this->m_logiDevice.get());
+        this->m_demoVertBuf.destroy(this->m_logiDevice.get());
+        this->m_fbuf.destroy(this->m_logiDevice.get());
+        this->m_pipeline.destroy(this->m_logiDevice.get());
+        this->m_descSetLayout.destroy(this->m_logiDevice.get());
+        this->m_renderPass.destroy(this->m_logiDevice.get());
+        this->m_swapchainImages.destroy(this->m_logiDevice.get());
+        this->m_swapchain.destroy(this->m_logiDevice.get());
         this->m_logiDevice.destroy();
     }
 
@@ -61,6 +92,8 @@ namespace dal {
             // Mark the image as now being in use by this frame
             imagesInFlight[imageIndex.first] = this->m_syncMas.fenceInFlight(this->m_currentFrame).get();
         }
+
+        this->m_uniformBufs.update(imageIndex.first, this->m_swapchain.extent(), this->m_logiDevice.get());
 
         VkSubmitInfo submitInfo = {};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -110,48 +143,42 @@ namespace dal {
 
     void VulkanMaster::recreateSwapChain(const VkSurfaceKHR surface) {
         this->waitLogiDeviceIdle();
-        this->destroySwapChain();
-        this->initSwapChain(surface);
+
+        {
+            this->m_syncMas.destroy(this->m_logiDevice.get());
+            this->m_command.destroy(this->m_logiDevice.get());
+            this->m_descPool.destroy(this->m_logiDevice.get());
+            this->m_uniformBufs.destroy(this->m_logiDevice.get());
+            this->m_fbuf.destroy(this->m_logiDevice.get());
+            this->m_pipeline.destroy(this->m_logiDevice.get());
+            this->m_renderPass.destroy(this->m_logiDevice.get());
+            this->m_swapchainImages.destroy(this->m_logiDevice.get());
+            this->m_swapchain.destroy(this->m_logiDevice.get());
+        }
+
+        {
+            this->m_swapchain.init(surface, this->m_physDevice.get(), this->m_logiDevice.get(), this->m_scrWidth, this->m_scrHeight);
+            this->m_swapchainImages.init(this->m_logiDevice.get(), this->m_swapchain.get(), this->m_swapchain.imageFormat(), this->m_swapchain.extent());
+            this->m_renderPass.init(this->m_logiDevice.get(), this->m_swapchain.imageFormat());
+            this->m_pipeline.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchain.extent(), this->m_descSetLayout.get());
+            this->m_fbuf.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchainImages.getViews(), this->m_swapchain.extent());
+            this->m_command.initPool(this->m_physDevice.get(), this->m_logiDevice.get(), surface);
+            this->m_uniformBufs.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchainImages.size());
+            this->m_descPool.initPool(this->m_logiDevice.get(), this->m_swapchainImages.size());
+            this->m_descPool.initSets(this->m_logiDevice.get(), this->m_swapchainImages.size(), this->m_descSetLayout.get(), this->m_uniformBufs.buffers());
+            this->m_command.initCmdBuffers(
+                this->m_logiDevice.get(), this->m_renderPass.get(), this->m_pipeline.getPipeline(), this->m_swapchain.extent(), this->m_fbuf.getList(),
+                this->m_demoVertBuf.getBuf(), this->m_demoVertBuf.size(), this->m_demoIndexBuf.getBuf(), this->m_demoIndexBuf.size(),
+                this->m_pipeline.layout(), this->m_descPool.descSets()
+            );
+            this->m_syncMas.init(this->m_logiDevice.get(), this->m_swapchainImages.size());
+        }
     }
 
     void VulkanMaster::notifyScreenResize(const unsigned w, const unsigned h) {
         this->m_needResize = true;
         this->m_scrWidth = w;
         this->m_scrHeight = h;
-    }
-
-    void VulkanMaster::initSwapChain(const VkSurfaceKHR surface) {
-        this->m_swapchain.init(surface, this->m_physDevice.get(), this->m_logiDevice.get(), this->m_scrWidth, this->m_scrHeight);
-        this->m_swapchainImages.init(this->m_logiDevice.get(), this->m_swapchain.get(), this->m_swapchain.imageFormat(), this->m_swapchain.extent());
-        this->m_renderPass.init(this->m_logiDevice.get(), this->m_swapchain.imageFormat());
-        this->m_pipeline.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchain.extent());
-        this->m_fbuf.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchainImages.getViews(), this->m_swapchain.extent());
-        this->m_command.initPool(this->m_physDevice.get(), this->m_logiDevice.get(), surface);
-        this->m_demoVertBuf.init(
-            dal::getDemoVertices(), this->m_logiDevice.get(), this->m_physDevice.get(),
-            this->m_command.pool(), this->m_logiDevice.graphicsQ()
-        );
-        this->m_demoIndexBuf.init(
-            dal::getDemoIndices(), this->m_logiDevice.get(), this->m_physDevice.get(),
-            this->m_command.pool(), this->m_logiDevice.graphicsQ()
-        );
-        this->m_command.initCmdBuffers(
-            this->m_logiDevice.get(), this->m_renderPass.get(), this->m_pipeline.getPipeline(), this->m_swapchain.extent(),
-            this->m_fbuf.getList(), this->m_demoVertBuf.getBuf(), this->m_demoVertBuf.size(), this->m_demoIndexBuf.getBuf(), this->m_demoIndexBuf.size()
-        );
-        this->m_syncMas.init(this->m_logiDevice.get(), this->m_swapchainImages.size());
-    }
-
-    void VulkanMaster::destroySwapChain() {
-        this->m_syncMas.destroy(this->m_logiDevice.get());
-        this->m_command.destroy(this->m_logiDevice.get());
-        this->m_demoIndexBuf.destroy(this->m_logiDevice.get());
-        this->m_demoVertBuf.destroy(this->m_logiDevice.get());
-        this->m_fbuf.destroy(this->m_logiDevice.get());
-        this->m_pipeline.destroy(this->m_logiDevice.get());
-        this->m_renderPass.destroy(this->m_logiDevice.get());
-        this->m_swapchainImages.destroy(this->m_logiDevice.get());
-        this->m_swapchain.destroy(this->m_logiDevice.get());
     }
 
 }
