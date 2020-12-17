@@ -29,6 +29,6 @@ vec3 colors[3] = vec3[](
 
 
 void main() {
-    gl_Position = ubo.proj * ubo.view * ubo.model * vec4(inPosition.xy, 0.0, 1.0);
+    gl_Position = ubo.proj * ubo.view * ubo.model * vec4(inPosition, 1.0);
     fragColor = inColor;
 }

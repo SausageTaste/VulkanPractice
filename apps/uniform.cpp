@@ -186,12 +186,13 @@ namespace dal {
         static const auto startTime = std::chrono::high_resolution_clock::now();
 
         const auto currentTime = std::chrono::high_resolution_clock::now();
-        float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+        const float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+        const float ratio = static_cast<float>(swapchainExtent.width) / static_cast<float>(swapchainExtent.height);
 
         dal::UniformBufferObject ubo;
-        ubo.model = glm::rotate(glm::mat4(1), time * glm::radians<float>(90), glm::vec3(0, 0, 1));
-        ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-        ubo.proj = glm::perspective(glm::radians(45.0f), swapchainExtent.width / (float) swapchainExtent.height, 0.1f, 10.0f);
+        ubo.model = glm::rotate(glm::mat4(1), time * glm::radians<float>(90), glm::vec3(0, 1, 0));
+        ubo.view = glm::lookAt(glm::vec3(0, 2, 4), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+        ubo.proj = glm::perspective<float>(glm::radians<float>(45), ratio, 0, 10);
         ubo.proj[1][1] *= -1;
 
         void* data;
