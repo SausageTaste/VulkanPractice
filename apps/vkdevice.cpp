@@ -129,8 +129,11 @@ namespace dal {
         this->m_renderPass.init(this->m_logiDevice.get(), this->m_swapchain.imageFormat());
         this->m_pipeline.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchain.extent());
         this->m_fbuf.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchainImages.getViews(), this->m_swapchain.extent());
-        this->m_command.init(this->m_physDevice.get(), this->m_logiDevice.get(), surface, this->m_renderPass.get(), this->m_pipeline.getPipeline(),
-            this->m_swapchain.extent(), this->m_fbuf.getList(), this->m_demoVertBuf.getBuf(), this->m_demoVertBuf.size());
+        this->m_command.initPool(this->m_physDevice.get(), this->m_logiDevice.get(), surface);
+        this->m_command.initCmdBuffers(
+            this->m_logiDevice.get(), this->m_renderPass.get(), this->m_pipeline.getPipeline(), this->m_swapchain.extent(),
+            this->m_fbuf.getList(), this->m_demoVertBuf.getBuf(), this->m_demoVertBuf.size()
+        );
         this->m_syncMas.init(this->m_logiDevice.get(), this->m_swapchainImages.size());
     }
 

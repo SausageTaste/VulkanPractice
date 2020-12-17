@@ -22,17 +22,21 @@ namespace {
 
         return commandPool;
     }
+
 }
 
 
 namespace dal {
 
-    void CommandPool::init(VkPhysicalDevice physDevice, VkDevice logiDevice, VkSurfaceKHR surface, VkRenderPass renderPass,
-        VkPipeline graphicsPipeline, const VkExtent2D& extent, const std::vector<VkFramebuffer>& swapChainFbufs,
-        const VkBuffer vertBuf, uint32_t vertSize)
-    {
+    void CommandPool::initPool(VkPhysicalDevice physDevice, VkDevice logiDevice, VkSurfaceKHR surface) {
         this->m_pool = createCommandPool(physDevice, logiDevice, surface);
 
+    }
+
+    void CommandPool::initCmdBuffers(VkDevice logiDevice, VkRenderPass renderPass, VkPipeline graphicsPipeline,
+        const VkExtent2D& extent, const std::vector<VkFramebuffer>& swapChainFbufs,
+        const VkBuffer vertBuf, uint32_t vertSize)
+    {
         // Create command buffers
         {
             this->m_buffers.resize(swapChainFbufs.size());
