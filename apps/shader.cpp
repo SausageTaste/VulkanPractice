@@ -58,7 +58,7 @@ namespace {
         return shaderModule;
     }
 
-    std::pair<VkPipelineLayout, VkPipeline> createGraphicsPipeline(VkDevice device, VkRenderPass renderPass, const VkExtent2D& extent) {
+    std::pair<VkPipelineLayout, VkPipeline> createGraphicsPipeline(VkDevice device, VkRenderPass renderPass, const VkExtent2D& extent, VkDescriptorSetLayout descriptorSetLayout) {
         const auto resdir = dal::findResPath();
         const auto vertShaderCode = readFile(resdir + "/shader/triangle_v.spv");
         const auto fragShaderCode = readFile(resdir + "/shader/triangle_f.spv");
@@ -133,7 +133,7 @@ namespace {
         rasterizer.polygonMode = VK_POLYGON_MODE_FILL;  // Any mode other than FILL requires CPU feature enabled.
         rasterizer.lineWidth = 1.f;  // GPU feature, wideLines required for lines thicker than 1.
         rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-        rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;  // I prefer ccw but I'mma just follow the tutorial.
+        rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;  // I prefer ccw but I'mma just follow the tutorial.
         rasterizer.depthBiasEnable = VK_FALSE;  // Maybe this is used to deal with shadow acne?
         rasterizer.depthBiasConstantFactor = 0.f;  // Optional
         rasterizer.depthBiasClamp = 0.f;  // Optional
@@ -213,8 +213,8 @@ namespace {
 
         VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutInfo.setLayoutCount = 0; // Optional
-        pipelineLayoutInfo.pSetLayouts = nullptr; // Optional
+        pipelineLayoutInfo.setLayoutCount = 1; // Optional
+        pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout; // Optional
         pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
         pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
 
@@ -262,8 +262,8 @@ namespace {
 // ShaderPipeline
 namespace dal {
 
-    void ShaderPipeline::init(VkDevice device, VkRenderPass renderPass, const VkExtent2D& extent) {
-        std::tie(this->m_pipelineLayout, this->m_graphicsPipeline) = createGraphicsPipeline(device, renderPass, extent);
+    void ShaderPipeline::init(VkDevice device, VkRenderPass renderPass, const VkExtent2D& extent, VkDescriptorSetLayout descriptorSetLayout) {
+        std::tie(this->m_pipelineLayout, this->m_graphicsPipeline) = createGraphicsPipeline(device, renderPass, extent, descriptorSetLayout);
     }
 
     void ShaderPipeline::destroy(VkDevice device) {

@@ -23,6 +23,7 @@ add_executable(vulkan_practice
     semaphore.h         semaphore.cpp
     timer.h             timer.cpp
     vert_data.h         vert_data.cpp
+    uniform.h           uniform.cpp
 )
 target_compile_features(vulkan_practice PUBLIC cxx_std_14)
 

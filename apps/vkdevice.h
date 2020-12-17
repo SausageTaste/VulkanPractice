@@ -14,6 +14,7 @@
 #include "vkommand.h"
 #include "semaphore.h"
 #include "vert_data.h"
+#include "uniform.h"
 
 
 namespace dal {
@@ -30,6 +31,9 @@ namespace dal {
         FbufManager m_fbuf;
         CommandPool m_command;
         SyncMaster m_syncMas;
+        DescriptorSetLayout m_descSetLayout;
+        UniformBuffers m_uniformBufs;
+        DescriptorPool m_descPool;
 
         VertexBuffer m_demoVertBuf;
         IndexBuffer m_demoIndexBuf;

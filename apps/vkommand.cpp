@@ -33,10 +33,12 @@ namespace dal {
 
     }
 
-    void CommandPool::initCmdBuffers(VkDevice logiDevice, VkRenderPass renderPass, VkPipeline graphicsPipeline,
+    void CommandPool::initCmdBuffers(
+        VkDevice logiDevice, VkRenderPass renderPass, VkPipeline graphicsPipeline,
         const VkExtent2D& extent, const std::vector<VkFramebuffer>& swapChainFbufs,
-        const VkBuffer vertBuf, const uint32_t vertSize, const VkBuffer indexBuffer, const uint32_t indexSize)
-    {
+        const VkBuffer vertBuf, const uint32_t vertSize, const VkBuffer indexBuffer, const uint32_t indexSize,
+        VkPipelineLayout pipelineLayout, const std::vector<VkDescriptorSet>& descriptorSets
+    ) {
         // Create command buffers
         {
             this->m_buffers.resize(swapChainFbufs.size());
@@ -83,6 +85,13 @@ namespace dal {
                         vkCmdBindVertexBuffers(this->m_buffers[i], 0, 1, vertBuffers, offsets);
                         vkCmdBindIndexBuffer(this->m_buffers[i], indexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
+                        vkCmdBindDescriptorSets(
+                            this->m_buffers[i],
+                            VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            pipelineLayout,
+                            0, 1, &descriptorSets[i], 0, nullptr
+                        );
+
                         vkCmdDrawIndexed(this->m_buffers[i], indexSize, 1, 0, 0, 0);
                     }
                     vkCmdEndRenderPass(this->m_buffers[i]);
@@ -97,6 +106,8 @@ namespace dal {
     void CommandPool::destroy(VkDevice logiDevice) {
         vkDestroyCommandPool(logiDevice, this->m_pool, nullptr);
         this->m_pool = VK_NULL_HANDLE;
+
+        this->m_buffers.clear();
     }
 
 }
