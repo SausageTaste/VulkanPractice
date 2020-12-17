@@ -26,6 +26,14 @@ namespace dal {
         uint32_t vertSize = 0;
 
     public:
+        VertexBuffer() = default;
+        VertexBuffer(VertexBuffer&&) = default;
+        VertexBuffer& operator=(VertexBuffer&&) = default;
+
+        VertexBuffer(const VertexBuffer&) = delete;
+        VertexBuffer& operator=(const VertexBuffer&) = delete;
+
+    public:
         void init(const std::vector<Vertex>& vertices, const VkDevice logiDevice,
             const VkPhysicalDevice physDevice, VkCommandPool cmdPool, VkQueue graphicsQueue);
         void destroy(const VkDevice device);
@@ -49,6 +57,14 @@ namespace dal {
         uint32_t arr_size = 0;
 
     public:
+        IndexBuffer() = default;
+        IndexBuffer(IndexBuffer&&) = default;
+        IndexBuffer& operator=(IndexBuffer&&) = default;
+
+        IndexBuffer(const IndexBuffer&) = delete;
+        IndexBuffer& operator=(const IndexBuffer&) = delete;
+
+    public:
         void init(const std::vector<uint16_t>& indices, const VkDevice logiDevice,
             const VkPhysicalDevice physDevice, VkCommandPool cmdPool, VkQueue graphicsQueue);
         void destroy(const VkDevice device);
@@ -61,6 +77,19 @@ namespace dal {
             return this->arr_size;
         }
 
+    };
+
+
+    struct MeshBuffer {
+        VertexBuffer vertices;
+        IndexBuffer indices;
+
+        MeshBuffer() = default;
+        MeshBuffer(MeshBuffer&&) = default;
+        MeshBuffer& operator=(MeshBuffer&&) = default;
+
+        MeshBuffer(const MeshBuffer&) = delete;
+        MeshBuffer& operator=(const MeshBuffer&) = delete;
     };
 
 }
