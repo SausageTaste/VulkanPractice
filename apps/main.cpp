@@ -4,19 +4,13 @@
 
 
 int main(int argc, char** argv) {
-    try {
-        dal::VulkanWindowGLFW window;
-        std::cout << "Window and Vulkan is ready.\n";
+    dal::VulkanWindowGLFW window;
+    std::cout << "Window and Vulkan is ready.\n";
 
-        while ( !window.isOughtToClose() ) {
-            window.update();
-        }
-
-        window.waitSafeExit();
-    }
-    catch ( const std::exception & e ) {
-        std::cout << "Fatal Exception: " << e.what() << std::endl;
+    while ( !window.isOughtToClose() ) {
+        window.update();
     }
 
+    window.waitSafeExit();
     return 0;
 }

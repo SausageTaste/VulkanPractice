@@ -14,10 +14,15 @@ namespace dal {
         std::vector<VkCommandBuffer> m_buffers;
 
     public:
-        void init(VkPhysicalDevice physDevice, VkDevice logiDevice, VkSurfaceKHR surface, VkRenderPass renderPass,
-            VkPipeline graphicsPipeline, const VkExtent2D& extent, const std::vector<VkFramebuffer>& swapChainFbufs);
+        void initPool(VkPhysicalDevice physDevice, VkDevice logiDevice, VkSurfaceKHR surface);
+        void initCmdBuffers(VkDevice logiDevice, VkRenderPass renderPass, VkPipeline graphicsPipeline,
+            const VkExtent2D& extent, const std::vector<VkFramebuffer>& swapChainFbufs,
+            const VkBuffer vertBuf, const uint32_t vertSize, const VkBuffer indexBuffer, const uint32_t indexSize);
         void destroy(VkDevice logiDevice);
 
+        auto& pool() const {
+            return this->m_pool;
+        }
         auto& buffers(void) const {
             return this->m_buffers;
         }

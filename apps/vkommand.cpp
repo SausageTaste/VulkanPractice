@@ -22,16 +22,21 @@ namespace {
 
         return commandPool;
     }
+
 }
 
 
 namespace dal {
 
-    void CommandPool::init(VkPhysicalDevice physDevice, VkDevice logiDevice, VkSurfaceKHR surface, VkRenderPass renderPass,
-        VkPipeline graphicsPipeline, const VkExtent2D& extent, const std::vector<VkFramebuffer>& swapChainFbufs)
-    {
+    void CommandPool::initPool(VkPhysicalDevice physDevice, VkDevice logiDevice, VkSurfaceKHR surface) {
         this->m_pool = createCommandPool(physDevice, logiDevice, surface);
 
+    }
+
+    void CommandPool::initCmdBuffers(VkDevice logiDevice, VkRenderPass renderPass, VkPipeline graphicsPipeline,
+        const VkExtent2D& extent, const std::vector<VkFramebuffer>& swapChainFbufs,
+        const VkBuffer vertBuf, const uint32_t vertSize, const VkBuffer indexBuffer, const uint32_t indexSize)
+    {
         // Create command buffers
         {
             this->m_buffers.resize(swapChainFbufs.size());
@@ -72,7 +77,13 @@ namespace dal {
                     vkCmdBeginRenderPass(this->m_buffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
                     {
                         vkCmdBindPipeline(this->m_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
-                        vkCmdDraw(this->m_buffers[i], 3, 1, 0, 0);
+
+                        VkBuffer vertBuffers[] = {vertBuf};
+                        VkDeviceSize offsets[] = {0};
+                        vkCmdBindVertexBuffers(this->m_buffers[i], 0, 1, vertBuffers, offsets);
+                        vkCmdBindIndexBuffer(this->m_buffers[i], indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+
+                        vkCmdDrawIndexed(this->m_buffers[i], indexSize, 1, 0, 0, 0);
                     }
                     vkCmdEndRenderPass(this->m_buffers[i]);
                 }

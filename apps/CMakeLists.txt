@@ -22,6 +22,7 @@ add_executable(vulkan_practice
     logidevice.h        logidevice.cpp
     semaphore.h         semaphore.cpp
     timer.h             timer.cpp
+    vert_data.h         vert_data.cpp
 )
 target_compile_features(vulkan_practice PUBLIC cxx_std_14)
 
@@ -34,6 +35,7 @@ add_subdirectory(${extern_dir}/glfw ${CMAKE_CURRENT_BINARY_DIR}/glfw)
 target_link_libraries(vulkan_practice PRIVATE glfw)
 
 add_subdirectory(${extern_dir}/glm ${CMAKE_CURRENT_BINARY_DIR}/glm)
+target_include_directories(vulkan_practice PRIVATE ${extern_dir}/glm)
 target_link_libraries(vulkan_practice PRIVATE glm)
 
 find_package(Vulkan REQUIRED)
