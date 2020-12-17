@@ -17,7 +17,7 @@ namespace dal {
         void initPool(VkPhysicalDevice physDevice, VkDevice logiDevice, VkSurfaceKHR surface);
         void initCmdBuffers(VkDevice logiDevice, VkRenderPass renderPass, VkPipeline graphicsPipeline,
             const VkExtent2D& extent, const std::vector<VkFramebuffer>& swapChainFbufs,
-            const VkBuffer vertBuf, uint32_t vertSize);
+            const VkBuffer vertBuf, const uint32_t vertSize, const VkBuffer indexBuffer, const uint32_t indexSize);
         void destroy(VkDevice logiDevice);
 
         auto& pool() const {

@@ -64,6 +64,6 @@ namespace dal {
             return this->arr_size;
         }
 
-    }
+    };
 
 }

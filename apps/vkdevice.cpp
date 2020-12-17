@@ -131,9 +131,13 @@ namespace dal {
             dal::getDemoVertices(), this->m_logiDevice.get(), this->m_physDevice.get(),
             this->m_command.pool(), this->m_logiDevice.graphicsQ()
         );
+        this->m_demoIndexBuf.init(
+            dal::getDemoIndices(), this->m_logiDevice.get(), this->m_physDevice.get(),
+            this->m_command.pool(), this->m_logiDevice.graphicsQ()
+        );
         this->m_command.initCmdBuffers(
             this->m_logiDevice.get(), this->m_renderPass.get(), this->m_pipeline.getPipeline(), this->m_swapchain.extent(),
-            this->m_fbuf.getList(), this->m_demoVertBuf.getBuf(), this->m_demoVertBuf.size()
+            this->m_fbuf.getList(), this->m_demoVertBuf.getBuf(), this->m_demoVertBuf.size(), this->m_demoIndexBuf.getBuf(), this->m_demoIndexBuf.size()
         );
         this->m_syncMas.init(this->m_logiDevice.get(), this->m_swapchainImages.size());
     }
@@ -141,6 +145,7 @@ namespace dal {
     void VulkanMaster::destroySwapChain() {
         this->m_syncMas.destroy(this->m_logiDevice.get());
         this->m_command.destroy(this->m_logiDevice.get());
+        this->m_demoIndexBuf.destroy(this->m_logiDevice.get());
         this->m_demoVertBuf.destroy(this->m_logiDevice.get());
         this->m_fbuf.destroy(this->m_logiDevice.get());
         this->m_pipeline.destroy(this->m_logiDevice.get());

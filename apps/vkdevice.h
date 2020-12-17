@@ -32,6 +32,7 @@ namespace dal {
         SyncMaster m_syncMas;
 
         VertexBuffer m_demoVertBuf;
+        IndexBuffer m_demoIndexBuf;
 
         unsigned m_currentFrame = 0;
         bool m_needResize = false;

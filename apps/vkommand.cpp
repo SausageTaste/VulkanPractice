@@ -35,7 +35,7 @@ namespace dal {
 
     void CommandPool::initCmdBuffers(VkDevice logiDevice, VkRenderPass renderPass, VkPipeline graphicsPipeline,
         const VkExtent2D& extent, const std::vector<VkFramebuffer>& swapChainFbufs,
-        const VkBuffer vertBuf, uint32_t vertSize)
+        const VkBuffer vertBuf, const uint32_t vertSize, const VkBuffer indexBuffer, const uint32_t indexSize)
     {
         // Create command buffers
         {
@@ -81,8 +81,9 @@ namespace dal {
                         VkBuffer vertBuffers[] = {vertBuf};
                         VkDeviceSize offsets[] = {0};
                         vkCmdBindVertexBuffers(this->m_buffers[i], 0, 1, vertBuffers, offsets);
+                        vkCmdBindIndexBuffer(this->m_buffers[i], indexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
-                        vkCmdDraw(this->m_buffers[i], vertSize, 1, 0, 0);
+                        vkCmdDrawIndexed(this->m_buffers[i], indexSize, 1, 0, 0, 0);
                     }
                     vkCmdEndRenderPass(this->m_buffers[i]);
                 }
