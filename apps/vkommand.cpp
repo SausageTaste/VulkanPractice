@@ -67,7 +67,7 @@ namespace dal {
 
     void CommandBuffers::record(
         VkRenderPass renderPass, VkPipeline graphicsPipeline, const VkExtent2D& extent, const std::vector<VkFramebuffer>& swapChainFbufs,
-        VkPipelineLayout pipelineLayout, const std::vector<VkDescriptorSet>& descriptorSets, const IndexedVertices& indexed_vertices
+        VkPipelineLayout pipelineLayout, const std::vector<VkDescriptorSet>& descriptorSets, const std::vector<MeshBuffer>& meshes
     ) {
         VkCommandBufferBeginInfo beginInfo = {};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -94,19 +94,21 @@ namespace dal {
                 {
                     vkCmdBindPipeline(this->m_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
-                    VkBuffer vertBuffers[] = {indexed_vertices.vert_buffer};
-                    VkDeviceSize offsets[] = {0};
-                    vkCmdBindVertexBuffers(this->m_buffers[i], 0, 1, vertBuffers, offsets);
-                    vkCmdBindIndexBuffer(this->m_buffers[i], indexed_vertices.index_buffer, 0, VK_INDEX_TYPE_UINT16);
+                    for (const auto& mesh : meshes) {
+                        VkBuffer vertBuffers[] = {mesh.vertices.getBuf()};
+                        VkDeviceSize offsets[] = {0};
+                        vkCmdBindVertexBuffers(this->m_buffers[i], 0, 1, vertBuffers, offsets);
+                        vkCmdBindIndexBuffer(this->m_buffers[i], mesh.indices.getBuf(), 0, VK_INDEX_TYPE_UINT16);
 
-                    vkCmdBindDescriptorSets(
-                        this->m_buffers[i],
-                        VK_PIPELINE_BIND_POINT_GRAPHICS,
-                        pipelineLayout,
-                        0, 1, &descriptorSets[i], 0, nullptr
-                    );
+                        vkCmdBindDescriptorSets(
+                            this->m_buffers[i],
+                            VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            pipelineLayout,
+                            0, 1, &descriptorSets[i], 0, nullptr
+                        );
 
-                    vkCmdDrawIndexed(this->m_buffers[i], indexed_vertices.index_buffer_size, 1, 0, 0, 0);
+                        vkCmdDrawIndexed(this->m_buffers[i], mesh.indices.size(), 1, 0, 0, 0);
+                    }
                 }
                 vkCmdEndRenderPass(this->m_buffers[i]);
             }

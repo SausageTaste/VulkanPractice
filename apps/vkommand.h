@@ -5,6 +5,8 @@
 
 #include <vulkan/vulkan.h>
 
+#include "vert_data.h"
+
 
 namespace dal {
 
@@ -24,12 +26,6 @@ namespace dal {
     };
 
 
-    struct IndexedVertices {
-        VkBuffer vert_buffer;
-        VkBuffer index_buffer;
-        uint32_t index_buffer_size;
-    };
-
     class CommandBuffers {
 
     private:
@@ -41,7 +37,7 @@ namespace dal {
 
         void record(
             VkRenderPass renderPass, VkPipeline graphicsPipeline, const VkExtent2D& extent, const std::vector<VkFramebuffer>& swapChainFbufs,
-            VkPipelineLayout pipelineLayout, const std::vector<VkDescriptorSet>& descriptorSets, const IndexedVertices& indexed_vertices
+            VkPipelineLayout pipelineLayout, const std::vector<VkDescriptorSet>& descriptorSets, const std::vector<MeshBuffer>& meshes
         );
 
         auto& buffers(void) const {

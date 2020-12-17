@@ -48,31 +48,47 @@ namespace dal {
                 {{ 0.5f,  0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}},
                 {{-0.5f,  0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}}
             };
-
             static const std::vector<uint16_t> INDICES = {
                 0, 1, 2, 2, 3, 0
             };
 
-            this->m_demoVertBuf.init(
+            this->m_meshes.emplace_back();
+            this->m_meshes.back().vertices.init(
                 VERTICES, this->m_logiDevice.get(), this->m_physDevice.get(),
                 this->m_cmdPool.pool(), this->m_logiDevice.graphicsQ()
             );
-
-            this->m_demoIndexBuf.init(
+            this->m_meshes.back().indices.init(
                 INDICES, this->m_logiDevice.get(), this->m_physDevice.get(),
                 this->m_cmdPool.pool(), this->m_logiDevice.graphicsQ()
             );
+        }
 
-            dal::IndexedVertices verticesInfo;
-            verticesInfo.vert_buffer = this->m_demoVertBuf.getBuf();
-            verticesInfo.index_buffer = this->m_demoIndexBuf.getBuf();
-            verticesInfo.index_buffer_size = this->m_demoIndexBuf.size();
+        {
+            static const std::vector<Vertex> VERTICES = {
+                {{-0.5f, -2.5f, 1.0f}, {1.0f, 0.0f, 0.0f}},
+                {{ 0.5f, -2.5f, 1.0f}, {0.0f, 1.0f, 0.0f}},
+                {{ 0.5f, -1.5f, 1.0f}, {0.0f, 0.0f, 1.0f}},
+                {{-0.5f, -1.5f, 1.0f}, {1.0f, 1.0f, 1.0f}}
+            };
+            static const std::vector<uint16_t> INDICES = {
+                0, 1, 2, 2, 3, 0
+            };
 
-            this->m_cmdBuffers.record(
-                this->m_renderPass.get(), this->m_pipeline.getPipeline(), this->m_swapchain.extent(),
-                this->m_fbuf.getList(), this->m_pipeline.layout(), this->m_descPool.descSets(), verticesInfo
+            this->m_meshes.emplace_back();
+            this->m_meshes.back().vertices.init(
+                VERTICES, this->m_logiDevice.get(), this->m_physDevice.get(),
+                this->m_cmdPool.pool(), this->m_logiDevice.graphicsQ()
+            );
+            this->m_meshes.back().indices.init(
+                INDICES, this->m_logiDevice.get(), this->m_physDevice.get(),
+                this->m_cmdPool.pool(), this->m_logiDevice.graphicsQ()
             );
         }
+
+        this->m_cmdBuffers.record(
+            this->m_renderPass.get(), this->m_pipeline.getPipeline(), this->m_swapchain.extent(),
+            this->m_fbuf.getList(), this->m_pipeline.layout(), this->m_descPool.descSets(), this->m_meshes
+        );
 
         this->m_currentFrame = 0;
         this->m_scrWidth = w;
@@ -80,12 +96,15 @@ namespace dal {
     }
 
     void VulkanMaster::destroy(void) {
+        for (auto& mesh : this->m_meshes) {
+            mesh.vertices.destroy(this->m_logiDevice.get());
+            mesh.indices.destroy(this->m_logiDevice.get());
+        }
+
         this->m_syncMas.destroy(this->m_logiDevice.get());
         //this->m_cmdBuffers.destroy(this->m_logiDevice.get(), this->m_cmdPool.pool());
         this->m_descPool.destroy(this->m_logiDevice.get());
         this->m_uniformBufs.destroy(this->m_logiDevice.get());
-        this->m_demoIndexBuf.destroy(this->m_logiDevice.get());
-        this->m_demoVertBuf.destroy(this->m_logiDevice.get());
         this->m_cmdPool.destroy(this->m_logiDevice.get());
         this->m_fbuf.destroy(this->m_logiDevice.get());
         this->m_pipeline.destroy(this->m_logiDevice.get());
@@ -192,17 +211,10 @@ namespace dal {
             this->m_syncMas.init(this->m_logiDevice.get(), this->m_swapchainImages.size());
         }
 
-        {
-            dal::IndexedVertices verticesInfo;
-            verticesInfo.vert_buffer = this->m_demoVertBuf.getBuf();
-            verticesInfo.index_buffer = this->m_demoIndexBuf.getBuf();
-            verticesInfo.index_buffer_size = this->m_demoIndexBuf.size();
-
-            this->m_cmdBuffers.record(
-                this->m_renderPass.get(), this->m_pipeline.getPipeline(), this->m_swapchain.extent(),
-                this->m_fbuf.getList(), this->m_pipeline.layout(), this->m_descPool.descSets(), verticesInfo
-            );
-        }
+        this->m_cmdBuffers.record(
+            this->m_renderPass.get(), this->m_pipeline.getPipeline(), this->m_swapchain.extent(),
+            this->m_fbuf.getList(), this->m_pipeline.layout(), this->m_descPool.descSets(), this->m_meshes
+        );
     }
 
     void VulkanMaster::notifyScreenResize(const unsigned w, const unsigned h) {

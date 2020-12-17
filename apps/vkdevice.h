@@ -36,8 +36,7 @@ namespace dal {
         UniformBuffers m_uniformBufs;
         DescriptorPool m_descPool;
 
-        VertexBuffer m_demoVertBuf;
-        IndexBuffer m_demoIndexBuf;
+        std::vector<MeshBuffer> m_meshes;
 
         unsigned m_currentFrame = 0;
         bool m_needResize = false;
