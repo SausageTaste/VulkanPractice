@@ -214,11 +214,15 @@ namespace dal {
     }
 
     void IndexBuffer::destroy(const VkDevice device) {
-        vkDestroyBuffer(device, this->indexBuffer, nullptr);
-        this->indexBuffer = VK_NULL_HANDLE;
+        if (VK_NULL_HANDLE != this->indexBuffer) {
+            vkDestroyBuffer(device, this->indexBuffer, nullptr);
+            this->indexBuffer = VK_NULL_HANDLE;
+        }
 
-        vkFreeMemory(device, this->indexBufferMemory, nullptr);
-        this->indexBufferMemory = VK_NULL_HANDLE;
+        if (VK_NULL_HANDLE != this->indexBufferMemory) {
+            vkFreeMemory(device, this->indexBufferMemory, nullptr);
+            this->indexBufferMemory = VK_NULL_HANDLE;
+        }
 
         this->arr_size = 0;
     }
