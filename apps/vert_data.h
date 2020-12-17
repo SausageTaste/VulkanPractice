@@ -28,7 +28,8 @@ namespace dal {
         uint32_t vertSize = 0;
 
     public:
-        void init(const std::vector<Vertex>& vertices, const VkDevice logiDevice, const VkPhysicalDevice physDevice);
+        void init(const std::vector<Vertex>& vertices, const VkDevice logiDevice,
+            const VkPhysicalDevice physDevice, VkCommandPool cmdPool, VkQueue graphicsQueue);
         void destroy(const VkDevice device);
 
         auto getBuf() const {
