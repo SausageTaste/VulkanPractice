@@ -13,6 +13,7 @@
 #include "fbufmanager.h"
 #include "vkommand.h"
 #include "semaphore.h"
+#include "vert_data.h"
 
 
 namespace dal {
@@ -29,6 +30,8 @@ namespace dal {
         FbufManager m_fbuf;
         CommandPool m_command;
         SyncMaster m_syncMas;
+
+        VertexBuffer m_demoVertBuf;
 
         unsigned m_currentFrame = 0;
         bool m_needResize = false;

@@ -19,4 +19,26 @@ namespace dal {
 
     const std::vector<Vertex>& getDemoVertices();
 
+
+    class VertexBuffer {
+
+    private:
+        VkBuffer buffer = VK_NULL_HANDLE;
+        VkDeviceMemory buffer_mem = VK_NULL_HANDLE;
+        uint32_t vertSize = 0;
+
+    public:
+        void init(const std::vector<Vertex>& vertices, const VkDevice logiDevice, const VkPhysicalDevice physDevice);
+        void destroy(const VkDevice device);
+
+        auto getBuf() const {
+            assert(VK_NULL_HANDLE != this->buffer);
+            return this->buffer;
+        }
+        uint32_t size() const {
+            return this->vertSize;
+        }
+
+    };
+
 }
