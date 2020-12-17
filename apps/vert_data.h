@@ -18,6 +18,7 @@ namespace dal {
     };
 
     const std::vector<Vertex>& getDemoVertices();
+    const std::vector<uint16_t>& getDemoIndices();
 
 
     class VertexBuffer {
@@ -41,5 +42,28 @@ namespace dal {
         }
 
     };
+
+
+    class IndexBuffer {
+
+    private:
+        VkBuffer indexBuffer = VK_NULL_HANDLE;
+        VkDeviceMemory indexBufferMemory = VK_NULL_HANDLE;
+        uint32_t arr_size = 0;
+
+    public:
+        void init(const std::vector<uint16_t>& indices, const VkDevice logiDevice,
+            const VkPhysicalDevice physDevice, VkCommandPool cmdPool, VkQueue graphicsQueue);
+        void destroy(const VkDevice device);
+
+        auto getBuf() const {
+            assert(VK_NULL_HANDLE != this->indexBuffer);
+            return this->indexBuffer;
+        }
+        uint32_t size() const {
+            return this->arr_size;
+        }
+
+    }
 
 }

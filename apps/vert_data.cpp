@@ -118,12 +118,21 @@ namespace dal {
 
     const std::vector<Vertex>& getDemoVertices() {
         static const std::vector<Vertex> VERTICES = {
-            {{ 0.0f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
-            {{ 0.5f,  0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}},
-            {{-0.5f,  0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}}
+            {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
+            {{ 0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}},
+            {{ 0.5f,  0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}},
+            {{-0.5f,  0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}}
         };
 
         return VERTICES;
+    }
+
+    const std::vector<uint16_t>& getDemoIndices() {
+        static const std::vector<uint16_t> DATA = {
+            0, 1, 2, 2, 3, 0
+        };
+
+        return DATA;
     }
 
 }
@@ -178,6 +187,60 @@ namespace dal {
         this->buffer_mem = VK_NULL_HANDLE;
 
         this->vertSize = 0;
+    }
+
+}
+
+
+namespace dal {
+
+    void IndexBuffer::init(const std::vector<uint16_t>& indices, const VkDevice logiDevice,
+            const VkPhysicalDevice physDevice, VkCommandPool cmdPool, VkQueue graphicsQueue)
+    {
+        VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
+
+        VkBuffer stagingBuffer;
+        VkDeviceMemory stagingBufferMemory;
+        ::createBuffer(
+            bufferSize,
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            stagingBuffer,
+            stagingBufferMemory,
+            logiDevice,
+            physDevice
+        );
+
+        void* data;
+        vkMapMemory(logiDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
+        memcpy(data, indices.data(), (size_t) bufferSize);
+        vkUnmapMemory(logiDevice, stagingBufferMemory);
+
+        ::createBuffer(
+            bufferSize,
+            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            indexBuffer,
+            indexBufferMemory,
+            logiDevice,
+            physDevice
+        );
+
+        ::copyBuffer(stagingBuffer, indexBuffer, bufferSize, logiDevice, cmdPool, graphicsQueue);
+        this->arr_size = indices.size();
+
+        vkDestroyBuffer(logiDevice, stagingBuffer, nullptr);
+        vkFreeMemory(logiDevice, stagingBufferMemory, nullptr);
+    }
+
+    void IndexBuffer::destroy(const VkDevice device) {
+        vkDestroyBuffer(device, this->indexBuffer, nullptr);
+        this->indexBuffer = VK_NULL_HANDLE;
+
+        vkFreeMemory(device, this->indexBufferMemory, nullptr);
+        this->indexBufferMemory = VK_NULL_HANDLE;
+
+        this->arr_size = 0;
     }
 
 }
