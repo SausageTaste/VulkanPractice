@@ -39,6 +39,8 @@ namespace dal {
         DescriptorPool m_descPool;
 
         TextureImage m_tex1;
+        TextureImageView m_texView1;
+
         std::vector<MeshBuffer> m_meshes;
 
         unsigned m_currentFrame = 0;

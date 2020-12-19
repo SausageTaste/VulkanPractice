@@ -221,3 +221,19 @@ namespace dal {
     }
 
 }
+
+
+namespace dal {
+
+    void TextureImageView::init(VkDevice logiDevice, VkImage textureImage) {
+        this->textureImageView = dal::createImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB, logiDevice);
+    }
+
+    void TextureImageView::destroy(VkDevice logiDevice) {
+        if (VK_NULL_HANDLE != this->textureImageView) {
+            vkDestroyImageView(logiDevice, this->textureImageView, nullptr);
+            this->textureImageView = VK_NULL_HANDLE;
+        }
+    }
+
+}
