@@ -182,7 +182,7 @@ namespace dal {
         const float ratio = static_cast<float>(swapchainExtent.width) / static_cast<float>(swapchainExtent.height);
 
         dal::UniformBufferObject ubo;
-        ubo.model = glm::rotate(glm::mat4(1), time * glm::radians<float>(90), glm::vec3(0, 1, 0));
+        ubo.model = glm::rotate(glm::mat4(1), 0.5f * time * glm::radians<float>(90), glm::vec3(0, 1, 0));
         ubo.view = glm::lookAt(glm::vec3(0, 2, 4), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
         ubo.proj = glm::perspective<float>(glm::radians<float>(45), ratio, 0, 10);
         ubo.proj[1][1] *= -1;
