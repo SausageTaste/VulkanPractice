@@ -111,6 +111,7 @@ namespace dal {
             mesh.vertices.destroy(this->m_logiDevice.get());
             mesh.indices.destroy(this->m_logiDevice.get());
         }
+        this->m_meshes.clear();
 
         this->m_tex1.destroy(this->m_logiDevice.get());
 

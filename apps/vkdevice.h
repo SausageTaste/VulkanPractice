@@ -46,6 +46,10 @@ namespace dal {
         unsigned m_scrWidth, m_scrHeight;
 
     public:
+        ~VulkanMaster() {
+            this->destroy();
+        }
+
         void init(const VkInstance instance, const VkSurfaceKHR surface, const unsigned w, const unsigned h);
         void destroy(void);
 
