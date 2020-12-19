@@ -115,26 +115,6 @@ namespace dal {
         return result;
     }
 
-
-    const std::vector<Vertex>& getDemoVertices() {
-        static const std::vector<Vertex> VERTICES = {
-            {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
-            {{ 0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}},
-            {{ 0.5f,  0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}},
-            {{-0.5f,  0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}}
-        };
-
-        return VERTICES;
-    }
-
-    const std::vector<uint16_t>& getDemoIndices() {
-        static const std::vector<uint16_t> DATA = {
-            0, 1, 2, 2, 3, 0
-        };
-
-        return DATA;
-    }
-
 }
 
 
@@ -234,11 +214,15 @@ namespace dal {
     }
 
     void IndexBuffer::destroy(const VkDevice device) {
-        vkDestroyBuffer(device, this->indexBuffer, nullptr);
-        this->indexBuffer = VK_NULL_HANDLE;
+        if (VK_NULL_HANDLE != this->indexBuffer) {
+            vkDestroyBuffer(device, this->indexBuffer, nullptr);
+            this->indexBuffer = VK_NULL_HANDLE;
+        }
 
-        vkFreeMemory(device, this->indexBufferMemory, nullptr);
-        this->indexBufferMemory = VK_NULL_HANDLE;
+        if (VK_NULL_HANDLE != this->indexBufferMemory) {
+            vkFreeMemory(device, this->indexBufferMemory, nullptr);
+            this->indexBufferMemory = VK_NULL_HANDLE;
+        }
 
         this->arr_size = 0;
     }

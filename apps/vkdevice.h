@@ -29,14 +29,14 @@ namespace dal {
         RenderPass m_renderPass;
         ShaderPipeline m_pipeline;
         FbufManager m_fbuf;
-        CommandPool m_command;
+        CommandPool m_cmdPool;
+        CommandBuffers m_cmdBuffers;
         SyncMaster m_syncMas;
         DescriptorSetLayout m_descSetLayout;
         UniformBuffers m_uniformBufs;
         DescriptorPool m_descPool;
 
-        VertexBuffer m_demoVertBuf;
-        IndexBuffer m_demoIndexBuf;
+        std::vector<MeshBuffer> m_meshes;
 
         unsigned m_currentFrame = 0;
         bool m_needResize = false;

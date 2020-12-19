@@ -33,24 +33,71 @@ namespace dal {
         this->m_descSetLayout.init(this->m_logiDevice.get());
         this->m_pipeline.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchain.extent(), this->m_descSetLayout.get());
         this->m_fbuf.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchainImages.getViews(), this->m_swapchain.extent());
-        this->m_command.initPool(this->m_physDevice.get(), this->m_logiDevice.get(), surface);
-        this->m_demoVertBuf.init(
-            dal::getDemoVertices(), this->m_logiDevice.get(), this->m_physDevice.get(),
-            this->m_command.pool(), this->m_logiDevice.graphicsQ()
-        );
-        this->m_demoIndexBuf.init(
-            dal::getDemoIndices(), this->m_logiDevice.get(), this->m_physDevice.get(),
-            this->m_command.pool(), this->m_logiDevice.graphicsQ()
-        );
+        this->m_cmdPool.init(this->m_physDevice.get(), this->m_logiDevice.get(), surface);
+
         this->m_uniformBufs.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchainImages.size());
         this->m_descPool.initPool(this->m_logiDevice.get(), this->m_swapchainImages.size());
         this->m_descPool.initSets(this->m_logiDevice.get(), this->m_swapchainImages.size(), this->m_descSetLayout.get(), this->m_uniformBufs.buffers());
-        this->m_command.initCmdBuffers(
-            this->m_logiDevice.get(), this->m_renderPass.get(), this->m_pipeline.getPipeline(), this->m_swapchain.extent(), this->m_fbuf.getList(),
-            this->m_demoVertBuf.getBuf(), this->m_demoVertBuf.size(), this->m_demoIndexBuf.getBuf(), this->m_demoIndexBuf.size(),
-            this->m_pipeline.layout(), this->m_descPool.descSets()
-        );
+        this->m_cmdBuffers.init(this->m_logiDevice.get(), this->m_fbuf.getList(), this->m_cmdPool.pool());
         this->m_syncMas.init(this->m_logiDevice.get(), this->m_swapchainImages.size());
+
+        {
+            static const std::vector<Vertex> VERTICES = {
+                {{-5.f, 0.f, -5.f}, {1.0f, 1.0f, 1.0f}},
+                {{-5.f, 0.f,  5.f}, {0.0f, 0.0f, 0.0f}},
+                {{ 5.f, 0.f,  5.f}, {0.0f, 0.0f, 0.0f}},
+                {{ 5.f, 0.f, -5.f}, {0.0f, 0.0f, 0.0f}},
+            };
+            static const std::vector<uint16_t> INDICES = {
+                0, 1, 2, 0, 2, 3
+            };
+
+            this->m_meshes.emplace_back();
+            this->m_meshes.back().vertices.init(
+                VERTICES, this->m_logiDevice.get(), this->m_physDevice.get(),
+                this->m_cmdPool.pool(), this->m_logiDevice.graphicsQ()
+            );
+            this->m_meshes.back().indices.init(
+                INDICES, this->m_logiDevice.get(), this->m_physDevice.get(),
+                this->m_cmdPool.pool(), this->m_logiDevice.graphicsQ()
+            );
+        }
+
+        {
+            static const std::vector<Vertex> VERTICES = {
+                {{-0.5f, 0.f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+                {{-0.5f, 0.f,  0.5f}, {1.0f, 0.0f, 0.0f}},
+                {{ 0.5f, 0.f,  0.5f}, {1.0f, 0.0f, 0.0f}},
+                {{ 0.5f, 0.f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+                {{-0.5f, 1.f, -0.5f}, {0.0f, 0.0f, 1.0f}},
+                {{-0.5f, 1.f,  0.5f}, {0.0f, 0.0f, 1.0f}},
+                {{ 0.5f, 1.f,  0.5f}, {0.0f, 0.0f, 1.0f}},
+                {{ 0.5f, 1.f, -0.5f}, {0.0f, 0.0f, 1.0f}}
+            };
+            static const std::vector<uint16_t> INDICES = {
+                0, 2, 1, 0, 3, 2,
+                5, 1, 2, 5, 2, 6,
+                6, 2, 3, 6, 3, 7,
+                7, 3, 0, 7, 0, 4,
+                4, 0, 1, 4, 1, 5,
+                4, 5, 6, 4, 6, 7
+            };
+
+            this->m_meshes.emplace_back();
+            this->m_meshes.back().vertices.init(
+                VERTICES, this->m_logiDevice.get(), this->m_physDevice.get(),
+                this->m_cmdPool.pool(), this->m_logiDevice.graphicsQ()
+            );
+            this->m_meshes.back().indices.init(
+                INDICES, this->m_logiDevice.get(), this->m_physDevice.get(),
+                this->m_cmdPool.pool(), this->m_logiDevice.graphicsQ()
+            );
+        }
+
+        this->m_cmdBuffers.record(
+            this->m_renderPass.get(), this->m_pipeline.getPipeline(), this->m_swapchain.extent(),
+            this->m_fbuf.getList(), this->m_pipeline.layout(), this->m_descPool.descSets(), this->m_meshes
+        );
 
         this->m_currentFrame = 0;
         this->m_scrWidth = w;
@@ -58,12 +105,16 @@ namespace dal {
     }
 
     void VulkanMaster::destroy(void) {
+        for (auto& mesh : this->m_meshes) {
+            mesh.vertices.destroy(this->m_logiDevice.get());
+            mesh.indices.destroy(this->m_logiDevice.get());
+        }
+
         this->m_syncMas.destroy(this->m_logiDevice.get());
-        this->m_command.destroy(this->m_logiDevice.get());
+        //this->m_cmdBuffers.destroy(this->m_logiDevice.get(), this->m_cmdPool.pool());
         this->m_descPool.destroy(this->m_logiDevice.get());
         this->m_uniformBufs.destroy(this->m_logiDevice.get());
-        this->m_demoIndexBuf.destroy(this->m_logiDevice.get());
-        this->m_demoVertBuf.destroy(this->m_logiDevice.get());
+        this->m_cmdPool.destroy(this->m_logiDevice.get());
         this->m_fbuf.destroy(this->m_logiDevice.get());
         this->m_pipeline.destroy(this->m_logiDevice.get());
         this->m_descSetLayout.destroy(this->m_logiDevice.get());
@@ -99,13 +150,13 @@ namespace dal {
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
         const std::array<VkSemaphore, 1> waitSemaphores = { this->m_syncMas.semaphImageAvailable(this->m_currentFrame).get() };
-        const std::array <VkPipelineStageFlags, 1> waitStages = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+        const std::array<VkPipelineStageFlags, 1> waitStages = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
         submitInfo.waitSemaphoreCount = waitSemaphores.size();
         submitInfo.pWaitSemaphores = waitSemaphores.data();
         submitInfo.pWaitDstStageMask = waitStages.data();
 
         submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &this->m_command.buffers()[imageIndex.first];
+        submitInfo.pCommandBuffers = &this->m_cmdBuffers.buffers()[imageIndex.first];
 
         const std::array<VkSemaphore, 1> signalSemaphores = { this->m_syncMas.semaphRenderFinished(this->m_currentFrame).get() };
         submitInfo.signalSemaphoreCount = signalSemaphores.size();
@@ -146,7 +197,7 @@ namespace dal {
 
         {
             this->m_syncMas.destroy(this->m_logiDevice.get());
-            this->m_command.destroy(this->m_logiDevice.get());
+            this->m_cmdBuffers.destroy(this->m_logiDevice.get(), this->m_cmdPool.pool());
             this->m_descPool.destroy(this->m_logiDevice.get());
             this->m_uniformBufs.destroy(this->m_logiDevice.get());
             this->m_fbuf.destroy(this->m_logiDevice.get());
@@ -162,17 +213,17 @@ namespace dal {
             this->m_renderPass.init(this->m_logiDevice.get(), this->m_swapchain.imageFormat());
             this->m_pipeline.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchain.extent(), this->m_descSetLayout.get());
             this->m_fbuf.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchainImages.getViews(), this->m_swapchain.extent());
-            this->m_command.initPool(this->m_physDevice.get(), this->m_logiDevice.get(), surface);
             this->m_uniformBufs.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchainImages.size());
             this->m_descPool.initPool(this->m_logiDevice.get(), this->m_swapchainImages.size());
             this->m_descPool.initSets(this->m_logiDevice.get(), this->m_swapchainImages.size(), this->m_descSetLayout.get(), this->m_uniformBufs.buffers());
-            this->m_command.initCmdBuffers(
-                this->m_logiDevice.get(), this->m_renderPass.get(), this->m_pipeline.getPipeline(), this->m_swapchain.extent(), this->m_fbuf.getList(),
-                this->m_demoVertBuf.getBuf(), this->m_demoVertBuf.size(), this->m_demoIndexBuf.getBuf(), this->m_demoIndexBuf.size(),
-                this->m_pipeline.layout(), this->m_descPool.descSets()
-            );
+            this->m_cmdBuffers.init(this->m_logiDevice.get(), this->m_fbuf.getList(), this->m_cmdPool.pool());
             this->m_syncMas.init(this->m_logiDevice.get(), this->m_swapchainImages.size());
         }
+
+        this->m_cmdBuffers.record(
+            this->m_renderPass.get(), this->m_pipeline.getPipeline(), this->m_swapchain.extent(),
+            this->m_fbuf.getList(), this->m_pipeline.layout(), this->m_descPool.descSets(), this->m_meshes
+        );
     }
 
     void VulkanMaster::notifyScreenResize(const unsigned w, const unsigned h) {
