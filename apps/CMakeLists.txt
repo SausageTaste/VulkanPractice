@@ -24,6 +24,7 @@ add_executable(vulkan_practice
     timer.h             timer.cpp
     vert_data.h         vert_data.cpp
     uniform.h           uniform.cpp
+    texture.h           texture.cpp
     command_pool.h      command_pool.cpp
 )
 target_compile_features(vulkan_practice PUBLIC cxx_std_14)

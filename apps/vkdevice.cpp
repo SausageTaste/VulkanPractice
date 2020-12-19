@@ -41,6 +41,8 @@ namespace dal {
         this->m_cmdBuffers.init(this->m_logiDevice.get(), this->m_fbuf.getList(), this->m_cmdPool.pool());
         this->m_syncMas.init(this->m_logiDevice.get(), this->m_swapchainImages.size());
 
+        this->m_tex1.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_cmdPool, this->m_logiDevice.graphicsQ());
+
         {
             static const std::vector<Vertex> VERTICES = {
                 {{-5.f, 0.f, -5.f}, {1.0f, 1.0f, 1.0f}},
@@ -109,6 +111,8 @@ namespace dal {
             mesh.vertices.destroy(this->m_logiDevice.get());
             mesh.indices.destroy(this->m_logiDevice.get());
         }
+
+        this->m_tex1.destroy(this->m_logiDevice.get());
 
         this->m_syncMas.destroy(this->m_logiDevice.get());
         //this->m_cmdBuffers.destroy(this->m_logiDevice.get(), this->m_cmdPool.pool());

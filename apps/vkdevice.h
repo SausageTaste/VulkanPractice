@@ -16,6 +16,7 @@
 #include "semaphore.h"
 #include "vert_data.h"
 #include "uniform.h"
+#include "texture.h"
 
 
 namespace dal {
@@ -37,6 +38,7 @@ namespace dal {
         UniformBuffers m_uniformBufs;
         DescriptorPool m_descPool;
 
+        TextureImage m_tex1;
         std::vector<MeshBuffer> m_meshes;
 
         unsigned m_currentFrame = 0;
