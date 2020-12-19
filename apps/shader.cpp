@@ -267,11 +267,15 @@ namespace dal {
     }
 
     void ShaderPipeline::destroy(VkDevice device) {
-        vkDestroyPipeline(device, this->m_graphicsPipeline, nullptr);
-        this->m_graphicsPipeline = VK_NULL_HANDLE;
+        if (VK_NULL_HANDLE != this->m_graphicsPipeline) {
+            vkDestroyPipeline(device, this->m_graphicsPipeline, nullptr);
+            this->m_graphicsPipeline = VK_NULL_HANDLE;
+        }
 
-        vkDestroyPipelineLayout(device, this->m_pipelineLayout, nullptr);
-        this->m_pipelineLayout = VK_NULL_HANDLE;
+        if (VK_NULL_HANDLE != this->m_pipelineLayout) {
+            vkDestroyPipelineLayout(device, this->m_pipelineLayout, nullptr);
+            this->m_pipelineLayout = VK_NULL_HANDLE;
+        }
     }
 
 }

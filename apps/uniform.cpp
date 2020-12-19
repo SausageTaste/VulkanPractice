@@ -37,8 +37,10 @@ namespace dal {
     }
 
     void DescriptorSetLayout::destroy(const VkDevice logiDevice) {
-        vkDestroyDescriptorSetLayout(logiDevice, this->descriptorSetLayout, nullptr);
-        this->descriptorSetLayout = VK_NULL_HANDLE;
+        if (VK_NULL_HANDLE != this->descriptorSetLayout) {
+            vkDestroyDescriptorSetLayout(logiDevice, this->descriptorSetLayout, nullptr);
+            this->descriptorSetLayout = VK_NULL_HANDLE;
+        }
     }
 
 }
@@ -123,8 +125,10 @@ namespace dal {
     }
 
     void DescriptorPool::destroy(VkDevice logiDevice) {
-        vkDestroyDescriptorPool(logiDevice, this->descriptorPool, nullptr);
-        this->descriptorPool = VK_NULL_HANDLE;
+        if (VK_NULL_HANDLE != this->descriptorPool) {
+            vkDestroyDescriptorPool(logiDevice, this->descriptorPool, nullptr);
+            this->descriptorPool = VK_NULL_HANDLE;
+        }
 
         this->descriptorSets.clear();
     }

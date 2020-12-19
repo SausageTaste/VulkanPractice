@@ -63,8 +63,10 @@ namespace dal {
     }
 
     void RenderPass::destroy(VkDevice logiDevice) {
-        vkDestroyRenderPass(logiDevice, this->m_renderPass, nullptr);
-        this->m_renderPass = VK_NULL_HANDLE;
+        if (VK_NULL_HANDLE != this->m_renderPass) {
+            vkDestroyRenderPass(logiDevice, this->m_renderPass, nullptr);
+            this->m_renderPass = VK_NULL_HANDLE;
+        }
     }
 
 }
