@@ -7,40 +7,17 @@
 
 namespace {
 
-    void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size,
-        VkDevice logiDevice, VkCommandPool cmdPool, VkQueue graphicsQueue) {
-        VkCommandBufferAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandPool = cmdPool;
-        allocInfo.commandBufferCount = 1;
-
-        VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
-        vkAllocateCommandBuffers(logiDevice, &allocInfo, &commandBuffer);
-
-        VkCommandBufferBeginInfo beginInfo{};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-        vkBeginCommandBuffer(commandBuffer, &beginInfo);
+    void copyBuffer(
+        VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size,
+        VkDevice logiDevice, dal::CommandPool& cmdPool, VkQueue graphicsQueue
+    ) {
+        const auto commandBuffer = cmdPool.beginSingleTimeCmd(logiDevice);
         {
             VkBufferCopy copyRegion{};
-            copyRegion.srcOffset = 0; // Optional
-            copyRegion.dstOffset = 0; // Optional
             copyRegion.size = size;
             vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
         }
-        vkEndCommandBuffer(commandBuffer);
-
-        VkSubmitInfo submitInfo{};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &commandBuffer;
-
-        vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-        vkQueueWaitIdle(graphicsQueue);
-
-        vkFreeCommandBuffers(logiDevice, cmdPool, 1, &commandBuffer);
+        cmdPool.endSingleTimeCmd(commandBuffer, logiDevice, graphicsQueue);
     }
 
 }
@@ -80,7 +57,7 @@ namespace dal {
 namespace dal {
 
     void VertexBuffer::init(const std::vector<Vertex>& vertices, const VkDevice logiDevice,
-        const VkPhysicalDevice physDevice, VkCommandPool cmdPool, VkQueue graphicsQueue)
+        const VkPhysicalDevice physDevice, dal::CommandPool& cmdPool, VkQueue graphicsQueue)
     {
         VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 
@@ -134,7 +111,7 @@ namespace dal {
 namespace dal {
 
     void IndexBuffer::init(const std::vector<uint16_t>& indices, const VkDevice logiDevice,
-            const VkPhysicalDevice physDevice, VkCommandPool cmdPool, VkQueue graphicsQueue)
+            const VkPhysicalDevice physDevice, dal::CommandPool& cmdPool, VkQueue graphicsQueue)
     {
         VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
 

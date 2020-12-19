@@ -10,22 +10,6 @@
 
 namespace dal {
 
-    class CommandPool {
-
-    private:
-        VkCommandPool m_pool = VK_NULL_HANDLE;
-
-    public:
-        void init(VkPhysicalDevice physDevice, VkDevice logiDevice, VkSurfaceKHR surface);
-        void destroy(const VkDevice logiDevice);
-
-        auto& pool() const {
-            assert(VK_NULL_HANDLE != this->m_pool);
-            return this->m_pool;
-        }
-    };
-
-
     class CommandBuffers {
 
     private:

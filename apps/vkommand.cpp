@@ -2,47 +2,6 @@
 
 #include <stdexcept>
 
-#include "util_vulkan.h"
-
-
-namespace {
-
-    VkCommandPool createCommandPool(VkPhysicalDevice PhysDevice, VkDevice logiDevice, VkSurfaceKHR surface) {
-        dal::QueueFamilyIndices queueFamilyIndices = dal::findQueueFamilies(PhysDevice, surface);
-
-        VkCommandPoolCreateInfo poolInfo = {};
-        poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily();
-        poolInfo.flags = 0; // Optional
-
-        VkCommandPool commandPool = VK_NULL_HANDLE;
-        if ( vkCreateCommandPool(logiDevice, &poolInfo, nullptr, &commandPool) != VK_SUCCESS ) {
-            throw std::runtime_error("failed to create command pool!");
-        }
-
-        return commandPool;
-    }
-
-}
-
-
-namespace dal {
-
-    void CommandPool::init(VkPhysicalDevice physDevice, VkDevice logiDevice, VkSurfaceKHR surface) {
-        this->destroy(logiDevice);
-
-        this->m_pool = createCommandPool(physDevice, logiDevice, surface);
-    }
-
-    void CommandPool::destroy(const VkDevice logiDevice) {
-        if (VK_NULL_HANDLE != this->m_pool) {
-            vkDestroyCommandPool(logiDevice, this->m_pool, nullptr);
-            this->m_pool = VK_NULL_HANDLE;
-        }
-    }
-
-}
-
 
 namespace dal {
 

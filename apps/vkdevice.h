@@ -11,6 +11,7 @@
 #include "shader.h"
 #include "renderpass.h"
 #include "fbufmanager.h"
+#include "command_pool.h"
 #include "vkommand.h"
 #include "semaphore.h"
 #include "vert_data.h"

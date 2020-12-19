@@ -55,11 +55,11 @@ namespace dal {
             this->m_meshes.emplace_back();
             this->m_meshes.back().vertices.init(
                 VERTICES, this->m_logiDevice.get(), this->m_physDevice.get(),
-                this->m_cmdPool.pool(), this->m_logiDevice.graphicsQ()
+                this->m_cmdPool, this->m_logiDevice.graphicsQ()
             );
             this->m_meshes.back().indices.init(
                 INDICES, this->m_logiDevice.get(), this->m_physDevice.get(),
-                this->m_cmdPool.pool(), this->m_logiDevice.graphicsQ()
+                this->m_cmdPool, this->m_logiDevice.graphicsQ()
             );
         }
 
@@ -86,11 +86,11 @@ namespace dal {
             this->m_meshes.emplace_back();
             this->m_meshes.back().vertices.init(
                 VERTICES, this->m_logiDevice.get(), this->m_physDevice.get(),
-                this->m_cmdPool.pool(), this->m_logiDevice.graphicsQ()
+                this->m_cmdPool, this->m_logiDevice.graphicsQ()
             );
             this->m_meshes.back().indices.init(
                 INDICES, this->m_logiDevice.get(), this->m_physDevice.get(),
-                this->m_cmdPool.pool(), this->m_logiDevice.graphicsQ()
+                this->m_cmdPool, this->m_logiDevice.graphicsQ()
             );
         }
 
