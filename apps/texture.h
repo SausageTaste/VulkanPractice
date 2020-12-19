@@ -40,6 +40,12 @@ namespace dal {
     };
 
 
+    struct TextureUnit {
+        TextureImage image;
+        TextureImageView view;
+    };
+
+
     class TextureSampler {
 
     private:

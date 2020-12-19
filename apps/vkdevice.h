@@ -38,10 +38,8 @@ namespace dal {
         UniformBuffers m_uniformBufs;
         DescriptorPool m_descPool;
 
-        TextureImage m_tex1;
-        TextureImageView m_texView1;
         TextureSampler m_sampler1;
-
+        std::vector<TextureUnit> m_textures;
         std::vector<MeshBuffer> m_meshes;
 
         unsigned m_currentFrame = 0;
