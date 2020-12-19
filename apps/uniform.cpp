@@ -51,15 +51,15 @@ namespace dal {
     void DescriptorPool::initPool(VkDevice logiDevice, size_t swapchainImagesSize) {
         std::array<VkDescriptorPoolSize, 2> poolSizes{};
         poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        poolSizes[0].descriptorCount = static_cast<uint32_t>(swapchainImagesSize);
+        poolSizes[0].descriptorCount = static_cast<uint32_t>(swapchainImagesSize) * 5;
         poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        poolSizes[1].descriptorCount = static_cast<uint32_t>(swapchainImagesSize);
+        poolSizes[1].descriptorCount = static_cast<uint32_t>(swapchainImagesSize) * 5;
 
         VkDescriptorPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
         poolInfo.pPoolSizes = poolSizes.data();
-        poolInfo.maxSets = static_cast<uint32_t>(swapchainImagesSize);
+        poolInfo.maxSets = static_cast<uint32_t>(swapchainImagesSize) * 5;
 
         if (VK_SUCCESS != vkCreateDescriptorPool(logiDevice, &poolInfo, nullptr, &this->descriptorPool)) {
             throw std::runtime_error("failed to create descriptor pool!");

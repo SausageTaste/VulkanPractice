@@ -3,6 +3,8 @@
 #include <array>
 #include <stdexcept>
 
+#include "util_windows.h"
+
 
 namespace {
 
@@ -38,7 +40,21 @@ namespace dal {
         this->m_sampler1.init(this->m_logiDevice.get(), this->m_physDevice.get());
         {
             this->m_textures.emplace_back();
-            this->m_textures.back().image.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_cmdPool, this->m_logiDevice.graphicsQ());
+            this->m_textures.back().image.init(
+                (dal::findResPath() + "/image/grass1.png").c_str(),
+                this->m_logiDevice.get(), this->m_physDevice.get(),
+                this->m_cmdPool,
+                this->m_logiDevice.graphicsQ()
+            );
+            this->m_textures.back().view.init(this->m_logiDevice.get(), this->m_textures.back().image.image());
+
+            this->m_textures.emplace_back();
+            this->m_textures.back().image.init(
+                (dal::findResPath() + "/image/0021di.png").c_str(),
+                this->m_logiDevice.get(), this->m_physDevice.get(),
+                this->m_cmdPool,
+                this->m_logiDevice.graphicsQ()
+            );
             this->m_textures.back().view.init(this->m_logiDevice.get(), this->m_textures.back().image.image());
         }
 
@@ -56,10 +72,10 @@ namespace dal {
 
         {
             static const std::vector<Vertex> VERTICES = {
-                {{-5.f, 0.f, -5.f}, {1.0f, 1.0f, 1.0f}, {0, 0}},
-                {{-5.f, 0.f,  5.f}, {0.0f, 0.0f, 0.0f}, {0, 1}},
-                {{ 5.f, 0.f,  5.f}, {0.0f, 0.0f, 0.0f}, {1, 1}},
-                {{ 5.f, 0.f, -5.f}, {0.0f, 0.0f, 0.0f}, {1, 0}},
+                {{-5.f, 0.f, -5.f}, {1.0f, 1.0f, 1.0f}, { 0,  0}},
+                {{-5.f, 0.f,  5.f}, {0.0f, 0.0f, 0.0f}, { 0, 10}},
+                {{ 5.f, 0.f,  5.f}, {0.0f, 0.0f, 0.0f}, {10, 10}},
+                {{ 5.f, 0.f, -5.f}, {0.0f, 0.0f, 0.0f}, {10,  0}},
             };
             static const std::vector<uint16_t> INDICES = {
                 0, 1, 2, 0, 2, 3

@@ -5,7 +5,6 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-#include "util_windows.h"
 #include "util_vulkan.h"
 
 
@@ -139,11 +138,10 @@ namespace {
 
 namespace dal {
 
-    void TextureImage::init(VkDevice logiDevice, VkPhysicalDevice physDevice, dal::CommandPool& cmdPool, VkQueue graphicsQ) {
+    void TextureImage::init(const char* const image_path, VkDevice logiDevice, VkPhysicalDevice physDevice, dal::CommandPool& cmdPool, VkQueue graphicsQ) {
         int img_width, img_height, img_channels;
         const auto pixels = stbi_load(
-            (dal::findResPath() + "/image/hikari.png").c_str(),
-            &img_width, &img_height, &img_channels, STBI_rgb_alpha
+            image_path, &img_width, &img_height, &img_channels, STBI_rgb_alpha
         );
         if (!pixels) {
             throw std::runtime_error("failed to load texture image!");

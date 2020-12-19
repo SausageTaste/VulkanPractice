@@ -53,6 +53,7 @@ namespace dal {
                 {
                     vkCmdBindPipeline(this->m_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
+                    int descIndex = 0;
                     for (const auto& mesh : meshes) {
                         VkBuffer vertBuffers[] = {mesh.vertices.getBuf()};
                         VkDeviceSize offsets[] = {0};
@@ -63,10 +64,12 @@ namespace dal {
                             this->m_buffers[i],
                             VK_PIPELINE_BIND_POINT_GRAPHICS,
                             pipelineLayout,
-                            0, 1, &descriptorSetsList.back()[i], 0, nullptr
+                            0, 1, &descriptorSetsList.at(descIndex)[i], 0, nullptr
                         );
 
                         vkCmdDrawIndexed(this->m_buffers[i], mesh.indices.size(), 1, 0, 0, 0);
+
+                        descIndex = (descIndex + 1) % descriptorSetsList.size();
                     }
                 }
                 vkCmdEndRenderPass(this->m_buffers[i]);

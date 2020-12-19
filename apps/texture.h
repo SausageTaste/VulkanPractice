@@ -14,7 +14,7 @@ namespace dal {
         VkDeviceMemory textureImageMemory;
 
     public:
-        void init(VkDevice logiDevice, VkPhysicalDevice physDevice, dal::CommandPool& cmdPool, VkQueue graphicsQ);
+        void init(const char* const image_path, VkDevice logiDevice, VkPhysicalDevice physDevice, dal::CommandPool& cmdPool, VkQueue graphicsQ);
         void destroy(VkDevice logiDevice);
 
         auto& image() const {
