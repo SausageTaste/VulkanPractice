@@ -38,7 +38,10 @@ namespace dal {
 
     public:
         void initPool(VkDevice logiDevice, size_t swapchainImagesSize);
-        void initSets(VkDevice logiDevice, size_t swapchainImagesSize, VkDescriptorSetLayout descriptorSetLayout, const std::vector<VkBuffer>& uniformBuffers);
+        void initSets(
+            VkDevice logiDevice, size_t swapchainImagesSize, VkDescriptorSetLayout descriptorSetLayout,
+            const std::vector<VkBuffer>& uniformBuffers, VkImageView textureImageView, VkSampler textureSampler
+        );
         void destroy(VkDevice logiDevice);
 
         auto& descSets() const {

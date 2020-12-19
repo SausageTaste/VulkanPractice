@@ -35,15 +35,18 @@ namespace dal {
         this->m_fbuf.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchainImages.getViews(), this->m_swapchain.extent());
         this->m_cmdPool.init(this->m_physDevice.get(), this->m_logiDevice.get(), surface);
 
-        this->m_uniformBufs.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchainImages.size());
-        this->m_descPool.initPool(this->m_logiDevice.get(), this->m_swapchainImages.size());
-        this->m_descPool.initSets(this->m_logiDevice.get(), this->m_swapchainImages.size(), this->m_descSetLayout.get(), this->m_uniformBufs.buffers());
-        this->m_cmdBuffers.init(this->m_logiDevice.get(), this->m_fbuf.getList(), this->m_cmdPool.pool());
-        this->m_syncMas.init(this->m_logiDevice.get(), this->m_swapchainImages.size());
-
         this->m_tex1.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_cmdPool, this->m_logiDevice.graphicsQ());
         this->m_texView1.init(this->m_logiDevice.get(), this->m_tex1.image());
         this->m_sampler1.init(this->m_logiDevice.get(), this->m_physDevice.get());
+
+        this->m_uniformBufs.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchainImages.size());
+        this->m_descPool.initPool(this->m_logiDevice.get(), this->m_swapchainImages.size());
+        this->m_descPool.initSets(
+            this->m_logiDevice.get(), this->m_swapchainImages.size(), this->m_descSetLayout.get(),
+            this->m_uniformBufs.buffers(), this->m_texView1.get(), this->m_sampler1.get()
+        );
+        this->m_cmdBuffers.init(this->m_logiDevice.get(), this->m_fbuf.getList(), this->m_cmdPool.pool());
+        this->m_syncMas.init(this->m_logiDevice.get(), this->m_swapchainImages.size());
 
         {
             static const std::vector<Vertex> VERTICES = {
@@ -115,14 +118,15 @@ namespace dal {
         }
         this->m_meshes.clear();
 
-        this->m_sampler1.destroy(this->m_logiDevice.get());
-        this->m_texView1.destroy(this->m_logiDevice.get());
-        this->m_tex1.destroy(this->m_logiDevice.get());
-
         this->m_syncMas.destroy(this->m_logiDevice.get());
         //this->m_cmdBuffers.destroy(this->m_logiDevice.get(), this->m_cmdPool.pool());
         this->m_descPool.destroy(this->m_logiDevice.get());
         this->m_uniformBufs.destroy(this->m_logiDevice.get());
+
+        this->m_sampler1.destroy(this->m_logiDevice.get());
+        this->m_texView1.destroy(this->m_logiDevice.get());
+        this->m_tex1.destroy(this->m_logiDevice.get());
+
         this->m_cmdPool.destroy(this->m_logiDevice.get());
         this->m_fbuf.destroy(this->m_logiDevice.get());
         this->m_pipeline.destroy(this->m_logiDevice.get());
@@ -224,7 +228,10 @@ namespace dal {
             this->m_fbuf.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchainImages.getViews(), this->m_swapchain.extent());
             this->m_uniformBufs.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchainImages.size());
             this->m_descPool.initPool(this->m_logiDevice.get(), this->m_swapchainImages.size());
-            this->m_descPool.initSets(this->m_logiDevice.get(), this->m_swapchainImages.size(), this->m_descSetLayout.get(), this->m_uniformBufs.buffers());
+            this->m_descPool.initSets(
+                this->m_logiDevice.get(), this->m_swapchainImages.size(), this->m_descSetLayout.get(),
+                this->m_uniformBufs.buffers(), this->m_texView1.get(), this->m_sampler1.get()
+            );
             this->m_cmdBuffers.init(this->m_logiDevice.get(), this->m_fbuf.getList(), this->m_cmdPool.pool());
             this->m_syncMas.init(this->m_logiDevice.get(), this->m_swapchainImages.size());
         }

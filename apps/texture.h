@@ -33,6 +33,10 @@ namespace dal {
         void init(VkDevice logiDevice, VkImage textureImage);
         void destroy(VkDevice logiDevice);
 
+        auto& get() const {
+            return this->textureImageView;
+        }
+
     };
 
 
@@ -44,6 +48,10 @@ namespace dal {
     public:
         void init(VkDevice logiDevice, VkPhysicalDevice physDevice);
         void destroy(VkDevice logiDevice);
+
+        auto& get() const {
+            return this->textureSampler;
+        }
 
     };
 
