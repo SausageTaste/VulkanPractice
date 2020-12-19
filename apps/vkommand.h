@@ -21,7 +21,7 @@ namespace dal {
 
         void record(
             VkRenderPass renderPass, VkPipeline graphicsPipeline, const VkExtent2D& extent, const std::vector<VkFramebuffer>& swapChainFbufs,
-            VkPipelineLayout pipelineLayout, const std::vector<VkDescriptorSet>& descriptorSets, const std::vector<MeshBuffer>& meshes
+            VkPipelineLayout pipelineLayout, const std::vector<std::vector<VkDescriptorSet>>& descriptorSetsList, const std::vector<MeshBuffer>& meshes
         );
 
         auto& buffers(void) const {

@@ -44,10 +44,13 @@ namespace dal {
 
         this->m_uniformBufs.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchainImages.size());
         this->m_descPool.initPool(this->m_logiDevice.get(), this->m_swapchainImages.size());
-        this->m_descPool.initSets(
-            this->m_logiDevice.get(), this->m_swapchainImages.size(), this->m_descSetLayout.get(),
-            this->m_uniformBufs.buffers(), this->m_textures.back().view.get(), this->m_sampler1.get()
-        );
+        for (const auto& tex : this->m_textures) {
+            this->m_descPool.addSets(
+                this->m_logiDevice.get(), this->m_swapchainImages.size(), this->m_descSetLayout.get(),
+                this->m_uniformBufs.buffers(), tex.view.get(), this->m_sampler1.get()
+            );
+        }
+
         this->m_cmdBuffers.init(this->m_logiDevice.get(), this->m_fbuf.getList(), this->m_cmdPool.pool());
         this->m_syncMas.init(this->m_logiDevice.get(), this->m_swapchainImages.size());
 
@@ -106,7 +109,7 @@ namespace dal {
 
         this->m_cmdBuffers.record(
             this->m_renderPass.get(), this->m_pipeline.getPipeline(), this->m_swapchain.extent(),
-            this->m_fbuf.getList(), this->m_pipeline.layout(), this->m_descPool.descSets(), this->m_meshes
+            this->m_fbuf.getList(), this->m_pipeline.layout(), this->m_descPool.descSetsList(), this->m_meshes
         );
 
         this->m_currentFrame = 0;
@@ -234,17 +237,20 @@ namespace dal {
             this->m_fbuf.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchainImages.getViews(), this->m_swapchain.extent());
             this->m_uniformBufs.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchainImages.size());
             this->m_descPool.initPool(this->m_logiDevice.get(), this->m_swapchainImages.size());
-            this->m_descPool.initSets(
-                this->m_logiDevice.get(), this->m_swapchainImages.size(), this->m_descSetLayout.get(),
-                this->m_uniformBufs.buffers(), this->m_textures.back().view.get(), this->m_sampler1.get()
-            );
+            for (const auto& tex : this->m_textures) {
+                this->m_descPool.addSets(
+                    this->m_logiDevice.get(), this->m_swapchainImages.size(), this->m_descSetLayout.get(),
+                    this->m_uniformBufs.buffers(), tex.view.get(), this->m_sampler1.get()
+                );
+            }
+
             this->m_cmdBuffers.init(this->m_logiDevice.get(), this->m_fbuf.getList(), this->m_cmdPool.pool());
             this->m_syncMas.init(this->m_logiDevice.get(), this->m_swapchainImages.size());
         }
 
         this->m_cmdBuffers.record(
             this->m_renderPass.get(), this->m_pipeline.getPipeline(), this->m_swapchain.extent(),
-            this->m_fbuf.getList(), this->m_pipeline.layout(), this->m_descPool.descSets(), this->m_meshes
+            this->m_fbuf.getList(), this->m_pipeline.layout(), this->m_descPool.descSetsList(), this->m_meshes
         );
     }
 

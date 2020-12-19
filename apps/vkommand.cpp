@@ -26,7 +26,7 @@ namespace dal {
 
     void CommandBuffers::record(
         VkRenderPass renderPass, VkPipeline graphicsPipeline, const VkExtent2D& extent, const std::vector<VkFramebuffer>& swapChainFbufs,
-        VkPipelineLayout pipelineLayout, const std::vector<VkDescriptorSet>& descriptorSets, const std::vector<MeshBuffer>& meshes
+        VkPipelineLayout pipelineLayout, const std::vector<std::vector<VkDescriptorSet>>& descriptorSetsList, const std::vector<MeshBuffer>& meshes
     ) {
         VkCommandBufferBeginInfo beginInfo = {};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -63,7 +63,7 @@ namespace dal {
                             this->m_buffers[i],
                             VK_PIPELINE_BIND_POINT_GRAPHICS,
                             pipelineLayout,
-                            0, 1, &descriptorSets[i], 0, nullptr
+                            0, 1, &descriptorSetsList.back()[i], 0, nullptr
                         );
 
                         vkCmdDrawIndexed(this->m_buffers[i], mesh.indices.size(), 1, 0, 0, 0);

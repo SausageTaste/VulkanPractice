@@ -66,7 +66,7 @@ namespace dal {
         }
     }
 
-    void DescriptorPool::initSets(
+    void DescriptorPool::addSets(
         VkDevice logiDevice, size_t swapchainImagesSize, VkDescriptorSetLayout descriptorSetLayout,
         const std::vector<VkBuffer>& uniformBuffers, VkImageView textureImageView, VkSampler textureSampler
     ) {
@@ -78,8 +78,11 @@ namespace dal {
         allocInfo.descriptorSetCount = static_cast<uint32_t>(swapchainImagesSize);
         allocInfo.pSetLayouts = layouts.data();
 
-        this->descriptorSets.resize(swapchainImagesSize, VK_NULL_HANDLE);
-        if (vkAllocateDescriptorSets(logiDevice, &allocInfo, descriptorSets.data()) != VK_SUCCESS) {
+        this->descriptorSetsList.emplace_back();
+        auto& new_sets = this->descriptorSetsList.back();
+
+        new_sets.resize(swapchainImagesSize, VK_NULL_HANDLE);
+        if (vkAllocateDescriptorSets(logiDevice, &allocInfo, new_sets.data()) != VK_SUCCESS) {
             throw std::runtime_error("failed to allocate descriptor sets!");
         }
 
@@ -96,7 +99,7 @@ namespace dal {
 
             std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
             descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[0].dstSet = this->descriptorSets[i];
+            descriptorWrites[0].dstSet = new_sets[i];
             descriptorWrites[0].dstBinding = 0;  // specified in shader code
             descriptorWrites[0].dstArrayElement = 0;
             descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -106,7 +109,7 @@ namespace dal {
             descriptorWrites[0].pTexelBufferView = nullptr; // Optional
 
             descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[1].dstSet = descriptorSets[i];
+            descriptorWrites[1].dstSet = new_sets[i];
             descriptorWrites[1].dstBinding = 1;
             descriptorWrites[1].dstArrayElement = 0;
             descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -130,7 +133,7 @@ namespace dal {
             this->descriptorPool = VK_NULL_HANDLE;
         }
 
-        this->descriptorSets.clear();
+        this->descriptorSetsList.clear();
     }
 
 }
