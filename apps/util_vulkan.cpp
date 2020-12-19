@@ -4,24 +4,6 @@
 #include <stdexcept>
 
 
-namespace {
-
-    uint32_t findMemType(const uint32_t typeFilter, const VkMemoryPropertyFlags props, const VkPhysicalDevice physDevice) {
-        VkPhysicalDeviceMemoryProperties memProps;
-        vkGetPhysicalDeviceMemoryProperties(physDevice, &memProps);
-
-        for (uint32_t i = 0; i < memProps.memoryTypeCount; ++i) {
-            if (typeFilter & (1 << i) && (memProps.memoryTypes[i].propertyFlags & props) == props) {
-                return i;
-            }
-        }
-
-        throw std::runtime_error("failed to find suitable memory type!");
-    }
-
-}
-
-
 namespace dal {
 
     uint32_t QueueFamilyIndices::graphicsFamily(void) const {
@@ -91,6 +73,19 @@ namespace dal {
     }
 
 
+    uint32_t findMemType(const uint32_t typeFilter, const VkMemoryPropertyFlags props, const VkPhysicalDevice physDevice) {
+        VkPhysicalDeviceMemoryProperties memProps;
+        vkGetPhysicalDeviceMemoryProperties(physDevice, &memProps);
+
+        for (uint32_t i = 0; i < memProps.memoryTypeCount; ++i) {
+            if (typeFilter & (1 << i) && (memProps.memoryTypes[i].propertyFlags & props) == props) {
+                return i;
+            }
+        }
+
+        throw std::runtime_error("failed to find suitable memory type!");
+    }
+
     void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
         VkBuffer& buffer, VkDeviceMemory& bufferMemory, VkDevice logiDevice, VkPhysicalDevice physDevice)
     {
@@ -110,7 +105,7 @@ namespace dal {
         VkMemoryAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
         allocInfo.allocationSize = memRequirements.size;
-        allocInfo.memoryTypeIndex = ::findMemType(
+        allocInfo.memoryTypeIndex = dal::findMemType(
             memRequirements.memoryTypeBits, properties, physDevice
         );
 
