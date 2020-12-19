@@ -35,8 +35,8 @@ namespace dal {
         return result;
     }
 
-    std::array<VkVertexInputAttributeDescription, 2> Vertex::getAttributeDescriptions() {
-        std::array<VkVertexInputAttributeDescription, 2> result;
+    std::array<VkVertexInputAttributeDescription, 3> Vertex::getAttributeDescriptions() {
+        std::array<VkVertexInputAttributeDescription, 3> result;
 
         result[0].binding = 0;
         result[0].location = 0;
@@ -47,6 +47,11 @@ namespace dal {
         result[1].location = 1;
         result[1].format = VK_FORMAT_R32G32B32_SFLOAT;
         result[1].offset = offsetof(Vertex, color);
+
+        result[2].binding = 0;
+        result[2].location = 2;
+        result[2].format = VK_FORMAT_R32G32_SFLOAT;
+        result[2].offset = offsetof(Vertex, texCoord);
 
         return result;
     }

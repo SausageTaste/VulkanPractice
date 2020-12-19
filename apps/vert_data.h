@@ -14,9 +14,10 @@ namespace dal {
     struct Vertex {
         glm::vec3 pos;
         glm::vec3 color;
+        glm::vec2 texCoord;
 
         static VkVertexInputBindingDescription getBindingDesc();
-        static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions();
+        static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions();
     };
 
 
