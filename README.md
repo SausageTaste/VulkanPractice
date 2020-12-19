@@ -17,12 +17,12 @@ My next Vulkan project will support Windows, Linux, and Android.
 # Relevant contents
 
 Everything inside `./apps` is the relavant rendering engine code.
-There plenty of files.
-That's right.
+There are plenty of files.
 Vulkan requires lots of codes.
 
-There also shader codes in `./resouce/shader`.
-You need LunarG SDK installed to compile glsl to spear-v yourself.
+Shader codes are in `./resouce/shader` folder.
+You need LunarG SDK installed to compile glsl to Spear-v binaries yourself.
+They are included in the repository though.
 
 
 # What is presented?
