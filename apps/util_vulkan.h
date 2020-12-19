@@ -54,4 +54,6 @@ namespace dal {
     void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
         VkBuffer& buffer, VkDeviceMemory& bufferMemory, VkDevice logiDevice, VkPhysicalDevice physDevice);
 
+    VkImageView createImageView(const VkImage image, const VkFormat format, const VkDevice logiDevice);
+
 }

@@ -3,6 +3,8 @@
 #include <cassert>
 #include <stdexcept>
 
+#include "util_vulkan.h"
+
 
 namespace dal {
 
@@ -19,26 +21,7 @@ namespace dal {
         {
             this->m_views.resize(this->m_images.size());
             for ( size_t i = 0; i < this->m_images.size(); i++ ) {
-                VkImageViewCreateInfo createInfo = {};
-                createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-                createInfo.image = this->m_images[i];
-                createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-                createInfo.format = swapChainImageFormat;
-
-                createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-                createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-                createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-                createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-
-                createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-                createInfo.subresourceRange.baseMipLevel = 0;
-                createInfo.subresourceRange.levelCount = 1;
-                createInfo.subresourceRange.baseArrayLayer = 0;
-                createInfo.subresourceRange.layerCount = 1;
-
-                if ( vkCreateImageView(logicalDevice, &createInfo, nullptr, &this->m_views[i]) != VK_SUCCESS ) {
-                    throw std::runtime_error("failed to create image views!");
-                }
+                this->m_views[i] = dal::createImageView(this->m_images[i], swapChainImageFormat, logicalDevice);
             }
         }
     }
