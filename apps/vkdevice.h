@@ -40,6 +40,7 @@ namespace dal {
 
         TextureImage m_tex1;
         TextureImageView m_texView1;
+        TextureSampler m_sampler1;
 
         std::vector<MeshBuffer> m_meshes;
 

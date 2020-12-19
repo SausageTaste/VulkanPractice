@@ -35,4 +35,16 @@ namespace dal {
 
     };
 
+
+    class TextureSampler {
+
+    private:
+        VkSampler textureSampler;
+
+    public:
+        void init(VkDevice logiDevice, VkPhysicalDevice physDevice);
+        void destroy(VkDevice logiDevice);
+
+    };
+
 }

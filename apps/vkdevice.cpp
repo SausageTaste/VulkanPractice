@@ -43,6 +43,7 @@ namespace dal {
 
         this->m_tex1.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_cmdPool, this->m_logiDevice.graphicsQ());
         this->m_texView1.init(this->m_logiDevice.get(), this->m_tex1.image());
+        this->m_sampler1.init(this->m_logiDevice.get(), this->m_physDevice.get());
 
         {
             static const std::vector<Vertex> VERTICES = {
@@ -114,6 +115,7 @@ namespace dal {
         }
         this->m_meshes.clear();
 
+        this->m_sampler1.destroy(this->m_logiDevice.get());
         this->m_texView1.destroy(this->m_logiDevice.get());
         this->m_tex1.destroy(this->m_logiDevice.get());
 
