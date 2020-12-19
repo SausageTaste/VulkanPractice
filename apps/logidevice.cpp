@@ -32,6 +32,7 @@ namespace dal {
             }
 
             VkPhysicalDeviceFeatures deviceFeatures = {};
+            deviceFeatures.samplerAnisotropy = true;
 
             VkDeviceCreateInfo createInfo = {};
             {
