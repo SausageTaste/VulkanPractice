@@ -2,8 +2,9 @@
 
 #include <vector>
 
-#include <vulkan/vulkan.h>
+#define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
+#include <vulkan/vulkan.h>
 
 
 namespace dal {
@@ -33,16 +34,21 @@ namespace dal {
 
     private:
         VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
-        std::vector<VkDescriptorSet> descriptorSets;
+        std::vector<std::vector<VkDescriptorSet>> descriptorSetsList;
 
     public:
         void initPool(VkDevice logiDevice, size_t swapchainImagesSize);
-        void initSets(VkDevice logiDevice, size_t swapchainImagesSize, VkDescriptorSetLayout descriptorSetLayout, const std::vector<VkBuffer>& uniformBuffers);
+        void addSets(
+            VkDevice logiDevice, size_t swapchainImagesSize, VkDescriptorSetLayout descriptorSetLayout,
+            const std::vector<VkBuffer>& uniformBuffers, VkImageView textureImageView, VkSampler textureSampler
+        );
         void destroy(VkDevice logiDevice);
 
-        auto& descSets() const {
-            assert(0 != this->descriptorSets.size());
-            return this->descriptorSets;
+        size_t size() const {
+            return this->descriptorSetsList.size();
+        }
+        auto& descSetsList() const {
+            return this->descriptorSetsList;
         }
 
     };

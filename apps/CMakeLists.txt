@@ -24,6 +24,8 @@ add_executable(vulkan_practice
     timer.h             timer.cpp
     vert_data.h         vert_data.cpp
     uniform.h           uniform.cpp
+    texture.h           texture.cpp
+    command_pool.h      command_pool.cpp
 )
 target_compile_features(vulkan_practice PUBLIC cxx_std_14)
 
@@ -38,6 +40,8 @@ target_link_libraries(vulkan_practice PRIVATE glfw)
 add_subdirectory(${extern_dir}/glm ${CMAKE_CURRENT_BINARY_DIR}/glm)
 target_include_directories(vulkan_practice PRIVATE ${extern_dir}/glm)
 target_link_libraries(vulkan_practice PRIVATE glm)
+
+target_include_directories(vulkan_practice PRIVATE ${extern_dir}/stb)
 
 find_package(Vulkan REQUIRED)
 target_compile_definitions(vulkan_practice PRIVATE VK_USE_PLATFORM_WIN32_KHR)

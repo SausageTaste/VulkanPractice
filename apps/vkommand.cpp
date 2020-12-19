@@ -2,47 +2,6 @@
 
 #include <stdexcept>
 
-#include "util_vulkan.h"
-
-
-namespace {
-
-    VkCommandPool createCommandPool(VkPhysicalDevice PhysDevice, VkDevice logiDevice, VkSurfaceKHR surface) {
-        dal::QueueFamilyIndices queueFamilyIndices = dal::findQueueFamilies(PhysDevice, surface);
-
-        VkCommandPoolCreateInfo poolInfo = {};
-        poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-        poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily();
-        poolInfo.flags = 0; // Optional
-
-        VkCommandPool commandPool = VK_NULL_HANDLE;
-        if ( vkCreateCommandPool(logiDevice, &poolInfo, nullptr, &commandPool) != VK_SUCCESS ) {
-            throw std::runtime_error("failed to create command pool!");
-        }
-
-        return commandPool;
-    }
-
-}
-
-
-namespace dal {
-
-    void CommandPool::init(VkPhysicalDevice physDevice, VkDevice logiDevice, VkSurfaceKHR surface) {
-        this->destroy(logiDevice);
-
-        this->m_pool = createCommandPool(physDevice, logiDevice, surface);
-    }
-
-    void CommandPool::destroy(const VkDevice logiDevice) {
-        if (VK_NULL_HANDLE != this->m_pool) {
-            vkDestroyCommandPool(logiDevice, this->m_pool, nullptr);
-            this->m_pool = VK_NULL_HANDLE;
-        }
-    }
-
-}
-
 
 namespace dal {
 
@@ -67,7 +26,7 @@ namespace dal {
 
     void CommandBuffers::record(
         VkRenderPass renderPass, VkPipeline graphicsPipeline, const VkExtent2D& extent, const std::vector<VkFramebuffer>& swapChainFbufs,
-        VkPipelineLayout pipelineLayout, const std::vector<VkDescriptorSet>& descriptorSets, const std::vector<MeshBuffer>& meshes
+        VkPipelineLayout pipelineLayout, const std::vector<std::vector<VkDescriptorSet>>& descriptorSetsList, const std::vector<MeshBuffer>& meshes
     ) {
         VkCommandBufferBeginInfo beginInfo = {};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -94,6 +53,7 @@ namespace dal {
                 {
                     vkCmdBindPipeline(this->m_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
+                    int descIndex = 0;
                     for (const auto& mesh : meshes) {
                         VkBuffer vertBuffers[] = {mesh.vertices.getBuf()};
                         VkDeviceSize offsets[] = {0};
@@ -104,10 +64,12 @@ namespace dal {
                             this->m_buffers[i],
                             VK_PIPELINE_BIND_POINT_GRAPHICS,
                             pipelineLayout,
-                            0, 1, &descriptorSets[i], 0, nullptr
+                            0, 1, &descriptorSetsList.at(descIndex)[i], 0, nullptr
                         );
 
                         vkCmdDrawIndexed(this->m_buffers[i], mesh.indices.size(), 1, 0, 0, 0);
+
+                        descIndex = (descIndex + 1) % descriptorSetsList.size();
                     }
                 }
                 vkCmdEndRenderPass(this->m_buffers[i]);

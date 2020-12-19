@@ -6,15 +6,18 @@
 #include <vulkan/vulkan.h>
 #include <glm/glm.hpp>
 
+#include "command_pool.h"
+
 
 namespace dal {
 
     struct Vertex {
         glm::vec3 pos;
         glm::vec3 color;
+        glm::vec2 texCoord;
 
         static VkVertexInputBindingDescription getBindingDesc();
-        static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions();
+        static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions();
     };
 
 
@@ -35,7 +38,7 @@ namespace dal {
 
     public:
         void init(const std::vector<Vertex>& vertices, const VkDevice logiDevice,
-            const VkPhysicalDevice physDevice, VkCommandPool cmdPool, VkQueue graphicsQueue);
+            const VkPhysicalDevice physDevice, dal::CommandPool& cmdPool, VkQueue graphicsQueue);
         void destroy(const VkDevice device);
 
         auto getBuf() const {
@@ -66,7 +69,7 @@ namespace dal {
 
     public:
         void init(const std::vector<uint16_t>& indices, const VkDevice logiDevice,
-            const VkPhysicalDevice physDevice, VkCommandPool cmdPool, VkQueue graphicsQueue);
+            const VkPhysicalDevice physDevice, dal::CommandPool& cmdPool, VkQueue graphicsQueue);
         void destroy(const VkDevice device);
 
         auto getBuf() const {

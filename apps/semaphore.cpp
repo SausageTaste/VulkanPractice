@@ -51,8 +51,10 @@ namespace dal {
     }
 
     void Semaphore::destroy(VkDevice device) {
-        vkDestroySemaphore(device, this->m_handle, nullptr);
-        this->m_handle = VK_NULL_HANDLE;
+        if (VK_NULL_HANDLE != this->m_handle) {
+            vkDestroySemaphore(device, this->m_handle, nullptr);
+            this->m_handle = VK_NULL_HANDLE;
+        }
     }
 
 }
@@ -66,8 +68,10 @@ namespace dal {
     }
 
     void Fence::destroy(VkDevice device) {
-        vkDestroyFence(device, this->m_handle, nullptr);
-        this->m_handle = VK_NULL_HANDLE;
+        if (VK_NULL_HANDLE != this->m_handle) {
+            vkDestroyFence(device, this->m_handle, nullptr);
+            this->m_handle = VK_NULL_HANDLE;
+        }
     }
 
     void Fence::wait(VkDevice device) const {

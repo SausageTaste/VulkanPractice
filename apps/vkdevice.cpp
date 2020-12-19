@@ -3,6 +3,8 @@
 #include <array>
 #include <stdexcept>
 
+#include "util_windows.h"
+
 
 namespace {
 
@@ -35,18 +37,45 @@ namespace dal {
         this->m_fbuf.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchainImages.getViews(), this->m_swapchain.extent());
         this->m_cmdPool.init(this->m_physDevice.get(), this->m_logiDevice.get(), surface);
 
+        this->m_sampler1.init(this->m_logiDevice.get(), this->m_physDevice.get());
+        {
+            this->m_textures.emplace_back();
+            this->m_textures.back().image.init(
+                (dal::findResPath() + "/image/grass1.png").c_str(),
+                this->m_logiDevice.get(), this->m_physDevice.get(),
+                this->m_cmdPool,
+                this->m_logiDevice.graphicsQ()
+            );
+            this->m_textures.back().view.init(this->m_logiDevice.get(), this->m_textures.back().image.image());
+
+            this->m_textures.emplace_back();
+            this->m_textures.back().image.init(
+                (dal::findResPath() + "/image/0021di.png").c_str(),
+                this->m_logiDevice.get(), this->m_physDevice.get(),
+                this->m_cmdPool,
+                this->m_logiDevice.graphicsQ()
+            );
+            this->m_textures.back().view.init(this->m_logiDevice.get(), this->m_textures.back().image.image());
+        }
+
         this->m_uniformBufs.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchainImages.size());
         this->m_descPool.initPool(this->m_logiDevice.get(), this->m_swapchainImages.size());
-        this->m_descPool.initSets(this->m_logiDevice.get(), this->m_swapchainImages.size(), this->m_descSetLayout.get(), this->m_uniformBufs.buffers());
+        for (const auto& tex : this->m_textures) {
+            this->m_descPool.addSets(
+                this->m_logiDevice.get(), this->m_swapchainImages.size(), this->m_descSetLayout.get(),
+                this->m_uniformBufs.buffers(), tex.view.get(), this->m_sampler1.get()
+            );
+        }
+
         this->m_cmdBuffers.init(this->m_logiDevice.get(), this->m_fbuf.getList(), this->m_cmdPool.pool());
         this->m_syncMas.init(this->m_logiDevice.get(), this->m_swapchainImages.size());
 
         {
             static const std::vector<Vertex> VERTICES = {
-                {{-5.f, 0.f, -5.f}, {1.0f, 1.0f, 1.0f}},
-                {{-5.f, 0.f,  5.f}, {0.0f, 0.0f, 0.0f}},
-                {{ 5.f, 0.f,  5.f}, {0.0f, 0.0f, 0.0f}},
-                {{ 5.f, 0.f, -5.f}, {0.0f, 0.0f, 0.0f}},
+                {{-5.f, 0.f, -5.f}, {1.0f, 1.0f, 1.0f}, { 0,  0}},
+                {{-5.f, 0.f,  5.f}, {0.0f, 0.0f, 0.0f}, { 0, 10}},
+                {{ 5.f, 0.f,  5.f}, {0.0f, 0.0f, 0.0f}, {10, 10}},
+                {{ 5.f, 0.f, -5.f}, {0.0f, 0.0f, 0.0f}, {10,  0}},
             };
             static const std::vector<uint16_t> INDICES = {
                 0, 1, 2, 0, 2, 3
@@ -55,24 +84,24 @@ namespace dal {
             this->m_meshes.emplace_back();
             this->m_meshes.back().vertices.init(
                 VERTICES, this->m_logiDevice.get(), this->m_physDevice.get(),
-                this->m_cmdPool.pool(), this->m_logiDevice.graphicsQ()
+                this->m_cmdPool, this->m_logiDevice.graphicsQ()
             );
             this->m_meshes.back().indices.init(
                 INDICES, this->m_logiDevice.get(), this->m_physDevice.get(),
-                this->m_cmdPool.pool(), this->m_logiDevice.graphicsQ()
+                this->m_cmdPool, this->m_logiDevice.graphicsQ()
             );
         }
 
         {
             static const std::vector<Vertex> VERTICES = {
-                {{-0.5f, 0.f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-                {{-0.5f, 0.f,  0.5f}, {1.0f, 0.0f, 0.0f}},
-                {{ 0.5f, 0.f,  0.5f}, {1.0f, 0.0f, 0.0f}},
-                {{ 0.5f, 0.f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-                {{-0.5f, 1.f, -0.5f}, {0.0f, 0.0f, 1.0f}},
-                {{-0.5f, 1.f,  0.5f}, {0.0f, 0.0f, 1.0f}},
-                {{ 0.5f, 1.f,  0.5f}, {0.0f, 0.0f, 1.0f}},
-                {{ 0.5f, 1.f, -0.5f}, {0.0f, 0.0f, 1.0f}}
+                {{-0.5f, 0.f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1, 1}}, // 0
+                {{-0.5f, 0.f,  0.5f}, {1.0f, 0.0f, 0.0f}, {0, 1}}, // 1
+                {{ 0.5f, 0.f,  0.5f}, {1.0f, 0.0f, 0.0f}, {1, 1}}, // 2
+                {{ 0.5f, 0.f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0, 1}}, // 3
+                {{-0.5f, 1.f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1, 0}}, // 4
+                {{-0.5f, 1.f,  0.5f}, {0.0f, 0.0f, 1.0f}, {0, 0}}, // 5
+                {{ 0.5f, 1.f,  0.5f}, {0.0f, 0.0f, 1.0f}, {1, 0}}, // 6
+                {{ 0.5f, 1.f, -0.5f}, {0.0f, 0.0f, 1.0f}, {0, 0}}, // 7
             };
             static const std::vector<uint16_t> INDICES = {
                 0, 2, 1, 0, 3, 2,
@@ -86,17 +115,17 @@ namespace dal {
             this->m_meshes.emplace_back();
             this->m_meshes.back().vertices.init(
                 VERTICES, this->m_logiDevice.get(), this->m_physDevice.get(),
-                this->m_cmdPool.pool(), this->m_logiDevice.graphicsQ()
+                this->m_cmdPool, this->m_logiDevice.graphicsQ()
             );
             this->m_meshes.back().indices.init(
                 INDICES, this->m_logiDevice.get(), this->m_physDevice.get(),
-                this->m_cmdPool.pool(), this->m_logiDevice.graphicsQ()
+                this->m_cmdPool, this->m_logiDevice.graphicsQ()
             );
         }
 
         this->m_cmdBuffers.record(
             this->m_renderPass.get(), this->m_pipeline.getPipeline(), this->m_swapchain.extent(),
-            this->m_fbuf.getList(), this->m_pipeline.layout(), this->m_descPool.descSets(), this->m_meshes
+            this->m_fbuf.getList(), this->m_pipeline.layout(), this->m_descPool.descSetsList(), this->m_meshes
         );
 
         this->m_currentFrame = 0;
@@ -109,11 +138,20 @@ namespace dal {
             mesh.vertices.destroy(this->m_logiDevice.get());
             mesh.indices.destroy(this->m_logiDevice.get());
         }
+        this->m_meshes.clear();
 
         this->m_syncMas.destroy(this->m_logiDevice.get());
         //this->m_cmdBuffers.destroy(this->m_logiDevice.get(), this->m_cmdPool.pool());
         this->m_descPool.destroy(this->m_logiDevice.get());
         this->m_uniformBufs.destroy(this->m_logiDevice.get());
+
+        for (auto& tex : this->m_textures) {
+            tex.view.destroy(this->m_logiDevice.get());
+            tex.image.destroy(this->m_logiDevice.get());
+        }
+        this->m_textures.clear();
+        this->m_sampler1.destroy(this->m_logiDevice.get());
+
         this->m_cmdPool.destroy(this->m_logiDevice.get());
         this->m_fbuf.destroy(this->m_logiDevice.get());
         this->m_pipeline.destroy(this->m_logiDevice.get());
@@ -215,14 +253,20 @@ namespace dal {
             this->m_fbuf.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchainImages.getViews(), this->m_swapchain.extent());
             this->m_uniformBufs.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchainImages.size());
             this->m_descPool.initPool(this->m_logiDevice.get(), this->m_swapchainImages.size());
-            this->m_descPool.initSets(this->m_logiDevice.get(), this->m_swapchainImages.size(), this->m_descSetLayout.get(), this->m_uniformBufs.buffers());
+            for (const auto& tex : this->m_textures) {
+                this->m_descPool.addSets(
+                    this->m_logiDevice.get(), this->m_swapchainImages.size(), this->m_descSetLayout.get(),
+                    this->m_uniformBufs.buffers(), tex.view.get(), this->m_sampler1.get()
+                );
+            }
+
             this->m_cmdBuffers.init(this->m_logiDevice.get(), this->m_fbuf.getList(), this->m_cmdPool.pool());
             this->m_syncMas.init(this->m_logiDevice.get(), this->m_swapchainImages.size());
         }
 
         this->m_cmdBuffers.record(
             this->m_renderPass.get(), this->m_pipeline.getPipeline(), this->m_swapchain.extent(),
-            this->m_fbuf.getList(), this->m_pipeline.layout(), this->m_descPool.descSets(), this->m_meshes
+            this->m_fbuf.getList(), this->m_pipeline.layout(), this->m_descPool.descSetsList(), this->m_meshes
         );
     }
 

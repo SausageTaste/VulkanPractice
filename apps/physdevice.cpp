@@ -96,6 +96,9 @@ namespace {
             if ( !features.geometryShader )
                 return 0;
 
+            if ( !features.samplerAnisotropy )
+                return 0;
+
             if ( !dal::findQueueFamilies(physDevice, surface).isComplete() )
                 return 0;
 

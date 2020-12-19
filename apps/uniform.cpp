@@ -1,75 +1,35 @@
 #include "uniform.h"
 
+#include <array>
 #include <chrono>
 #include <stdexcept>
 
-#define GLM_FORCE_RADIANS
-#include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-
-namespace {
-
-    uint32_t findMemType(const uint32_t typeFilter, const VkMemoryPropertyFlags props, const VkPhysicalDevice physDevice) {
-        VkPhysicalDeviceMemoryProperties memProps;
-        vkGetPhysicalDeviceMemoryProperties(physDevice, &memProps);
-
-        for (uint32_t i = 0; i < memProps.memoryTypeCount; ++i) {
-            if (typeFilter & (1 << i) && (memProps.memoryTypes[i].propertyFlags & props) == props) {
-                return i;
-            }
-        }
-
-        throw std::runtime_error("failed to find suitable memory type!");
-    }
-
-    void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
-        VkBuffer& buffer, VkDeviceMemory& bufferMemory, VkDevice logiDevice, VkPhysicalDevice physDevice)
-    {
-        VkBufferCreateInfo bufferInfo{};
-        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        bufferInfo.size = size;
-        bufferInfo.usage = usage;
-        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-        if (vkCreateBuffer(logiDevice, &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create buffer!");
-        }
-
-        VkMemoryRequirements memRequirements;
-        vkGetBufferMemoryRequirements(logiDevice, buffer, &memRequirements);
-
-        VkMemoryAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-        allocInfo.allocationSize = memRequirements.size;
-        allocInfo.memoryTypeIndex = ::findMemType(
-            memRequirements.memoryTypeBits, properties, physDevice
-        );
-
-        if (vkAllocateMemory(logiDevice, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
-            throw std::runtime_error("failed to allocate buffer memory!");
-        }
-
-        vkBindBufferMemory(logiDevice, buffer, bufferMemory, 0);
-    }
-
-}
+#include "util_vulkan.h"
 
 
 namespace dal {
 
     void DescriptorSetLayout::init(const VkDevice logiDevice) {
-        VkDescriptorSetLayoutBinding uboLayoutBinding{};
-        uboLayoutBinding.binding = 0;
-        uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        uboLayoutBinding.descriptorCount = 1;
-        uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-        uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
+        std::array<VkDescriptorSetLayoutBinding, 2> bindings{};
+
+        bindings[0].binding = 0;
+        bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        bindings[0].descriptorCount = 1;
+        bindings[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+        bindings[0].pImmutableSamplers = nullptr; // Optional
+
+        bindings[1].binding = 1;
+        bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        bindings[1].descriptorCount = 1;
+        bindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        bindings[1].pImmutableSamplers = nullptr;
 
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layoutInfo.bindingCount = 1;
-        layoutInfo.pBindings = &uboLayoutBinding;
+        layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+        layoutInfo.pBindings = bindings.data();
 
         if (VK_SUCCESS != vkCreateDescriptorSetLayout(logiDevice, &layoutInfo, nullptr, &this->descriptorSetLayout)) {
             throw std::runtime_error("failed to create descriptor set layout!");
@@ -77,8 +37,10 @@ namespace dal {
     }
 
     void DescriptorSetLayout::destroy(const VkDevice logiDevice) {
-        vkDestroyDescriptorSetLayout(logiDevice, this->descriptorSetLayout, nullptr);
-        this->descriptorSetLayout = VK_NULL_HANDLE;
+        if (VK_NULL_HANDLE != this->descriptorSetLayout) {
+            vkDestroyDescriptorSetLayout(logiDevice, this->descriptorSetLayout, nullptr);
+            this->descriptorSetLayout = VK_NULL_HANDLE;
+        }
     }
 
 }
@@ -87,22 +49,27 @@ namespace dal {
 namespace dal {
 
     void DescriptorPool::initPool(VkDevice logiDevice, size_t swapchainImagesSize) {
-        VkDescriptorPoolSize poolSize{};
-        poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        poolSize.descriptorCount = static_cast<uint32_t>(swapchainImagesSize);
+        std::array<VkDescriptorPoolSize, 2> poolSizes{};
+        poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        poolSizes[0].descriptorCount = static_cast<uint32_t>(swapchainImagesSize) * 5;
+        poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        poolSizes[1].descriptorCount = static_cast<uint32_t>(swapchainImagesSize) * 5;
 
         VkDescriptorPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        poolInfo.poolSizeCount = 1;
-        poolInfo.pPoolSizes = &poolSize;
-        poolInfo.maxSets = static_cast<uint32_t>(swapchainImagesSize);
+        poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+        poolInfo.pPoolSizes = poolSizes.data();
+        poolInfo.maxSets = static_cast<uint32_t>(swapchainImagesSize) * 5;
 
         if (VK_SUCCESS != vkCreateDescriptorPool(logiDevice, &poolInfo, nullptr, &this->descriptorPool)) {
             throw std::runtime_error("failed to create descriptor pool!");
         }
     }
 
-    void DescriptorPool::initSets(VkDevice logiDevice, size_t swapchainImagesSize, VkDescriptorSetLayout descriptorSetLayout, const std::vector<VkBuffer>& uniformBuffers) {
+    void DescriptorPool::addSets(
+        VkDevice logiDevice, size_t swapchainImagesSize, VkDescriptorSetLayout descriptorSetLayout,
+        const std::vector<VkBuffer>& uniformBuffers, VkImageView textureImageView, VkSampler textureSampler
+    ) {
         std::vector<VkDescriptorSetLayout> layouts(swapchainImagesSize, descriptorSetLayout);
 
         VkDescriptorSetAllocateInfo allocInfo{};
@@ -111,8 +78,11 @@ namespace dal {
         allocInfo.descriptorSetCount = static_cast<uint32_t>(swapchainImagesSize);
         allocInfo.pSetLayouts = layouts.data();
 
-        this->descriptorSets.resize(swapchainImagesSize, VK_NULL_HANDLE);
-        if (vkAllocateDescriptorSets(logiDevice, &allocInfo, descriptorSets.data()) != VK_SUCCESS) {
+        this->descriptorSetsList.emplace_back();
+        auto& new_sets = this->descriptorSetsList.back();
+
+        new_sets.resize(swapchainImagesSize, VK_NULL_HANDLE);
+        if (vkAllocateDescriptorSets(logiDevice, &allocInfo, new_sets.data()) != VK_SUCCESS) {
             throw std::runtime_error("failed to allocate descriptor sets!");
         }
 
@@ -122,26 +92,48 @@ namespace dal {
             bufferInfo.offset = 0;
             bufferInfo.range = sizeof(UniformBufferObject);
 
-            VkWriteDescriptorSet descriptorWrite{};
-            descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrite.dstSet = this->descriptorSets[i];
-            descriptorWrite.dstBinding = 0;  // specified in shader code
-            descriptorWrite.dstArrayElement = 0;
-            descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            descriptorWrite.descriptorCount = 1;
-            descriptorWrite.pBufferInfo = &bufferInfo;
-            descriptorWrite.pImageInfo = nullptr; // Optional
-            descriptorWrite.pTexelBufferView = nullptr; // Optional
+            VkDescriptorImageInfo imageInfo{};
+            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            imageInfo.imageView = textureImageView;
+            imageInfo.sampler = textureSampler;
 
-            vkUpdateDescriptorSets(logiDevice, 1, &descriptorWrite, 0, nullptr);
+            std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+            descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[0].dstSet = new_sets[i];
+            descriptorWrites[0].dstBinding = 0;  // specified in shader code
+            descriptorWrites[0].dstArrayElement = 0;
+            descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            descriptorWrites[0].descriptorCount = 1;
+            descriptorWrites[0].pBufferInfo = &bufferInfo;
+            descriptorWrites[0].pImageInfo = nullptr; // Optional
+            descriptorWrites[0].pTexelBufferView = nullptr; // Optional
+
+            descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[1].dstSet = new_sets[i];
+            descriptorWrites[1].dstBinding = 1;
+            descriptorWrites[1].dstArrayElement = 0;
+            descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            descriptorWrites[1].descriptorCount = 1;
+            descriptorWrites[1].pBufferInfo = nullptr; // Optional
+            descriptorWrites[1].pImageInfo = &imageInfo;
+            descriptorWrites[1].pTexelBufferView = nullptr; // Optional
+
+            vkUpdateDescriptorSets(
+                logiDevice,
+                static_cast<uint32_t>(descriptorWrites.size()),
+                descriptorWrites.data(),
+                0, nullptr
+            );
         }
     }
 
     void DescriptorPool::destroy(VkDevice logiDevice) {
-        vkDestroyDescriptorPool(logiDevice, this->descriptorPool, nullptr);
-        this->descriptorPool = VK_NULL_HANDLE;
+        if (VK_NULL_HANDLE != this->descriptorPool) {
+            vkDestroyDescriptorPool(logiDevice, this->descriptorPool, nullptr);
+            this->descriptorPool = VK_NULL_HANDLE;
+        }
 
-        this->descriptorSets.clear();
+        this->descriptorSetsList.clear();
     }
 
 }
@@ -156,7 +148,7 @@ namespace dal {
         this->uniformBuffersMemory.resize(swapchainImagesSize);
 
         for (size_t i = 0; i < swapchainImagesSize; ++i) {
-            ::createBuffer(
+            dal::createBuffer(
                 bufferSize,
                 VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -190,7 +182,7 @@ namespace dal {
         const float ratio = static_cast<float>(swapchainExtent.width) / static_cast<float>(swapchainExtent.height);
 
         dal::UniformBufferObject ubo;
-        ubo.model = glm::rotate(glm::mat4(1), time * glm::radians<float>(90), glm::vec3(0, 1, 0));
+        ubo.model = glm::rotate(glm::mat4(1), 0.5f * time * glm::radians<float>(90), glm::vec3(0, 1, 0));
         ubo.view = glm::lookAt(glm::vec3(0, 2, 4), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
         ubo.proj = glm::perspective<float>(glm::radians<float>(45), ratio, 0, 10);
         ubo.proj[1][1] *= -1;

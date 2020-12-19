@@ -10,22 +10,6 @@
 
 namespace dal {
 
-    class CommandPool {
-
-    private:
-        VkCommandPool m_pool = VK_NULL_HANDLE;
-
-    public:
-        void init(VkPhysicalDevice physDevice, VkDevice logiDevice, VkSurfaceKHR surface);
-        void destroy(const VkDevice logiDevice);
-
-        auto& pool() const {
-            assert(VK_NULL_HANDLE != this->m_pool);
-            return this->m_pool;
-        }
-    };
-
-
     class CommandBuffers {
 
     private:
@@ -37,7 +21,7 @@ namespace dal {
 
         void record(
             VkRenderPass renderPass, VkPipeline graphicsPipeline, const VkExtent2D& extent, const std::vector<VkFramebuffer>& swapChainFbufs,
-            VkPipelineLayout pipelineLayout, const std::vector<VkDescriptorSet>& descriptorSets, const std::vector<MeshBuffer>& meshes
+            VkPipelineLayout pipelineLayout, const std::vector<std::vector<VkDescriptorSet>>& descriptorSetsList, const std::vector<MeshBuffer>& meshes
         );
 
         auto& buffers(void) const {

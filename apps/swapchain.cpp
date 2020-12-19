@@ -115,8 +115,10 @@ namespace dal {
     }
 
     void Swapchain::destroy(VkDevice logiDevice) {
-        vkDestroySwapchainKHR(logiDevice, this->m_swapChain, nullptr);
-        this->m_swapChain = VK_NULL_HANDLE;
+        if (VK_NULL_HANDLE != this->m_swapChain) {
+            vkDestroySwapchainKHR(logiDevice, this->m_swapChain, nullptr);
+            this->m_swapChain = VK_NULL_HANDLE;
+        }
     }
 
 }

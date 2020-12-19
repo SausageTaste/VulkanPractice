@@ -11,10 +11,12 @@
 #include "shader.h"
 #include "renderpass.h"
 #include "fbufmanager.h"
+#include "command_pool.h"
 #include "vkommand.h"
 #include "semaphore.h"
 #include "vert_data.h"
 #include "uniform.h"
+#include "texture.h"
 
 
 namespace dal {
@@ -36,6 +38,8 @@ namespace dal {
         UniformBuffers m_uniformBufs;
         DescriptorPool m_descPool;
 
+        TextureSampler m_sampler1;
+        std::vector<TextureUnit> m_textures;
         std::vector<MeshBuffer> m_meshes;
 
         unsigned m_currentFrame = 0;
@@ -43,6 +47,10 @@ namespace dal {
         unsigned m_scrWidth, m_scrHeight;
 
     public:
+        ~VulkanMaster() {
+            this->destroy();
+        }
+
         void init(const VkInstance instance, const VkSurfaceKHR surface, const unsigned w, const unsigned h);
         void destroy(void);
 
