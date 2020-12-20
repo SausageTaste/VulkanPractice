@@ -6,7 +6,7 @@ I'd like to use Vulkan because I want to try real-time ray tracing, which OpenGL
 
 # How to build
 
-CMake is the only support build system. <br>
+CMake is the only supported build system. <br>
 You need [LunarG SDK](https://www.lunarg.com/) installed. <br>
 
 It only runs on Windows because I used win32api for file system.
