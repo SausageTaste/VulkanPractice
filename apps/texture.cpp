@@ -183,7 +183,7 @@ namespace dal {
 namespace dal {
 
     void TextureImageView::init(VkDevice logiDevice, VkImage textureImage) {
-        this->textureImageView = dal::createImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB, logiDevice);
+        this->textureImageView = dal::createImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, logiDevice);
     }
 
     void TextureImageView::destroy(VkDevice logiDevice) {

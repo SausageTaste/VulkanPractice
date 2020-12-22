@@ -157,10 +157,6 @@ namespace dal {
         vkBindImageMemory(logiDevice, image, imageMemory, 0);
     }
 
-    VkImageView createImageView(const VkImage image, const VkFormat format, const VkDevice logiDevice) {
-        return dal::createImageView(image, format, VK_IMAGE_ASPECT_COLOR_BIT, logiDevice);
-    }
-
     VkImageView createImageView(const VkImage image, const VkFormat format, VkImageAspectFlags aspectFlags, const VkDevice logiDevice) {
         VkImageViewCreateInfo viewInfo{};
         viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;

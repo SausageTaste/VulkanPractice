@@ -60,7 +60,6 @@ namespace dal {
         VkDeviceMemory& imageMemory, VkDevice logiDevice, VkPhysicalDevice physDevice
     );
 
-    VkImageView createImageView(const VkImage image, const VkFormat format, const VkDevice logiDevice);
     VkImageView createImageView(const VkImage image, const VkFormat format, VkImageAspectFlags aspectFlags, const VkDevice logiDevice);
 
 }
