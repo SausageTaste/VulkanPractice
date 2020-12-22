@@ -51,10 +51,11 @@ namespace {
 namespace  dal {
 
     void DepthImage::init(VkExtent2D extent, VkDevice logiDevice, VkPhysicalDevice physDevice) {
-        const auto depth_format = ::findDepthFormat(physDevice);
+        this->m_depth_format = ::findDepthFormat(physDevice);
+
         dal::createImage(
             extent.width, extent.height,
-            depth_format,
+            this->m_depth_format,
             VK_IMAGE_TILING_OPTIMAL,
             VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
@@ -64,7 +65,7 @@ namespace  dal {
             physDevice
         );
 
-        this->depthImageView = dal::createImageView(this->depthImage, depth_format, VK_IMAGE_ASPECT_DEPTH_BIT, logiDevice);
+        this->depthImageView = dal::createImageView(this->depthImage, this->m_depth_format, VK_IMAGE_ASPECT_DEPTH_BIT, logiDevice);
     }
 
     void DepthImage::destroy(VkDevice logiDevice) {
