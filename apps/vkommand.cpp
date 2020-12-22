@@ -1,5 +1,6 @@
 #include "vkommand.h"
 
+#include <array>
 #include <stdexcept>
 
 
@@ -33,14 +34,17 @@ namespace dal {
         beginInfo.flags = 0; // Optional
         beginInfo.pInheritanceInfo = nullptr; // Optional
 
-        const VkClearValue clearColor = { 0.f, 0.f, 0.f, 1.f };
+        std::array<VkClearValue, 2> clear_values{};
+        clear_values[0].color = {0.f, 0.f, 0.f, 1.f};
+        clear_values[1].depthStencil = {0.f, 0};
+
         VkRenderPassBeginInfo renderPassInfo = {};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
         renderPassInfo.renderPass = renderPass;
         renderPassInfo.renderArea.offset = { 0, 0 };
         renderPassInfo.renderArea.extent = extent;
-        renderPassInfo.clearValueCount = 1;
-        renderPassInfo.pClearValues = &clearColor;
+        renderPassInfo.clearValueCount = static_cast<uint32_t>(clear_values.size());
+        renderPassInfo.pClearValues = clear_values.data();
 
         for ( size_t i = 0; i < this->m_buffers.size(); i++ ) {
             if ( VK_SUCCESS != vkBeginCommandBuffer(this->m_buffers[i], &beginInfo) ) {

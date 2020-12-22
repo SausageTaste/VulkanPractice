@@ -8,9 +8,9 @@ namespace dal {
     class DepthImage {
 
     private:
-        VkImage depthImage;
-        VkDeviceMemory depthImageMemory;
-        VkImageView depthImageView;
+        VkImage depthImage = VK_NULL_HANDLE;
+        VkDeviceMemory depthImageMemory = VK_NULL_HANDLE;
+        VkImageView depthImageView = VK_NULL_HANDLE;
 
         VkFormat m_depth_format;
 
