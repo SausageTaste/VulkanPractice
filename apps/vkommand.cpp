@@ -69,7 +69,7 @@ namespace dal {
 
                         vkCmdDrawIndexed(this->m_buffers[i], mesh.indices.size(), 1, 0, 0, 0);
 
-                        descIndex = (descIndex + 1) % descriptorSetsList.size();
+                        descIndex = std::min<int>(descIndex + 1, descriptorSetsList.size() - 1);
                     }
                 }
                 vkCmdEndRenderPass(this->m_buffers[i]);
