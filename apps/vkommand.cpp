@@ -36,7 +36,7 @@ namespace dal {
 
         std::array<VkClearValue, 2> clear_values{};
         clear_values[0].color = {0.f, 0.f, 0.f, 1.f};
-        clear_values[1].depthStencil = {0.f, 0};
+        clear_values[1].depthStencil = {1.f, 0};
 
         VkRenderPassBeginInfo renderPassInfo = {};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
