@@ -11,7 +11,7 @@ namespace dal {
         VkRenderPass m_renderPass;
 
     public:
-        void init(VkDevice logiDevice, const VkFormat swapChainImageFormat);
+        void init(VkDevice logiDevice, const VkFormat swapChainImageFormat, const VkFormat depth_format);
         void destroy(VkDevice logiDevice);
 
         auto get(void) const {

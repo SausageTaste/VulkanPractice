@@ -32,10 +32,10 @@ namespace dal {
         this->m_swapchain.init(surface, this->m_physDevice.get(), this->m_logiDevice.get(), this->m_scrWidth, this->m_scrHeight);
         this->m_swapchainImages.init(this->m_logiDevice.get(), this->m_swapchain.get(), this->m_swapchain.imageFormat(), this->m_swapchain.extent());
         this->m_depth_image.init(this->m_swapchain.extent(), this->m_logiDevice.get(), this->m_physDevice.get());
-        this->m_renderPass.init(this->m_logiDevice.get(), this->m_swapchain.imageFormat());
+        this->m_renderPass.init(this->m_logiDevice.get(), this->m_swapchain.imageFormat(), this->m_depth_image.format());
         this->m_descSetLayout.init(this->m_logiDevice.get());
         this->m_pipeline.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchain.extent(), this->m_descSetLayout.get());
-        this->m_fbuf.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchainImages.getViews(), this->m_swapchain.extent());
+        this->m_fbuf.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchainImages.getViews(), this->m_swapchain.extent(), this->m_depth_image.image_view());
         this->m_cmdPool.init(this->m_physDevice.get(), this->m_logiDevice.get(), surface);
 
         this->m_sampler1.init(this->m_logiDevice.get(), this->m_physDevice.get());
@@ -284,9 +284,9 @@ namespace dal {
             this->m_swapchain.init(surface, this->m_physDevice.get(), this->m_logiDevice.get(), this->m_scrWidth, this->m_scrHeight);
             this->m_swapchainImages.init(this->m_logiDevice.get(), this->m_swapchain.get(), this->m_swapchain.imageFormat(), this->m_swapchain.extent());
             this->m_depth_image.init(this->m_swapchain.extent(), this->m_logiDevice.get(), this->m_physDevice.get());
-            this->m_renderPass.init(this->m_logiDevice.get(), this->m_swapchain.imageFormat());
+            this->m_renderPass.init(this->m_logiDevice.get(), this->m_swapchain.imageFormat(), this->m_depth_image.format());
             this->m_pipeline.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchain.extent(), this->m_descSetLayout.get());
-            this->m_fbuf.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchainImages.getViews(), this->m_swapchain.extent());
+            this->m_fbuf.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchainImages.getViews(), this->m_swapchain.extent(), this->m_depth_image.image_view());
             this->m_uniformBufs.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchainImages.size());
             this->m_descPool.initPool(this->m_logiDevice.get(), this->m_swapchainImages.size());
             for (const auto& tex : this->m_textures) {
