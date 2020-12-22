@@ -31,6 +31,7 @@ namespace dal {
         this->m_logiDevice.init(surface, this->m_physDevice.get());
         this->m_swapchain.init(surface, this->m_physDevice.get(), this->m_logiDevice.get(), this->m_scrWidth, this->m_scrHeight);
         this->m_swapchainImages.init(this->m_logiDevice.get(), this->m_swapchain.get(), this->m_swapchain.imageFormat(), this->m_swapchain.extent());
+        this->m_depth_image.init(this->m_swapchain.extent(), this->m_logiDevice.get(), this->m_physDevice.get());
         this->m_renderPass.init(this->m_logiDevice.get(), this->m_swapchain.imageFormat());
         this->m_descSetLayout.init(this->m_logiDevice.get());
         this->m_pipeline.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchain.extent(), this->m_descSetLayout.get());
@@ -155,7 +156,6 @@ namespace dal {
             );
         }
 
-
         this->m_cmdBuffers.record(
             this->m_renderPass.get(), this->m_pipeline.getPipeline(), this->m_swapchain.extent(),
             this->m_fbuf.getList(), this->m_pipeline.layout(), this->m_descPool.descSetsList(), this->m_meshes
@@ -190,6 +190,7 @@ namespace dal {
         this->m_pipeline.destroy(this->m_logiDevice.get());
         this->m_descSetLayout.destroy(this->m_logiDevice.get());
         this->m_renderPass.destroy(this->m_logiDevice.get());
+        this->m_depth_image.destroy(this->m_logiDevice.get());
         this->m_swapchainImages.destroy(this->m_logiDevice.get());
         this->m_swapchain.destroy(this->m_logiDevice.get());
         this->m_logiDevice.destroy();
@@ -274,6 +275,7 @@ namespace dal {
             this->m_fbuf.destroy(this->m_logiDevice.get());
             this->m_pipeline.destroy(this->m_logiDevice.get());
             this->m_renderPass.destroy(this->m_logiDevice.get());
+            this->m_depth_image.destroy(this->m_logiDevice.get());
             this->m_swapchainImages.destroy(this->m_logiDevice.get());
             this->m_swapchain.destroy(this->m_logiDevice.get());
         }
@@ -281,6 +283,7 @@ namespace dal {
         {
             this->m_swapchain.init(surface, this->m_physDevice.get(), this->m_logiDevice.get(), this->m_scrWidth, this->m_scrHeight);
             this->m_swapchainImages.init(this->m_logiDevice.get(), this->m_swapchain.get(), this->m_swapchain.imageFormat(), this->m_swapchain.extent());
+            this->m_depth_image.init(this->m_swapchain.extent(), this->m_logiDevice.get(), this->m_physDevice.get());
             this->m_renderPass.init(this->m_logiDevice.get(), this->m_swapchain.imageFormat());
             this->m_pipeline.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchain.extent(), this->m_descSetLayout.get());
             this->m_fbuf.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchainImages.getViews(), this->m_swapchain.extent());

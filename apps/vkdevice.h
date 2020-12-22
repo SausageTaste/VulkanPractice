@@ -17,6 +17,7 @@
 #include "vert_data.h"
 #include "uniform.h"
 #include "texture.h"
+#include "depth_image.h"
 
 
 namespace dal {
@@ -37,6 +38,7 @@ namespace dal {
         DescriptorSetLayout m_descSetLayout;
         UniformBuffers m_uniformBufs;
         DescriptorPool m_descPool;
+        DepthImage m_depth_image;
 
         TextureSampler m_sampler1;
         std::vector<TextureUnit> m_textures;

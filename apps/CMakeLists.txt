@@ -26,6 +26,7 @@ add_executable(vulkan_practice
     uniform.h           uniform.cpp
     texture.h           texture.cpp
     command_pool.h      command_pool.cpp
+    depth_image.h       depth_image.cpp
 )
 target_compile_features(vulkan_practice PUBLIC cxx_std_14)
 
