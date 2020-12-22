@@ -61,5 +61,6 @@ namespace dal {
     );
 
     VkImageView createImageView(const VkImage image, const VkFormat format, const VkDevice logiDevice);
+    VkImageView createImageView(const VkImage image, const VkFormat format, VkImageAspectFlags aspectFlags, const VkDevice logiDevice);
 
 }
