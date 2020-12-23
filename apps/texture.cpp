@@ -95,6 +95,7 @@ namespace {
 
     struct ImageData {
         uint32_t width, height, channels;
+        VkFormat format;
         std::vector<uint8_t> buffer;
     };
 
@@ -113,6 +114,7 @@ namespace {
         result.width = img_width;
         result.height = img_height;
         result.channels = 4;
+        result.format = VK_FORMAT_R8G8B8A8_SRGB;
 
         const auto imageSize = img_width * img_height * 4;
         result.buffer.resize(imageSize);
@@ -150,7 +152,7 @@ namespace dal {
         dal::createImage(
             image_data.width,
             image_data.height,
-            VK_FORMAT_R8G8B8A8_SRGB,
+            image_data.format,
             VK_IMAGE_TILING_OPTIMAL,
             VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
@@ -162,7 +164,7 @@ namespace dal {
 
         ::transitionImageLayout(
             this->textureImage,
-            VK_FORMAT_R8G8B8A8_SRGB,
+            image_data.format,
             VK_IMAGE_LAYOUT_UNDEFINED,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             logiDevice, cmdPool, graphicsQ
@@ -176,7 +178,7 @@ namespace dal {
         );
         ::transitionImageLayout(
             this->textureImage,
-            VK_FORMAT_R8G8B8A8_SRGB,
+            image_data.format,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             logiDevice, cmdPool, graphicsQ
