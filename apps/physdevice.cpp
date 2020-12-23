@@ -14,6 +14,12 @@
 
 namespace {
 
+    bool does_support_astc_texture(VkPhysicalDevice physDevice) {
+        VkFormatProperties properties;
+        vkGetPhysicalDeviceFormatProperties(physDevice, VK_FORMAT_ASTC_4x4_UNORM_BLOCK, &properties);
+        return (properties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT) != 0;
+    }
+
     bool checkDeviceExtensionSupport(VkPhysicalDevice device) {
         uint32_t extensionCount;
         vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
@@ -97,6 +103,9 @@ namespace {
                 return 0;
 
             if ( !features.samplerAnisotropy )
+                return 0;
+
+            if ( !::does_support_astc_texture(physDevice) )
                 return 0;
 
             if ( !dal::findQueueFamilies(physDevice, surface).isComplete() )
