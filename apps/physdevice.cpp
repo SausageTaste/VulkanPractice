@@ -17,7 +17,8 @@ namespace {
     bool does_support_astc_texture(VkPhysicalDevice physDevice) {
         VkFormatProperties properties;
         vkGetPhysicalDeviceFormatProperties(physDevice, VK_FORMAT_ASTC_4x4_UNORM_BLOCK, &properties);
-        return (properties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT) != 0;
+        bool supportsASTC = (properties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT) != 0;
+        return supportsASTC;
     }
 
     bool checkDeviceExtensionSupport(VkPhysicalDevice device) {
@@ -158,11 +159,11 @@ namespace dal {
         std::vector<VkPhysicalDevice> devices(deviceCount);
         vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
 
-        unsigned bestScore = -1;
+        unsigned bestScore = 0;
 
         for ( auto device : devices ) {
             const auto score = rateDeviceSuitability(surface, device);
-            if ( score < bestScore ) {
+            if ( score > bestScore ) {
                 this->m_handle = device;
                 bestScore = score;
             }

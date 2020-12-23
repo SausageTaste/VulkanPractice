@@ -12,6 +12,7 @@ namespace dal {
     private:
         VkImage textureImage;
         VkDeviceMemory textureImageMemory;
+        VkFormat m_format;
 
     public:
         void init(const char* const image_path, VkDevice logiDevice, VkPhysicalDevice physDevice, dal::CommandPool& cmdPool, VkQueue graphicsQ);
@@ -19,6 +20,9 @@ namespace dal {
 
         auto& image() const {
             return this->textureImage;
+        }
+        auto& format() const {
+            return this->m_format;
         }
 
     };
@@ -30,7 +34,7 @@ namespace dal {
         VkImageView textureImageView;
 
     public:
-        void init(VkDevice logiDevice, VkImage textureImage);
+        void init(VkDevice logiDevice, VkImage textureImage, VkFormat format);
         void destroy(VkDevice logiDevice);
 
         auto& get() const {
