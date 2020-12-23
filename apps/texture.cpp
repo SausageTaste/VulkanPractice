@@ -92,26 +92,48 @@ namespace {
         cmdPool.endSingleTimeCmd(cmdBuffer, logiDevice, graphicsQ);
     }
 
+
+    struct ImageData {
+        uint32_t width, height, channels;
+        std::vector<uint8_t> buffer;
+    };
+
+    ImageData open_image_stb(const char* const image_path) {
+        ImageData result;
+
+        int img_width, img_height, img_channels;
+        const auto pixels = stbi_load(
+            image_path, &img_width, &img_height, &img_channels, STBI_rgb_alpha
+        );
+
+        if (!pixels) {
+            throw std::runtime_error("failed to load texture image!");
+        }
+
+        result.width = img_width;
+        result.height = img_height;
+        result.channels = 4;
+
+        const auto imageSize = img_width * img_height * 4;
+        result.buffer.resize(imageSize);
+        memcpy(result.buffer.data(), pixels, static_cast<size_t>(imageSize));
+        stbi_image_free(pixels);
+
+        return result;
+    }
+
 }
 
 
 namespace dal {
 
     void TextureImage::init(const char* const image_path, VkDevice logiDevice, VkPhysicalDevice physDevice, dal::CommandPool& cmdPool, VkQueue graphicsQ) {
-        int img_width, img_height, img_channels;
-        const auto pixels = stbi_load(
-            image_path, &img_width, &img_height, &img_channels, STBI_rgb_alpha
-        );
-        if (!pixels) {
-            throw std::runtime_error("failed to load texture image!");
-        }
-
-        VkDeviceSize imageSize = img_width * img_height * 4;
+        const auto image_data = open_image_stb(image_path);
 
         VkBuffer stagingBuffer;
         VkDeviceMemory stagingBufferMemory;
         dal::createBuffer(
-            imageSize,
+            image_data.buffer.size(),
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
             stagingBuffer,
@@ -121,15 +143,13 @@ namespace dal {
         );
 
         void* data;
-        vkMapMemory(logiDevice, stagingBufferMemory, 0, imageSize, 0, &data);
-        memcpy(data, pixels, static_cast<size_t>(imageSize));
+        vkMapMemory(logiDevice, stagingBufferMemory, 0, image_data.buffer.size(), 0, &data);
+        memcpy(data, image_data.buffer.data(), image_data.buffer.size());
         vkUnmapMemory(logiDevice, stagingBufferMemory);
 
-        stbi_image_free(pixels);
-
         dal::createImage(
-            img_width,
-            img_height,
+            image_data.width,
+            image_data.height,
             VK_FORMAT_R8G8B8A8_SRGB,
             VK_IMAGE_TILING_OPTIMAL,
             VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
@@ -150,8 +170,8 @@ namespace dal {
         ::copyBufferToImage(
             stagingBuffer,
             this->textureImage,
-            static_cast<uint32_t>(img_width),
-            static_cast<uint32_t>(img_height),
+            image_data.width,
+            image_data.height,
             logiDevice, cmdPool, graphicsQ
         );
         ::transitionImageLayout(
