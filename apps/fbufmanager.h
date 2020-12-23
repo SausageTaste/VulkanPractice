@@ -13,7 +13,10 @@ namespace dal {
         std::vector<VkFramebuffer> m_swapChainFbufs;
 
     public:
-        void init(VkDevice device, VkRenderPass renderPass, const std::vector<VkImageView>& swapChainImageViews, const VkExtent2D& extent);
+        void init(
+            VkDevice device, VkRenderPass renderPass, const std::vector<VkImageView>& swapChainImageViews,
+            const VkExtent2D& extent, const VkImageView depth_image_view
+        );
         void destroy(VkDevice device);
 
         auto& getList(void) const {
