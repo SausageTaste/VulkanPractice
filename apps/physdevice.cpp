@@ -14,129 +14,155 @@
 
 namespace {
 
-    bool does_support_astc_texture(VkPhysicalDevice physDevice) {
-        VkFormatProperties properties;
-        vkGetPhysicalDeviceFormatProperties(physDevice, VK_FORMAT_ASTC_4x4_UNORM_BLOCK, &properties);
-        bool supportsASTC = (properties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT) != 0;
-        return supportsASTC;
-    }
+    class PhysDeviceProps {
 
-    bool checkDeviceExtensionSupport(VkPhysicalDevice device) {
-        uint32_t extensionCount;
-        vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
+    private:
+        VkPhysicalDevice m_phys_device;
+        VkSurfaceKHR m_surface;
 
-        std::vector<VkExtensionProperties> availableExtensions(extensionCount);
-        vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
+        VkPhysicalDeviceProperties m_properties;
+        VkPhysicalDeviceFeatures m_features;
 
-        std::set<std::string> requiredExtensions(dal::DEVICE_EXTENSIONS.begin(), dal::DEVICE_EXTENSIONS.end());
-
-        for ( const auto& extension : availableExtensions ) {
-            requiredExtensions.erase(extension.extensionName);
-        }
-
-        return requiredExtensions.empty();
-    }
-
-    void printDeviceInfo(const VkPhysicalDeviceProperties& properties, const VkPhysicalDeviceFeatures& features) {
-        std::cout << "physical device \"" << properties.deviceName << "\"\n";
-
-        std::cout << "         type                     : ";
-        switch ( properties.deviceType ) {
-
-        case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
-            std::cout << "integrated gpu"; break;
-        case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
-            std::cout << "discrete gpu"; break;
-        case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:
-            std::cout << "virtual gpu"; break;
-        case VK_PHYSICAL_DEVICE_TYPE_CPU:
-            std::cout << "cpu"; break;
-        default:
-            std::cout << "unknown"; break;
-
-        }
-        std::cout << '\n';
-
-        std::cout << "         vendor                   : ";
-        switch ( properties.vendorID ) {
-
-        case 0x1002:
-            std::cout << "AMD"; break;
-
-        case 0x1010:
-            std::cout << "ImgTec"; break;
-
-        case 0x10DE:
-            std::cout << "NVIDIA"; break;
-
-        case 0x13B5:
-            std::cout << "ARM"; break;
-
-        case 0x5143:
-            std::cout << "Qualcomm"; break;
-
-        case 0x8086:
-            std::cout << "INTEL"; break;
-
-        }
-        std::cout << '\n';
-
-        std::cout << "         max memory alloc count   : " << properties.limits.maxMemoryAllocationCount << '\n';
-        std::cout << "         max sampler alloc count  : " << properties.limits.maxSamplerAllocationCount << '\n';
-        std::cout << "         max image 2d dimension   : " << properties.limits.maxImageDimension2D << '\n';
-        std::cout << "         max image cube dimension : " << properties.limits.maxImageDimensionCube << '\n';
-    }
-
-    unsigned rateDeviceSuitability(VkSurfaceKHR surface, VkPhysicalDevice physDevice) {
-        VkPhysicalDeviceProperties properties;
-        vkGetPhysicalDeviceProperties(physDevice, &properties);
-        VkPhysicalDeviceFeatures features;
-        vkGetPhysicalDeviceFeatures(physDevice, &features);
-
-#if DAL_PRINT_DEVICE_INFO
-        printDeviceInfo(properties, features);
-#endif
-
-        // Invalid device condition
+    public:
+        PhysDeviceProps(const VkPhysicalDevice physDevice, const VkSurfaceKHR surface)
+            : m_phys_device(physDevice)
+            , m_surface(surface)
         {
+            vkGetPhysicalDeviceProperties(this->m_phys_device, &this->m_properties);
+            vkGetPhysicalDeviceFeatures(this->m_phys_device, &this->m_features);
+        }
+
+        bool is_usable() const {
             // Application can't function without geometry shaders
-            if ( !features.geometryShader )
-                return 0;
+            if ( !this->m_features.geometryShader )
+                return false;
 
-            if ( !features.samplerAnisotropy )
-                return 0;
+            if ( !this->m_features.samplerAnisotropy )
+                return false;
 
-            if ( !::does_support_astc_texture(physDevice) )
-                return 0;
+            if ( !this->does_support_astc_texture() )
+                return false;
 
-            if ( !dal::findQueueFamilies(physDevice, surface).isComplete() )
-                return 0;
+            if ( !dal::findQueueFamilies(this->m_phys_device, this->m_surface).isComplete() )
+                return false;
 
-            if ( !checkDeviceExtensionSupport(physDevice) )
-                return 0;
+            if ( !this->does_support_all_extensions(dal::DEVICE_EXTENSIONS.begin(), dal::DEVICE_EXTENSIONS.end()) )
+                return false;
 
-            const auto swapChainSupport = dal::querySwapChainSupport(surface, physDevice);
+            const auto swapChainSupport = dal::querySwapChainSupport(this->m_surface, this->m_phys_device);
             const auto swapChainAdequate = !(swapChainSupport.formats.empty() || swapChainSupport.presentModes.empty());
             if ( !swapChainAdequate )
+                return false;
+
+            return true;
+        }
+
+        unsigned calc_score() const {
+            if (!this->is_usable()) {
                 return 0;
+            }
+
+            unsigned score = 0;
+            {
+                // Discrete GPUs have a significant performance advantage
+                if ( VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU == this->m_properties.deviceType )
+                    score += 5000;
+
+                // Maximum possible size of textures affects graphics quality
+                score += this->m_properties.limits.maxImageDimension2D;
+            }
+
+            return score;
         }
 
-        unsigned score = 0;
-        {
-            // Discrete GPUs have a significant performance advantage
-            if ( VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU == properties.deviceType )
-                score += 5000;
+        void print_info() const {
+            std::cout << "physical device \"" << this->m_properties.deviceName << "\"\n";
 
-            // Maximum possible size of textures affects graphics quality
-            score += properties.limits.maxImageDimension2D;
+            std::cout << "\ttype                     : ";
+            switch ( this->m_properties.deviceType ) {
+
+            case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
+                std::cout << "integrated gpu"; break;
+            case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
+                std::cout << "discrete gpu"; break;
+            case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:
+                std::cout << "virtual gpu"; break;
+            case VK_PHYSICAL_DEVICE_TYPE_CPU:
+                std::cout << "cpu"; break;
+            default:
+                std::cout << "unknown"; break;
+
+            }
+            std::cout << '\n';
+
+            std::cout << "\tvendor                   : ";
+            switch ( this->m_properties.vendorID ) {
+
+            case 0x1002:
+                std::cout << "AMD"; break;
+
+            case 0x1010:
+                std::cout << "ImgTec"; break;
+
+            case 0x10DE:
+                std::cout << "NVIDIA"; break;
+
+            case 0x13B5:
+                std::cout << "ARM"; break;
+
+            case 0x5143:
+                std::cout << "Qualcomm"; break;
+
+            case 0x8086:
+                std::cout << "INTEL"; break;
+
+            }
+            std::cout << '\n';
+
+            std::cout << "\tmax memory alloc count   : " << this->m_properties.limits.maxMemoryAllocationCount << '\n';
+            std::cout << "\tmax sampler alloc count  : " << this->m_properties.limits.maxSamplerAllocationCount << '\n';
+            std::cout << "\tmax image 2d dimension   : " << this->m_properties.limits.maxImageDimension2D << '\n';
+            std::cout << "\tmax image cube dimension : " << this->m_properties.limits.maxImageDimensionCube << '\n';
+            std::cout << "\tASTC support             : " << this->does_support_astc_texture() << '\n';
+            std::cout << "\tscore                    : " << this->calc_score() << '\n';
         }
 
-#if DAL_PRINT_DEVICE_INFO
-        std::cout << "         score                    : " << score << '\n';
-#endif
+    private:
+        template <typename _Iter>
+        bool does_support_all_extensions(const _Iter begin, const _Iter end) const {
+            uint32_t extensionCount;
+            vkEnumerateDeviceExtensionProperties(this->m_phys_device, nullptr, &extensionCount, nullptr);
 
-        return score;
-    }
+            std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+            vkEnumerateDeviceExtensionProperties(this->m_phys_device, nullptr, &extensionCount, availableExtensions.data());
+
+            std::set<std::string> requiredExtensions(begin, end);
+
+            for ( const auto& extension : availableExtensions ) {
+                requiredExtensions.erase(extension.extensionName);
+            }
+
+            return requiredExtensions.empty();
+        }
+
+        bool does_support_astc_texture() const {
+            const std::array<VkFormat, 1> NEEDED_FORMATE = {
+                VK_FORMAT_ASTC_4x4_SRGB_BLOCK,
+            };
+
+            for (const auto format : NEEDED_FORMATE) {
+                VkFormatProperties properties;
+                vkGetPhysicalDeviceFormatProperties(this->m_phys_device, format, &properties);
+                bool supportsASTC = (properties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT) != 0;
+                if (!supportsASTC) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+    };
 
 }
 
@@ -162,7 +188,11 @@ namespace dal {
         unsigned bestScore = 0;
 
         for ( auto device : devices ) {
-            const auto score = rateDeviceSuitability(surface, device);
+            const ::PhysDeviceProps info{ device, surface };
+#if DAL_PRINT_DEVICE_INFO
+            info.print_info();
+#endif
+            const auto score = info.calc_score();
             if ( score > bestScore ) {
                 this->m_handle = device;
                 bestScore = score;
@@ -172,7 +202,7 @@ namespace dal {
 #if DAL_PRINT_DEVICE_INFO
         VkPhysicalDeviceProperties properties;
         vkGetPhysicalDeviceProperties(this->m_handle, &properties);
-        std::cout << "Selected GPU: " << properties.deviceName << '\n';
+        std::cout << "Selected GPU: \"" << properties.deviceName << "\"\n";
 #endif
 
         if ( VK_NULL_HANDLE == this->m_handle ) {
