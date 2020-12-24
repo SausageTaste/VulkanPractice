@@ -41,21 +41,41 @@ namespace dal {
         this->m_sampler1.init(this->m_logiDevice.get(), this->m_physDevice.get());
         {
             this->m_textures.emplace_back();
-            this->m_textures.back().image.init(
-                (dal::findResPath() + "/image/grass1.astc").c_str(),
-                this->m_logiDevice.get(), this->m_physDevice.get(),
-                this->m_cmdPool,
-                this->m_logiDevice.graphicsQ()
-            );
+            if (this->m_physDevice.does_support_astc()) {
+                this->m_textures.back().image.init_astc(
+                    (dal::findResPath() + "/image/grass1.astc").c_str(),
+                    this->m_logiDevice.get(), this->m_physDevice.get(),
+                    this->m_cmdPool,
+                    this->m_logiDevice.graphicsQ()
+                );
+            }
+            else {
+                this->m_textures.back().image.init_img(
+                    (dal::findResPath() + "/image/grass1.png").c_str(),
+                    this->m_logiDevice.get(), this->m_physDevice.get(),
+                    this->m_cmdPool,
+                    this->m_logiDevice.graphicsQ()
+                );
+            }
             this->m_textures.back().view.init(this->m_logiDevice.get(), this->m_textures.back().image.image(), this->m_textures.back().image.format());
 
             this->m_textures.emplace_back();
-            this->m_textures.back().image.init(
-                (dal::findResPath() + "/image/0021di.astc").c_str(),
-                this->m_logiDevice.get(), this->m_physDevice.get(),
-                this->m_cmdPool,
-                this->m_logiDevice.graphicsQ()
-            );
+            if (this->m_physDevice.does_support_astc()) {
+                this->m_textures.back().image.init_astc(
+                    (dal::findResPath() + "/image/0021di.astc").c_str(),
+                    this->m_logiDevice.get(), this->m_physDevice.get(),
+                    this->m_cmdPool,
+                    this->m_logiDevice.graphicsQ()
+                );
+            }
+            else {
+                this->m_textures.back().image.init_img(
+                    (dal::findResPath() + "/image/0021di.png").c_str(),
+                    this->m_logiDevice.get(), this->m_physDevice.get(),
+                    this->m_cmdPool,
+                    this->m_logiDevice.graphicsQ()
+                );
+            }
             this->m_textures.back().view.init(this->m_logiDevice.get(), this->m_textures.back().image.image(), this->m_textures.back().image.format());
         }
 

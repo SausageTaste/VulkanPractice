@@ -2,7 +2,6 @@
 
 #include <set>
 #include <string>
-#include <vector>
 #include <iostream>
 #include <stdexcept>
 
@@ -101,9 +100,6 @@ namespace dal {
         if ( !this->m_features.samplerAnisotropy )
             return false;
 
-        if ( !this->m_features.textureCompressionASTC_LDR )
-            return false;
-
         if ( !dal::findQueueFamilies(this->m_phys_device, this->m_surface).isComplete() )
             return false;
 
@@ -197,6 +193,10 @@ namespace dal {
         std::cout << "Selected GPU: \"" << properties.deviceName << "\"\n";
 #endif
 
+    }
+
+    bool PhysDevice::does_support_astc() const {
+        return 0 != this->m_info.features().textureCompressionASTC_LDR;
     }
 
 }

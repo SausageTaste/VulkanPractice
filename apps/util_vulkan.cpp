@@ -1,6 +1,7 @@
 #include "util_vulkan.h"
 
 #include <vector>
+#include <iostream>
 #include <stdexcept>
 
 
@@ -153,6 +154,7 @@ namespace dal {
         if (vkAllocateMemory(logiDevice, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS) {
             throw std::runtime_error("failed to allocate image memory!");
         }
+        std::cout << "Memory allocated for image: " << allocInfo.allocationSize << std::endl;
 
         vkBindImageMemory(logiDevice, image, imageMemory, 0);
     }

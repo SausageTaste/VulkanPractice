@@ -1,6 +1,7 @@
 #include "texture.h"
 
 #include <fstream>
+#include <iostream>
 #include <iterator>
 #include <stdexcept>
 
@@ -186,14 +187,8 @@ namespace {
     }
 
 
-    struct ImageData {
-        uint32_t width, height, channels;
-        VkFormat format;
-        std::vector<uint8_t> buffer;
-    };
-
-    ImageData open_image_stb(const char* const image_path) {
-        ImageData result;
+    dal::ImageData open_image_stb(const char* const image_path) {
+        dal::ImageData result;
 
         int img_width, img_height, img_channels;
         const auto pixels = stbi_load(
@@ -217,8 +212,8 @@ namespace {
         return result;
     }
 
-    ImageData open_image_astc(const char* const image_path) {
-        ImageData result;
+    dal::ImageData open_image_astc(const char* const image_path) {
+        dal::ImageData result;
 
         std::ifstream input(image_path, std::ios::binary);
         std::vector<unsigned char> buffer(std::istreambuf_iterator<char>(input), {});
@@ -240,9 +235,27 @@ namespace {
 
 
 namespace dal {
+    void TextureImage::init_img(
+        const char* const image_path, VkDevice logiDevice, VkPhysicalDevice physDevice,
+        dal::CommandPool& cmdPool, VkQueue graphicsQ
+    ) {
+        const auto image_data = ::open_image_stb(image_path);
+        this->init(image_data, logiDevice, physDevice, cmdPool, graphicsQ);
+    }
 
-    void TextureImage::init(const char* const image_path, VkDevice logiDevice, VkPhysicalDevice physDevice, dal::CommandPool& cmdPool, VkQueue graphicsQ) {
+    void TextureImage::init_astc(
+        const char* const image_path, VkDevice logiDevice, VkPhysicalDevice physDevice,
+        dal::CommandPool& cmdPool, VkQueue graphicsQ
+    ) {
         const auto image_data = ::open_image_astc(image_path);
+        this->init(image_data, logiDevice, physDevice, cmdPool, graphicsQ);
+    }
+
+    void TextureImage::init(
+        const ImageData& image_data, VkDevice logiDevice, VkPhysicalDevice physDevice,
+        dal::CommandPool& cmdPool, VkQueue graphicsQ
+    ) {
+        std::cout << "image buffer size: " << image_data.buffer.size() << std::endl;
 
         VkBuffer stagingBuffer;
         VkDeviceMemory stagingBufferMemory;

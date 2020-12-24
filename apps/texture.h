@@ -1,11 +1,20 @@
 #pragma once
 
+#include <vector>
+
 #include <vulkan/vulkan.h>
 
 #include "command_pool.h"
 
 
 namespace dal {
+
+    struct ImageData {
+        uint32_t width, height, channels;
+        VkFormat format;
+        std::vector<uint8_t> buffer;
+    };
+
 
     class TextureImage {
 
@@ -15,7 +24,19 @@ namespace dal {
         VkFormat m_format;
 
     public:
-        void init(const char* const image_path, VkDevice logiDevice, VkPhysicalDevice physDevice, dal::CommandPool& cmdPool, VkQueue graphicsQ);
+        void init_img(
+            const char* const image_path, VkDevice logiDevice, VkPhysicalDevice physDevice,
+            dal::CommandPool& cmdPool, VkQueue graphicsQ
+        );
+        void init_astc(
+            const char* const image_path, VkDevice logiDevice, VkPhysicalDevice physDevice,
+            dal::CommandPool& cmdPool, VkQueue graphicsQ
+        );
+        void init(
+            const ImageData& image_data, VkDevice logiDevice, VkPhysicalDevice physDevice,
+            dal::CommandPool& cmdPool, VkQueue graphicsQ
+        );
+
         void destroy(VkDevice logiDevice);
 
         auto& image() const {

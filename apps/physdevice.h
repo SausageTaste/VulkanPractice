@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include <vulkan/vulkan.h>
 
 
@@ -8,8 +10,8 @@ namespace dal {
     class PhysDeviceProps {
 
     private:
-        VkPhysicalDevice m_phys_device;
-        VkSurfaceKHR m_surface;
+        VkPhysicalDevice m_phys_device = VK_NULL_HANDLE;
+        VkSurfaceKHR m_surface = VK_NULL_HANDLE;
 
         VkPhysicalDeviceProperties m_properties;
         VkPhysicalDeviceFeatures m_features;
@@ -18,7 +20,15 @@ namespace dal {
         uint32_t m_score = 0;
 
     public:
+        PhysDeviceProps() = default;
         PhysDeviceProps(const VkPhysicalDevice physDevice, const VkSurfaceKHR surface);
+
+        auto& props() const {
+            return this->m_properties;
+        }
+        auto& features() const {
+            return this->m_features;
+        }
 
         uint32_t score() const;
         void print_info() const;
@@ -59,6 +69,8 @@ namespace dal {
         auto get(void) const {
             return this->m_handle;
         }
+
+        bool does_support_astc() const;
 
     };
 
