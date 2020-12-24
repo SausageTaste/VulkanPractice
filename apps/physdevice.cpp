@@ -124,6 +124,10 @@ namespace {
             std::cout << "\tASTC compression support : " << this->m_features.textureCompressionASTC_LDR << '\n';
             std::cout << "\tETC2 compression support : " << this->m_features.textureCompressionETC2 << '\n';
             std::cout << "\tBC compression support   : " << this->m_features.textureCompressionBC << '\n';
+            std::cout << "\tray tracing support      : "
+                      << dal::RAY_TRACING_EXTENSIONS.size() - this->how_many_extensions_not_supported(dal::RAY_TRACING_EXTENSIONS.begin(), dal::RAY_TRACING_EXTENSIONS.end())
+                      << " of " << dal::RAY_TRACING_EXTENSIONS.size()
+                      << '\n';
             std::cout << "\tscore                    : " << this->m_score << '\n';
         }
 
@@ -148,13 +152,18 @@ namespace {
 
         template <typename _Iter>
         bool does_support_all_extensions(const _Iter begin, const _Iter end) const {
+            return 0 == this->how_many_extensions_not_supported(begin, end);
+        }
+
+        template <typename _Iter>
+        size_t how_many_extensions_not_supported(const _Iter begin, const _Iter end) const {
             std::set<std::string> requiredExtensions(begin, end);
 
             for ( const auto& extension : this->m_available_extensions ) {
                 requiredExtensions.erase(extension.extensionName);
             }
 
-            return requiredExtensions.empty();
+            return requiredExtensions.size();
         }
 
         /*

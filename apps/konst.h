@@ -15,7 +15,18 @@ namespace dal {
     };
 
     const std::array<const char*, 1> DEVICE_EXTENSIONS = {
-        VK_KHR_SWAPCHAIN_EXTENSION_NAME
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+    };
+
+    const std::array<const char*, 7> RAY_TRACING_EXTENSIONS = {
+        VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+        VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+        VK_KHR_RAY_QUERY_EXTENSION_NAME,
+        VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME,
+        VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
+
+        "SPV_KHR_ray_tracing",
+        "SPV_KHR_ray_query",
     };
 
 }
