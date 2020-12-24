@@ -23,6 +23,8 @@ namespace {
         VkPhysicalDeviceProperties m_properties;
         VkPhysicalDeviceFeatures m_features;
 
+        uint32_t m_score = 0;
+
     public:
         PhysDeviceProps(const VkPhysicalDevice physDevice, const VkSurfaceKHR surface)
             : m_phys_device(physDevice)
@@ -30,6 +32,12 @@ namespace {
         {
             vkGetPhysicalDeviceProperties(this->m_phys_device, &this->m_properties);
             vkGetPhysicalDeviceFeatures(this->m_phys_device, &this->m_features);
+
+            this->m_score = this->calc_score();
+        }
+
+        auto& score() const {
+            return this->m_score;
         }
 
         bool is_usable() const {
@@ -55,24 +63,6 @@ namespace {
                 return false;
 
             return true;
-        }
-
-        unsigned calc_score() const {
-            if (!this->is_usable()) {
-                return 0;
-            }
-
-            unsigned score = 0;
-            {
-                // Discrete GPUs have a significant performance advantage
-                if ( VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU == this->m_properties.deviceType )
-                    score += 5000;
-
-                // Maximum possible size of textures affects graphics quality
-                score += this->m_properties.limits.maxImageDimension2D;
-            }
-
-            return score;
         }
 
         void print_info() const {
@@ -126,10 +116,28 @@ namespace {
             std::cout << "\tASTC compression support : " << this->m_features.textureCompressionASTC_LDR << '\n';
             std::cout << "\tETC2 compression support : " << this->m_features.textureCompressionETC2 << '\n';
             std::cout << "\tBC compression support   : " << this->m_features.textureCompressionBC << '\n';
-            std::cout << "\tscore                    : " << this->calc_score() << '\n';
+            std::cout << "\tscore                    : " << this->m_score << '\n';
         }
 
     private:
+        unsigned calc_score() const {
+            if (!this->is_usable()) {
+                return 0;
+            }
+
+            unsigned score = 0;
+            {
+                // Discrete GPUs have a significant performance advantage
+                if ( VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU == this->m_properties.deviceType )
+                    score += 5000;
+
+                // Maximum possible size of textures affects graphics quality
+                score += this->m_properties.limits.maxImageDimension2D;
+            }
+
+            return score;
+        }
+
         template <typename _Iter>
         bool does_support_all_extensions(const _Iter begin, const _Iter end) const {
             uint32_t extensionCount;
@@ -196,10 +204,9 @@ namespace dal {
 #if DAL_PRINT_DEVICE_INFO
             info.print_info();
 #endif
-            const auto score = info.calc_score();
-            if ( score > bestScore ) {
+            if ( info.score() > bestScore ) {
                 this->m_handle = device;
-                bestScore = score;
+                bestScore = info.score();
             }
         }
 
