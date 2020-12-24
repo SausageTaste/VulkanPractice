@@ -51,6 +51,7 @@ namespace {
         switch ( messageSeverity ) {
 
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+            return VK_FALSE;
             std::cerr << "[VERB] ";
             break;
         case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:

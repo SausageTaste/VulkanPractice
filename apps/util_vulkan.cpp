@@ -116,7 +116,7 @@ namespace dal {
         vkBindBufferMemory(logiDevice, buffer, bufferMemory, 0);
     }
 
-    void createImage(
+    VkDeviceSize createImage(
         uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling,
         VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image,
         VkDeviceMemory& imageMemory, VkDevice logiDevice, VkPhysicalDevice physDevice
@@ -155,6 +155,7 @@ namespace dal {
         }
 
         vkBindImageMemory(logiDevice, image, imageMemory, 0);
+        return allocInfo.allocationSize;
     }
 
     VkImageView createImageView(const VkImage image, const VkFormat format, VkImageAspectFlags aspectFlags, const VkDevice logiDevice) {

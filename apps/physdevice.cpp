@@ -2,7 +2,6 @@
 
 #include <set>
 #include <string>
-#include <vector>
 #include <iostream>
 #include <stdexcept>
 
@@ -12,29 +11,34 @@
 #define DAL_PRINT_DEVICE_INFO true
 
 
-namespace {
+namespace dal {
 
-    bool checkDeviceExtensionSupport(VkPhysicalDevice device) {
-        uint32_t extensionCount;
-        vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
+    PhysDeviceProps::PhysDeviceProps(const VkPhysicalDevice physDevice, const VkSurfaceKHR surface)
+        : m_phys_device(physDevice)
+        , m_surface(surface)
+    {
+        vkGetPhysicalDeviceProperties(this->m_phys_device, &this->m_properties);
+        vkGetPhysicalDeviceFeatures(this->m_phys_device, &this->m_features);
 
-        std::vector<VkExtensionProperties> availableExtensions(extensionCount);
-        vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
-
-        std::set<std::string> requiredExtensions(dal::DEVICE_EXTENSIONS.begin(), dal::DEVICE_EXTENSIONS.end());
-
-        for ( const auto& extension : availableExtensions ) {
-            requiredExtensions.erase(extension.extensionName);
+        {
+            uint32_t extension_count;
+            vkEnumerateDeviceExtensionProperties(this->m_phys_device, nullptr, &extension_count, nullptr);
+            this->m_available_extensions.resize(extension_count);
+            vkEnumerateDeviceExtensionProperties(this->m_phys_device, nullptr, &extension_count, this->m_available_extensions.data());
         }
 
-        return requiredExtensions.empty();
+        this->m_score = this->calc_score();
     }
 
-    void printDeviceInfo(const VkPhysicalDeviceProperties& properties, const VkPhysicalDeviceFeatures& features) {
-        std::cout << "physical device \"" << properties.deviceName << "\"\n";
+    uint32_t PhysDeviceProps::score() const {
+        return this->m_score;
+    }
 
-        std::cout << "         type                     : ";
-        switch ( properties.deviceType ) {
+    void PhysDeviceProps::print_info() const {
+        std::cout << "physical device \"" << this->m_properties.deviceName << "\"\n";
+
+        std::cout << "\ttype                     : ";
+        switch ( this->m_properties.deviceType ) {
 
         case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
             std::cout << "integrated gpu"; break;
@@ -50,8 +54,8 @@ namespace {
         }
         std::cout << '\n';
 
-        std::cout << "         vendor                   : ";
-        switch ( properties.vendorID ) {
+        std::cout << "\tvendor                   : ";
+        switch ( this->m_properties.vendorID ) {
 
         case 0x1002:
             std::cout << "AMD"; break;
@@ -74,59 +78,78 @@ namespace {
         }
         std::cout << '\n';
 
-        std::cout << "         max memory alloc count   : " << properties.limits.maxMemoryAllocationCount << '\n';
-        std::cout << "         max sampler alloc count  : " << properties.limits.maxSamplerAllocationCount << '\n';
-        std::cout << "         max image 2d dimension   : " << properties.limits.maxImageDimension2D << '\n';
-        std::cout << "         max image cube dimension : " << properties.limits.maxImageDimensionCube << '\n';
+        std::cout << "\tmax memory alloc count   : " << this->m_properties.limits.maxMemoryAllocationCount << '\n';
+        std::cout << "\tmax sampler alloc count  : " << this->m_properties.limits.maxSamplerAllocationCount << '\n';
+        std::cout << "\tmax image 2d dimension   : " << this->m_properties.limits.maxImageDimension2D << '\n';
+        std::cout << "\tmax image cube dimension : " << this->m_properties.limits.maxImageDimensionCube << '\n';
+        std::cout << "\tASTC compression support : " << this->m_features.textureCompressionASTC_LDR << '\n';
+        std::cout << "\tETC2 compression support : " << this->m_features.textureCompressionETC2 << '\n';
+        std::cout << "\tBC compression support   : " << this->m_features.textureCompressionBC << '\n';
+        std::cout << "\tray tracing support      : "
+                    << dal::RAY_TRACING_EXTENSIONS.size() - this->how_many_extensions_not_supported(dal::RAY_TRACING_EXTENSIONS.begin(), dal::RAY_TRACING_EXTENSIONS.end())
+                    << " of " << dal::RAY_TRACING_EXTENSIONS.size()
+                    << '\n';
+        std::cout << "\tscore                    : " << this->m_score << '\n';
     }
 
-    unsigned rateDeviceSuitability(VkSurfaceKHR surface, VkPhysicalDevice physDevice) {
-        VkPhysicalDeviceProperties properties;
-        vkGetPhysicalDeviceProperties(physDevice, &properties);
-        VkPhysicalDeviceFeatures features;
-        vkGetPhysicalDeviceFeatures(physDevice, &features);
+    bool PhysDeviceProps::is_usable() const {
+        // Application can't function without geometry shaders
+        if ( !this->m_features.geometryShader )
+            return false;
 
-#if DAL_PRINT_DEVICE_INFO
-        printDeviceInfo(properties, features);
-#endif
+        if ( !this->m_features.samplerAnisotropy )
+            return false;
 
-        // Invalid device condition
-        {
-            // Application can't function without geometry shaders
-            if ( !features.geometryShader )
-                return 0;
+        if ( !dal::findQueueFamilies(this->m_phys_device, this->m_surface).isComplete() )
+            return false;
 
-            if ( !features.samplerAnisotropy )
-                return 0;
+        if ( !this->does_support_all_extensions(dal::DEVICE_EXTENSIONS.begin(), dal::DEVICE_EXTENSIONS.end()) )
+            return false;
 
-            if ( !dal::findQueueFamilies(physDevice, surface).isComplete() )
-                return 0;
+        const auto swapChainSupport = dal::querySwapChainSupport(this->m_surface, this->m_phys_device);
+        const auto swapChainAdequate = !(swapChainSupport.formats.empty() || swapChainSupport.presentModes.empty());
+        if ( !swapChainAdequate )
+            return false;
 
-            if ( !checkDeviceExtensionSupport(physDevice) )
-                return 0;
+        return true;
+    }
 
-            const auto swapChainSupport = dal::querySwapChainSupport(surface, physDevice);
-            const auto swapChainAdequate = !(swapChainSupport.formats.empty() || swapChainSupport.presentModes.empty());
-            if ( !swapChainAdequate )
-                return 0;
+    unsigned PhysDeviceProps::calc_score() const {
+        if (!this->is_usable()) {
+            return 0;
         }
 
         unsigned score = 0;
         {
             // Discrete GPUs have a significant performance advantage
-            if ( VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU == properties.deviceType )
+            if ( VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU == this->m_properties.deviceType )
                 score += 5000;
 
             // Maximum possible size of textures affects graphics quality
-            score += properties.limits.maxImageDimension2D;
+            score += this->m_properties.limits.maxImageDimension2D;
         }
-
-#if DAL_PRINT_DEVICE_INFO
-        std::cout << "         score                    : " << score << '\n';
-#endif
 
         return score;
     }
+
+    /*
+    bool does_support_astc_texture() const {
+        const std::array<VkFormat, 1> NEEDED_FORMATE = {
+            VK_FORMAT_ASTC_4x4_SRGB_BLOCK,
+        };
+
+        for (const auto format : NEEDED_FORMATE) {
+            VkFormatProperties properties;
+            vkGetPhysicalDeviceFormatProperties(this->m_phys_device, format, &properties);
+            bool supportsASTC = (properties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT) != 0;
+            if (!supportsASTC) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+    */
 
 }
 
@@ -149,25 +172,31 @@ namespace dal {
         std::vector<VkPhysicalDevice> devices(deviceCount);
         vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
 
-        unsigned bestScore = -1;
-
         for ( auto device : devices ) {
-            const auto score = rateDeviceSuitability(surface, device);
-            if ( score < bestScore ) {
+            const dal::PhysDeviceProps info{ device, surface };
+#if DAL_PRINT_DEVICE_INFO
+            info.print_info();
+#endif
+            if ( info.score() > this->m_info.score() ) {
                 this->m_handle = device;
-                bestScore = score;
+                this->m_info = info;
             }
+        }
+
+        if ( VK_NULL_HANDLE == this->m_handle ) {
+            throw std::runtime_error{ "failed to find a sutable graphic device." };
         }
 
 #if DAL_PRINT_DEVICE_INFO
         VkPhysicalDeviceProperties properties;
         vkGetPhysicalDeviceProperties(this->m_handle, &properties);
-        std::cout << "Selected GPU: " << properties.deviceName << '\n';
+        std::cout << "Selected GPU: \"" << properties.deviceName << "\"\n";
 #endif
 
-        if ( VK_NULL_HANDLE == this->m_handle ) {
-            throw std::runtime_error{ "failed to find a sutable graphic device." };
-        }
+    }
+
+    bool PhysDevice::does_support_astc() const {
+        return 0 != this->m_info.features().textureCompressionASTC_LDR;
     }
 
 }
