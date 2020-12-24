@@ -19,9 +19,10 @@ namespace dal {
     class TextureImage {
 
     private:
-        VkImage textureImage;
-        VkDeviceMemory textureImageMemory;
+        VkImage textureImage = VK_NULL_HANDLE;
+        VkDeviceMemory textureImageMemory = VK_NULL_HANDLE;
         VkFormat m_format;
+        VkDeviceSize m_alloc_size = 0;
 
     public:
         void init_img(

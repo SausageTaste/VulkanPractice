@@ -1,7 +1,6 @@
 #include "util_vulkan.h"
 
 #include <vector>
-#include <iostream>
 #include <stdexcept>
 
 
@@ -117,7 +116,7 @@ namespace dal {
         vkBindBufferMemory(logiDevice, buffer, bufferMemory, 0);
     }
 
-    void createImage(
+    VkDeviceSize createImage(
         uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling,
         VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image,
         VkDeviceMemory& imageMemory, VkDevice logiDevice, VkPhysicalDevice physDevice
@@ -154,9 +153,9 @@ namespace dal {
         if (vkAllocateMemory(logiDevice, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS) {
             throw std::runtime_error("failed to allocate image memory!");
         }
-        std::cout << "Memory allocated for image: " << allocInfo.allocationSize << std::endl;
 
         vkBindImageMemory(logiDevice, image, imageMemory, 0);
+        return allocInfo.allocationSize;
     }
 
     VkImageView createImageView(const VkImage image, const VkFormat format, VkImageAspectFlags aspectFlags, const VkDevice logiDevice) {

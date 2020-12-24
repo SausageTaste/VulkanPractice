@@ -255,8 +255,6 @@ namespace dal {
         const ImageData& image_data, VkDevice logiDevice, VkPhysicalDevice physDevice,
         dal::CommandPool& cmdPool, VkQueue graphicsQ
     ) {
-        std::cout << "image buffer size: " << image_data.buffer.size() << std::endl;
-
         VkBuffer stagingBuffer;
         VkDeviceMemory stagingBufferMemory;
         dal::createBuffer(
@@ -274,7 +272,7 @@ namespace dal {
         memcpy(data, image_data.buffer.data(), image_data.buffer.size());
         vkUnmapMemory(logiDevice, stagingBufferMemory);
 
-        dal::createImage(
+        this->m_alloc_size = dal::createImage(
             image_data.width,
             image_data.height,
             image_data.format,
@@ -313,6 +311,14 @@ namespace dal {
         vkFreeMemory(logiDevice, stagingBufferMemory, nullptr);
 
         this->m_format = image_data.format;
+
+        std::cout << "Texture image created: raw data size is "
+                  << image_data.buffer.size()
+                  << ", vram size is "
+                  << this->m_alloc_size
+                  << ", format is "
+                  << this->format()
+                  << std::endl;
     }
 
     void TextureImage::destroy(VkDevice logiDevice) {
