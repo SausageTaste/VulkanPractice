@@ -40,7 +40,7 @@ namespace {
             if ( !this->m_features.samplerAnisotropy )
                 return false;
 
-            if ( !this->does_support_astc_texture() )
+            if ( !this->m_features.textureCompressionASTC_LDR )
                 return false;
 
             if ( !dal::findQueueFamilies(this->m_phys_device, this->m_surface).isComplete() )
@@ -123,7 +123,9 @@ namespace {
             std::cout << "\tmax sampler alloc count  : " << this->m_properties.limits.maxSamplerAllocationCount << '\n';
             std::cout << "\tmax image 2d dimension   : " << this->m_properties.limits.maxImageDimension2D << '\n';
             std::cout << "\tmax image cube dimension : " << this->m_properties.limits.maxImageDimensionCube << '\n';
-            std::cout << "\tASTC support             : " << this->does_support_astc_texture() << '\n';
+            std::cout << "\tASTC compression support : " << this->m_features.textureCompressionASTC_LDR << '\n';
+            std::cout << "\tETC2 compression support : " << this->m_features.textureCompressionETC2 << '\n';
+            std::cout << "\tBC compression support   : " << this->m_features.textureCompressionBC << '\n';
             std::cout << "\tscore                    : " << this->calc_score() << '\n';
         }
 
@@ -145,6 +147,7 @@ namespace {
             return requiredExtensions.empty();
         }
 
+        /*
         bool does_support_astc_texture() const {
             const std::array<VkFormat, 1> NEEDED_FORMATE = {
                 VK_FORMAT_ASTC_4x4_SRGB_BLOCK,
@@ -161,6 +164,7 @@ namespace {
 
             return true;
         }
+        */
 
     };
 
