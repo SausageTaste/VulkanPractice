@@ -22,6 +22,7 @@ namespace {
 
         VkPhysicalDeviceProperties m_properties;
         VkPhysicalDeviceFeatures m_features;
+        std::vector<VkExtensionProperties> m_available_extensions;
 
         uint32_t m_score = 0;
 
@@ -32,6 +33,13 @@ namespace {
         {
             vkGetPhysicalDeviceProperties(this->m_phys_device, &this->m_properties);
             vkGetPhysicalDeviceFeatures(this->m_phys_device, &this->m_features);
+
+            {
+                uint32_t extension_count;
+                vkEnumerateDeviceExtensionProperties(this->m_phys_device, nullptr, &extension_count, nullptr);
+                this->m_available_extensions.resize(extension_count);
+                vkEnumerateDeviceExtensionProperties(this->m_phys_device, nullptr, &extension_count, this->m_available_extensions.data());
+            }
 
             this->m_score = this->calc_score();
         }
@@ -140,15 +148,9 @@ namespace {
 
         template <typename _Iter>
         bool does_support_all_extensions(const _Iter begin, const _Iter end) const {
-            uint32_t extensionCount;
-            vkEnumerateDeviceExtensionProperties(this->m_phys_device, nullptr, &extensionCount, nullptr);
-
-            std::vector<VkExtensionProperties> availableExtensions(extensionCount);
-            vkEnumerateDeviceExtensionProperties(this->m_phys_device, nullptr, &extensionCount, availableExtensions.data());
-
             std::set<std::string> requiredExtensions(begin, end);
 
-            for ( const auto& extension : availableExtensions ) {
+            for ( const auto& extension : this->m_available_extensions ) {
                 requiredExtensions.erase(extension.extensionName);
             }
 
@@ -210,15 +212,16 @@ namespace dal {
             }
         }
 
+        if ( VK_NULL_HANDLE == this->m_handle ) {
+            throw std::runtime_error{ "failed to find a sutable graphic device." };
+        }
+
 #if DAL_PRINT_DEVICE_INFO
         VkPhysicalDeviceProperties properties;
         vkGetPhysicalDeviceProperties(this->m_handle, &properties);
         std::cout << "Selected GPU: \"" << properties.deviceName << "\"\n";
 #endif
 
-        if ( VK_NULL_HANDLE == this->m_handle ) {
-            throw std::runtime_error{ "failed to find a sutable graphic device." };
-        }
     }
 
 }
