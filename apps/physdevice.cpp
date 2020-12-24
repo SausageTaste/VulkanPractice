@@ -48,31 +48,6 @@ namespace {
             return this->m_score;
         }
 
-        bool is_usable() const {
-            // Application can't function without geometry shaders
-            if ( !this->m_features.geometryShader )
-                return false;
-
-            if ( !this->m_features.samplerAnisotropy )
-                return false;
-
-            if ( !this->m_features.textureCompressionASTC_LDR )
-                return false;
-
-            if ( !dal::findQueueFamilies(this->m_phys_device, this->m_surface).isComplete() )
-                return false;
-
-            if ( !this->does_support_all_extensions(dal::DEVICE_EXTENSIONS.begin(), dal::DEVICE_EXTENSIONS.end()) )
-                return false;
-
-            const auto swapChainSupport = dal::querySwapChainSupport(this->m_surface, this->m_phys_device);
-            const auto swapChainAdequate = !(swapChainSupport.formats.empty() || swapChainSupport.presentModes.empty());
-            if ( !swapChainAdequate )
-                return false;
-
-            return true;
-        }
-
         void print_info() const {
             std::cout << "physical device \"" << this->m_properties.deviceName << "\"\n";
 
@@ -132,6 +107,31 @@ namespace {
         }
 
     private:
+        bool is_usable() const {
+            // Application can't function without geometry shaders
+            if ( !this->m_features.geometryShader )
+                return false;
+
+            if ( !this->m_features.samplerAnisotropy )
+                return false;
+
+            if ( !this->m_features.textureCompressionASTC_LDR )
+                return false;
+
+            if ( !dal::findQueueFamilies(this->m_phys_device, this->m_surface).isComplete() )
+                return false;
+
+            if ( !this->does_support_all_extensions(dal::DEVICE_EXTENSIONS.begin(), dal::DEVICE_EXTENSIONS.end()) )
+                return false;
+
+            const auto swapChainSupport = dal::querySwapChainSupport(this->m_surface, this->m_phys_device);
+            const auto swapChainAdequate = !(swapChainSupport.formats.empty() || swapChainSupport.presentModes.empty());
+            if ( !swapChainAdequate )
+                return false;
+
+            return true;
+        }
+
         unsigned calc_score() const {
             if (!this->is_usable()) {
                 return 0;
