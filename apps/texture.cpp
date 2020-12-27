@@ -497,7 +497,7 @@ namespace dal {
         samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
         samplerInfo.mipLodBias = 0.0f;
         samplerInfo.minLod = 0.0f;
-        samplerInfo.maxLod = 128.0f;
+        samplerInfo.maxLod = VK_LOD_CLAMP_NONE;
 
         if (VK_SUCCESS != vkCreateSampler(logiDevice, &samplerInfo, nullptr, &this->textureSampler)) {
             throw std::runtime_error("failed to create texture sampler!");
