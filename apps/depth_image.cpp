@@ -56,6 +56,7 @@ namespace  dal {
 
         dal::createImage(
             extent.width, extent.height,
+            1,
             this->m_depth_format,
             VK_IMAGE_TILING_OPTIMAL,
             VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
@@ -69,6 +70,7 @@ namespace  dal {
         this->depthImageView = dal::createImageView(
             this->depthImage,
             this->m_depth_format,
+            1,
             VK_IMAGE_ASPECT_DEPTH_BIT,
             logiDevice
         );

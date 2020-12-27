@@ -11,6 +11,24 @@
 #define DAL_PRINT_DEVICE_INFO true
 
 
+namespace {
+
+    bool is_mipmap_gen_available_for(const VkFormat format, const VkPhysicalDevice physDevice) {
+        VkFormatProperties props;
+        vkGetPhysicalDeviceFormatProperties(physDevice, format, &props);
+
+        if ( !(props.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT) )
+            return false;
+
+        if ( !(props.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT) )
+            return false;
+
+        return true;
+    }
+
+}
+
+
 namespace dal {
 
     PhysDeviceProps::PhysDeviceProps(const VkPhysicalDevice physDevice, const VkSurfaceKHR surface)
@@ -92,6 +110,10 @@ namespace dal {
         std::cout << "\tscore                    : " << this->m_score << '\n';
     }
 
+    bool PhysDeviceProps::is_mipmap_gen_available_for(const VkFormat format) const {
+        return ::is_mipmap_gen_available_for(format, this->m_phys_device);
+    }
+
     bool PhysDeviceProps::is_usable() const {
         // Application can't function without geometry shaders
         if ( !this->m_features.geometryShader )
@@ -127,6 +149,10 @@ namespace dal {
 
             // Maximum possible size of textures affects graphics quality
             score += this->m_properties.limits.maxImageDimension2D;
+
+            if ( this->features().textureCompressionASTC_LDR ) {
+                score += 5500;
+            }
         }
 
         return score;

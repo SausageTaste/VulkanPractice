@@ -117,7 +117,7 @@ namespace dal {
     }
 
     VkDeviceSize createImage(
-        uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling,
+        uint32_t width, uint32_t height, uint32_t mip_level, VkFormat format, VkImageTiling tiling,
         VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image,
         VkDeviceMemory& imageMemory, VkDevice logiDevice, VkPhysicalDevice physDevice
     ) {
@@ -127,7 +127,7 @@ namespace dal {
         imageInfo.extent.width = width;
         imageInfo.extent.height = height;
         imageInfo.extent.depth = 1;
-        imageInfo.mipLevels = 1;
+        imageInfo.mipLevels = mip_level;
         imageInfo.arrayLayers = 1;
         imageInfo.format = format;
         imageInfo.tiling = tiling;
@@ -158,7 +158,10 @@ namespace dal {
         return allocInfo.allocationSize;
     }
 
-    VkImageView createImageView(const VkImage image, const VkFormat format, VkImageAspectFlags aspectFlags, const VkDevice logiDevice) {
+    VkImageView createImageView(
+        const VkImage image, const VkFormat format, const uint32_t mip_level,
+        const VkImageAspectFlags aspectFlags, const VkDevice logiDevice
+    ) {
         VkImageViewCreateInfo viewInfo{};
         viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         viewInfo.image = image;
@@ -166,7 +169,7 @@ namespace dal {
         viewInfo.format = format;
         viewInfo.subresourceRange.aspectMask = aspectFlags;
         viewInfo.subresourceRange.baseMipLevel = 0;
-        viewInfo.subresourceRange.levelCount = 1;
+        viewInfo.subresourceRange.levelCount = mip_level;
         viewInfo.subresourceRange.baseArrayLayer = 0;
         viewInfo.subresourceRange.layerCount = 1;
 

@@ -21,7 +21,13 @@ namespace dal {
         {
             this->m_views.resize(this->m_images.size());
             for ( size_t i = 0; i < this->m_images.size(); i++ ) {
-                this->m_views[i] = dal::createImageView(this->m_images[i], swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, logicalDevice);
+                this->m_views[i] = dal::createImageView(
+                    this->m_images[i],
+                    swapChainImageFormat,
+                    1,
+                    VK_IMAGE_ASPECT_COLOR_BIT,
+                    logicalDevice
+                );
             }
         }
     }

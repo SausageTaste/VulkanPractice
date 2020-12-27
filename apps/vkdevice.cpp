@@ -44,7 +44,7 @@ namespace dal {
             if (this->m_physDevice.does_support_astc()) {
                 this->m_textures.back().image.init_astc(
                     (dal::findResPath() + "/image/grass1.astc").c_str(),
-                    this->m_logiDevice.get(), this->m_physDevice.get(),
+                    this->m_logiDevice.get(), this->m_physDevice,
                     this->m_cmdPool,
                     this->m_logiDevice.graphicsQ()
                 );
@@ -52,31 +52,52 @@ namespace dal {
             else {
                 this->m_textures.back().image.init_img(
                     (dal::findResPath() + "/image/grass1.png").c_str(),
-                    this->m_logiDevice.get(), this->m_physDevice.get(),
+                    this->m_logiDevice.get(), this->m_physDevice,
                     this->m_cmdPool,
                     this->m_logiDevice.graphicsQ()
                 );
             }
-            this->m_textures.back().view.init(this->m_logiDevice.get(), this->m_textures.back().image.image(), this->m_textures.back().image.format());
+            this->m_textures.back().view.init(
+                this->m_logiDevice.get(),
+                this->m_textures.back().image.image(),
+                this->m_textures.back().image.format(),
+                this->m_textures.back().image.mip_level()
+            );
 
-            this->m_textures.emplace_back();
+            std::vector<dal::ImageData> image_datas;
             if (this->m_physDevice.does_support_astc()) {
-                this->m_textures.back().image.init_astc(
-                    (dal::findResPath() + "/image/0021di.astc").c_str(),
-                    this->m_logiDevice.get(), this->m_physDevice.get(),
-                    this->m_cmdPool,
-                    this->m_logiDevice.graphicsQ()
-                );
+                image_datas.emplace_back(dal::open_image_astc((dal::findResPath() + "/image/0021di_512.astc").c_str()));
+                image_datas.emplace_back(dal::open_image_astc((dal::findResPath() + "/image/0021di_256.astc").c_str()));
+                image_datas.emplace_back(dal::open_image_astc((dal::findResPath() + "/image/0021di_128.astc").c_str()));
+                image_datas.emplace_back(dal::open_image_astc((dal::findResPath() + "/image/0021di_64.astc").c_str()));
+                image_datas.emplace_back(dal::open_image_astc((dal::findResPath() + "/image/0021di_32.astc").c_str()));
+                image_datas.emplace_back(dal::open_image_astc((dal::findResPath() + "/image/0021di_16.astc").c_str()));
+                image_datas.emplace_back(dal::open_image_astc((dal::findResPath() + "/image/0021di_8.astc").c_str()));
             }
             else {
-                this->m_textures.back().image.init_img(
-                    (dal::findResPath() + "/image/0021di.png").c_str(),
-                    this->m_logiDevice.get(), this->m_physDevice.get(),
-                    this->m_cmdPool,
-                    this->m_logiDevice.graphicsQ()
-                );
+                image_datas.emplace_back(dal::open_image_stb((dal::findResPath() + "/image/0021di_512.png").c_str()));
+                image_datas.emplace_back(dal::open_image_stb((dal::findResPath() + "/image/0021di_256.png").c_str()));
+                image_datas.emplace_back(dal::open_image_stb((dal::findResPath() + "/image/0021di_128.png").c_str()));
+                image_datas.emplace_back(dal::open_image_stb((dal::findResPath() + "/image/0021di_64.png").c_str()));
+                image_datas.emplace_back(dal::open_image_stb((dal::findResPath() + "/image/0021di_32.png").c_str()));
+                image_datas.emplace_back(dal::open_image_stb((dal::findResPath() + "/image/0021di_16.png").c_str()));
+                image_datas.emplace_back(dal::open_image_stb((dal::findResPath() + "/image/0021di_8.png").c_str()));
             }
-            this->m_textures.back().view.init(this->m_logiDevice.get(), this->m_textures.back().image.image(), this->m_textures.back().image.format());
+
+            this->m_textures.emplace_back();
+            this->m_textures.back().image.init_mipmaps(
+                image_datas,
+                this->m_logiDevice.get(),
+                this->m_physDevice,
+                this->m_cmdPool,
+                this->m_logiDevice.graphicsQ()
+            );
+            this->m_textures.back().view.init(
+                this->m_logiDevice.get(),
+                this->m_textures.back().image.image(),
+                this->m_textures.back().image.format(),
+                this->m_textures.back().image.mip_level()
+            );
         }
 
         this->m_uniformBufs.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchainImages.size());

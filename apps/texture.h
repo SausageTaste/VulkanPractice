@@ -5,16 +5,11 @@
 #include <vulkan/vulkan.h>
 
 #include "command_pool.h"
+#include "physdevice.h"
+#include "util_windows.h"
 
 
 namespace dal {
-
-    struct ImageData {
-        uint32_t width, height, channels;
-        VkFormat format;
-        std::vector<uint8_t> buffer;
-    };
-
 
     class TextureImage {
 
@@ -23,19 +18,28 @@ namespace dal {
         VkDeviceMemory textureImageMemory = VK_NULL_HANDLE;
         VkFormat m_format;
         VkDeviceSize m_alloc_size = 0;
+        uint32_t m_mip_levels = 1;
 
     public:
         void init_img(
-            const char* const image_path, VkDevice logiDevice, VkPhysicalDevice physDevice,
+            const char* const image_path, VkDevice logiDevice, const dal::PhysDevice& physDevice,
             dal::CommandPool& cmdPool, VkQueue graphicsQ
         );
         void init_astc(
-            const char* const image_path, VkDevice logiDevice, VkPhysicalDevice physDevice,
+            const char* const image_path, VkDevice logiDevice, const dal::PhysDevice& physDevice,
             dal::CommandPool& cmdPool, VkQueue graphicsQ
         );
-        void init(
-            const ImageData& image_data, VkDevice logiDevice, VkPhysicalDevice physDevice,
+        void init_gen_mipmaps(
+            const ImageData& image_data, VkDevice logiDevice, const dal::PhysDevice& physDevice,
             dal::CommandPool& cmdPool, VkQueue graphicsQ
+        );
+        void init_without_mipmaps(
+            const ImageData& image_data, VkDevice logiDevice, const dal::PhysDevice& physDevice,
+            dal::CommandPool& cmdPool, VkQueue graphicsQ
+        );
+        void init_mipmaps(
+            const std::vector<ImageData>& image_datas, VkDevice logiDevice,
+            const dal::PhysDevice& physDevice, dal::CommandPool& cmdPool, VkQueue graphicsQ
         );
 
         void destroy(VkDevice logiDevice);
@@ -45,6 +49,9 @@ namespace dal {
         }
         auto& format() const {
             return this->m_format;
+        }
+        auto& mip_level() const {
+            return this->m_mip_levels;
         }
 
     };
@@ -56,7 +63,7 @@ namespace dal {
         VkImageView textureImageView;
 
     public:
-        void init(VkDevice logiDevice, VkImage textureImage, VkFormat format);
+        void init(VkDevice logiDevice, VkImage textureImage, VkFormat format, uint32_t mip_level);
         void destroy(VkDevice logiDevice);
 
         auto& get() const {
