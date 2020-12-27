@@ -6,16 +6,10 @@
 
 #include "command_pool.h"
 #include "physdevice.h"
+#include "util_windows.h"
 
 
 namespace dal {
-
-    struct ImageData {
-        uint32_t width, height, channels;
-        VkFormat format;
-        std::vector<uint8_t> buffer;
-    };
-
 
     class TextureImage {
 
@@ -38,6 +32,10 @@ namespace dal {
         void init(
             const ImageData& image_data, VkDevice logiDevice, const dal::PhysDevice& physDevice,
             dal::CommandPool& cmdPool, VkQueue graphicsQ
+        );
+        void init_mipmaps(
+            const std::vector<ImageData>& image_datas, VkDevice logiDevice,
+            const dal::PhysDevice& physDevice, dal::CommandPool& cmdPool, VkQueue graphicsQ
         );
 
         void destroy(VkDevice logiDevice);
