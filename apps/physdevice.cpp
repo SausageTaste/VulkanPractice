@@ -11,6 +11,17 @@
 #define DAL_PRINT_DEVICE_INFO true
 
 
+namespace {
+
+    bool is_mipmap_gen_available_for(const VkFormat format, const VkPhysicalDevice physDevice) {
+        VkFormatProperties props;
+        vkGetPhysicalDeviceFormatProperties(physDevice, format, &props);
+        return props.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
+    }
+
+}
+
+
 namespace dal {
 
     PhysDeviceProps::PhysDeviceProps(const VkPhysicalDevice physDevice, const VkSurfaceKHR surface)
@@ -90,6 +101,10 @@ namespace dal {
                     << " of " << dal::RAY_TRACING_EXTENSIONS.size()
                     << '\n';
         std::cout << "\tscore                    : " << this->m_score << '\n';
+    }
+
+    bool PhysDeviceProps::is_mipmap_gen_available_for(const VkFormat format) const {
+        return ::is_mipmap_gen_available_for(format, this->m_phys_device);
     }
 
     bool PhysDeviceProps::is_usable() const {

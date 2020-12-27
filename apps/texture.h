@@ -5,6 +5,7 @@
 #include <vulkan/vulkan.h>
 
 #include "command_pool.h"
+#include "physdevice.h"
 
 
 namespace dal {
@@ -27,15 +28,15 @@ namespace dal {
 
     public:
         void init_img(
-            const char* const image_path, VkDevice logiDevice, VkPhysicalDevice physDevice,
+            const char* const image_path, VkDevice logiDevice, const dal::PhysDevice& physDevice,
             dal::CommandPool& cmdPool, VkQueue graphicsQ
         );
         void init_astc(
-            const char* const image_path, VkDevice logiDevice, VkPhysicalDevice physDevice,
+            const char* const image_path, VkDevice logiDevice, const dal::PhysDevice& physDevice,
             dal::CommandPool& cmdPool, VkQueue graphicsQ
         );
         void init(
-            const ImageData& image_data, VkDevice logiDevice, VkPhysicalDevice physDevice,
+            const ImageData& image_data, VkDevice logiDevice, const dal::PhysDevice& physDevice,
             dal::CommandPool& cmdPool, VkQueue graphicsQ
         );
 

@@ -332,7 +332,7 @@ namespace {
 
 namespace dal {
     void TextureImage::init_img(
-        const char* const image_path, VkDevice logiDevice, VkPhysicalDevice physDevice,
+        const char* const image_path, VkDevice logiDevice, const dal::PhysDevice& physDevice,
         dal::CommandPool& cmdPool, VkQueue graphicsQ
     ) {
         const auto image_data = ::open_image_stb(image_path);
@@ -340,7 +340,7 @@ namespace dal {
     }
 
     void TextureImage::init_astc(
-        const char* const image_path, VkDevice logiDevice, VkPhysicalDevice physDevice,
+        const char* const image_path, VkDevice logiDevice, const dal::PhysDevice& physDevice,
         dal::CommandPool& cmdPool, VkQueue graphicsQ
     ) {
         const auto image_data = ::open_image_astc(image_path);
@@ -348,9 +348,13 @@ namespace dal {
     }
 
     void TextureImage::init(
-        const ImageData& image_data, VkDevice logiDevice, VkPhysicalDevice physDevice,
+        const ImageData& image_data, VkDevice logiDevice, const dal::PhysDevice& physDevice,
         dal::CommandPool& cmdPool, VkQueue graphicsQ
     ) {
+        if (!physDevice.info().is_mipmap_gen_available_for(image_data.format)) {
+            throw std::runtime_error("texture image format does not support linear blitting!");
+        }
+
         VkBuffer stagingBuffer;
         VkDeviceMemory stagingBufferMemory;
         dal::createBuffer(
@@ -360,7 +364,7 @@ namespace dal {
             stagingBuffer,
             stagingBufferMemory,
             logiDevice,
-            physDevice
+            physDevice.get()
         );
 
         void* data;
@@ -380,7 +384,7 @@ namespace dal {
             textureImage,
             textureImageMemory,
             logiDevice,
-            physDevice
+            physDevice.get()
         );
 
         ::transitionImageLayout(

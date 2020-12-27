@@ -33,6 +33,8 @@ namespace dal {
         uint32_t score() const;
         void print_info() const;
 
+        bool is_mipmap_gen_available_for(const VkFormat format) const;
+
     private:
         bool is_usable() const;
         unsigned calc_score() const;
@@ -68,6 +70,9 @@ namespace dal {
 
         auto get(void) const {
             return this->m_handle;
+        }
+        auto& info() const {
+            return this->m_info;
         }
 
         bool does_support_astc() const;

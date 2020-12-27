@@ -44,7 +44,7 @@ namespace dal {
             if (this->m_physDevice.does_support_astc()) {
                 this->m_textures.back().image.init_astc(
                     (dal::findResPath() + "/image/grass1.astc").c_str(),
-                    this->m_logiDevice.get(), this->m_physDevice.get(),
+                    this->m_logiDevice.get(), this->m_physDevice,
                     this->m_cmdPool,
                     this->m_logiDevice.graphicsQ()
                 );
@@ -52,7 +52,7 @@ namespace dal {
             else {
                 this->m_textures.back().image.init_img(
                     (dal::findResPath() + "/image/grass1.png").c_str(),
-                    this->m_logiDevice.get(), this->m_physDevice.get(),
+                    this->m_logiDevice.get(), this->m_physDevice,
                     this->m_cmdPool,
                     this->m_logiDevice.graphicsQ()
                 );
@@ -68,7 +68,7 @@ namespace dal {
             if (this->m_physDevice.does_support_astc()) {
                 this->m_textures.back().image.init_astc(
                     (dal::findResPath() + "/image/0021di.astc").c_str(),
-                    this->m_logiDevice.get(), this->m_physDevice.get(),
+                    this->m_logiDevice.get(), this->m_physDevice,
                     this->m_cmdPool,
                     this->m_logiDevice.graphicsQ()
                 );
@@ -76,7 +76,7 @@ namespace dal {
             else {
                 this->m_textures.back().image.init_img(
                     (dal::findResPath() + "/image/0021di.png").c_str(),
-                    this->m_logiDevice.get(), this->m_physDevice.get(),
+                    this->m_logiDevice.get(), this->m_physDevice,
                     this->m_cmdPool,
                     this->m_logiDevice.graphicsQ()
                 );
