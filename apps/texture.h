@@ -47,6 +47,9 @@ namespace dal {
         auto& format() const {
             return this->m_format;
         }
+        auto& mip_level() const {
+            return this->m_mip_levels;
+        }
 
     };
 
@@ -57,7 +60,7 @@ namespace dal {
         VkImageView textureImageView;
 
     public:
-        void init(VkDevice logiDevice, VkImage textureImage, VkFormat format);
+        void init(VkDevice logiDevice, VkImage textureImage, VkFormat format, uint32_t mip_level);
         void destroy(VkDevice logiDevice);
 
         auto& get() const {

@@ -57,7 +57,12 @@ namespace dal {
                     this->m_logiDevice.graphicsQ()
                 );
             }
-            this->m_textures.back().view.init(this->m_logiDevice.get(), this->m_textures.back().image.image(), this->m_textures.back().image.format());
+            this->m_textures.back().view.init(
+                this->m_logiDevice.get(),
+                this->m_textures.back().image.image(),
+                this->m_textures.back().image.format(),
+                this->m_textures.back().image.mip_level()
+            );
 
             this->m_textures.emplace_back();
             if (this->m_physDevice.does_support_astc()) {
@@ -76,7 +81,12 @@ namespace dal {
                     this->m_logiDevice.graphicsQ()
                 );
             }
-            this->m_textures.back().view.init(this->m_logiDevice.get(), this->m_textures.back().image.image(), this->m_textures.back().image.format());
+            this->m_textures.back().view.init(
+                this->m_logiDevice.get(),
+                this->m_textures.back().image.image(),
+                this->m_textures.back().image.format(),
+                this->m_textures.back().image.mip_level()
+            );
         }
 
         this->m_uniformBufs.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchainImages.size());

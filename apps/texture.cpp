@@ -142,7 +142,7 @@ namespace {
     }
 
     void transitionImageLayout(
-        VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout,
+        VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mip_level,
         VkDevice logiDevice, dal::CommandPool& cmdPool, VkQueue graphicsQ
     ) {
         const auto cmdBuffer = cmdPool.beginSingleTimeCmd(logiDevice);
@@ -156,7 +156,7 @@ namespace {
             barrier.image = image;
             barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             barrier.subresourceRange.baseMipLevel = 0;
-            barrier.subresourceRange.levelCount = 1;
+            barrier.subresourceRange.levelCount = mip_level;
             barrier.subresourceRange.baseArrayLayer = 0;
             barrier.subresourceRange.layerCount = 1;
             barrier.srcAccessMask = 0; // TODO
@@ -282,6 +282,7 @@ namespace dal {
         this->m_alloc_size = dal::createImage(
             image_data.width,
             image_data.height,
+            this->mip_level(),
             image_data.format,
             VK_IMAGE_TILING_OPTIMAL,
             VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
@@ -297,6 +298,7 @@ namespace dal {
             image_data.format,
             VK_IMAGE_LAYOUT_UNDEFINED,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            this->mip_level(),
             logiDevice, cmdPool, graphicsQ
         );
         ::copyBufferToImage(
@@ -311,6 +313,7 @@ namespace dal {
             image_data.format,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            this->mip_level(),
             logiDevice, cmdPool, graphicsQ
         );
 
@@ -344,8 +347,8 @@ namespace dal {
 
 namespace dal {
 
-    void TextureImageView::init(VkDevice logiDevice, VkImage textureImage, VkFormat format) {
-        this->textureImageView = dal::createImageView(textureImage, format, VK_IMAGE_ASPECT_COLOR_BIT, logiDevice);
+    void TextureImageView::init(VkDevice logiDevice, VkImage textureImage, VkFormat format, uint32_t mip_level) {
+        this->textureImageView = dal::createImageView(textureImage, format, mip_level, VK_IMAGE_ASPECT_COLOR_BIT, logiDevice);
     }
 
     void TextureImageView::destroy(VkDevice logiDevice) {

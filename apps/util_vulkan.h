@@ -55,11 +55,14 @@ namespace dal {
         VkBuffer& buffer, VkDeviceMemory& bufferMemory, VkDevice logiDevice, VkPhysicalDevice physDevice);
 
     VkDeviceSize createImage(
-        uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling,
+        uint32_t width, uint32_t height, uint32_t mip_level, VkFormat format, VkImageTiling tiling,
         VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image,
         VkDeviceMemory& imageMemory, VkDevice logiDevice, VkPhysicalDevice physDevice
     );
 
-    VkImageView createImageView(const VkImage image, const VkFormat format, VkImageAspectFlags aspectFlags, const VkDevice logiDevice);
+    VkImageView createImageView(
+        const VkImage image, const VkFormat format, const uint32_t mip_level,
+        const VkImageAspectFlags aspectFlags, const VkDevice logiDevice
+    );
 
 }
