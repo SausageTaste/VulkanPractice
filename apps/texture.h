@@ -23,6 +23,7 @@ namespace dal {
         VkDeviceMemory textureImageMemory = VK_NULL_HANDLE;
         VkFormat m_format;
         VkDeviceSize m_alloc_size = 0;
+        uint32_t m_mip_levels = 1;
 
     public:
         void init_img(

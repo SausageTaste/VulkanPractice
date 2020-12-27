@@ -104,6 +104,12 @@ namespace amd {
 
 namespace {
 
+    template <typename T>
+    uint32_t calc_mip_level(const T texture_width, const T texture_height) {
+        const auto a = std::floor(std::log2(std::max<T>(texture_width, texture_height)));
+        return static_cast<uint32_t>(a);
+    }
+
     void copyBufferToImage(
         VkBuffer buffer, VkImage image, uint32_t width, uint32_t height,
         VkDevice logiDevice, dal::CommandPool& cmdPool, VkQueue graphicsQ
@@ -272,6 +278,7 @@ namespace dal {
         memcpy(data, image_data.buffer.data(), image_data.buffer.size());
         vkUnmapMemory(logiDevice, stagingBufferMemory);
 
+        this->m_mip_levels = ::calc_mip_level(image_data.width, image_data.height);
         this->m_alloc_size = dal::createImage(
             image_data.width,
             image_data.height,
