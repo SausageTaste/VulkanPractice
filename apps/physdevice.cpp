@@ -142,6 +142,10 @@ namespace dal {
 
             // Maximum possible size of textures affects graphics quality
             score += this->m_properties.limits.maxImageDimension2D;
+
+            if ( this->features().textureCompressionASTC_LDR ) {
+                score += 5500;
+            }
         }
 
         return score;
