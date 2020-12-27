@@ -29,7 +29,11 @@ namespace dal {
             const char* const image_path, VkDevice logiDevice, const dal::PhysDevice& physDevice,
             dal::CommandPool& cmdPool, VkQueue graphicsQ
         );
-        void init(
+        void init_gen_mipmaps(
+            const ImageData& image_data, VkDevice logiDevice, const dal::PhysDevice& physDevice,
+            dal::CommandPool& cmdPool, VkQueue graphicsQ
+        );
+        void init_without_mipmaps(
             const ImageData& image_data, VkDevice logiDevice, const dal::PhysDevice& physDevice,
             dal::CommandPool& cmdPool, VkQueue graphicsQ
         );

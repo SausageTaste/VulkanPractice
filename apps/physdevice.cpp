@@ -16,7 +16,14 @@ namespace {
     bool is_mipmap_gen_available_for(const VkFormat format, const VkPhysicalDevice physDevice) {
         VkFormatProperties props;
         vkGetPhysicalDeviceFormatProperties(physDevice, format, &props);
-        return props.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
+
+        if ( !(props.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT) )
+            return false;
+
+        if ( !(props.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT) )
+            return false;
+
+        return true;
     }
 
 }

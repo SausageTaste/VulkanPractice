@@ -207,7 +207,12 @@ namespace dal {
         dal::CommandPool& cmdPool, VkQueue graphicsQ
     ) {
         const auto image_data = dal::open_image_stb(image_path);
-        this->init(image_data, logiDevice, physDevice, cmdPool, graphicsQ);
+        if ( physDevice.info().is_mipmap_gen_available_for(image_data.format) ) {
+            this->init_gen_mipmaps(image_data, logiDevice, physDevice, cmdPool, graphicsQ);
+        }
+        else {
+            this->init_without_mipmaps(image_data, logiDevice, physDevice, cmdPool, graphicsQ);
+        }
     }
 
     void TextureImage::init_astc(
@@ -215,10 +220,15 @@ namespace dal {
         dal::CommandPool& cmdPool, VkQueue graphicsQ
     ) {
         const auto image_data = dal::open_image_astc(image_path);
-        this->init(image_data, logiDevice, physDevice, cmdPool, graphicsQ);
+        if ( physDevice.info().is_mipmap_gen_available_for(image_data.format) ) {
+            this->init_gen_mipmaps(image_data, logiDevice, physDevice, cmdPool, graphicsQ);
+        }
+        else {
+            this->init_without_mipmaps(image_data, logiDevice, physDevice, cmdPool, graphicsQ);
+        }
     }
 
-    void TextureImage::init(
+    void TextureImage::init_gen_mipmaps(
         const ImageData& image_data, VkDevice logiDevice, const dal::PhysDevice& physDevice,
         dal::CommandPool& cmdPool, VkQueue graphicsQ
     ) {
@@ -283,6 +293,7 @@ namespace dal {
             cmdPool,
             graphicsQ
         );
+        std::cout << "Mipmap generated" << std::endl;
 
         vkDestroyBuffer(logiDevice, stagingBuffer, nullptr);
         vkFreeMemory(logiDevice, stagingBufferMemory, nullptr);
@@ -296,10 +307,6 @@ namespace dal {
         const std::vector<ImageData>& image_datas, VkDevice logiDevice,
         const dal::PhysDevice& physDevice, dal::CommandPool& cmdPool, VkQueue graphicsQ
     ) {
-        if (image_datas.empty()) {
-            throw std::runtime_error{ "image_datas shouldn't be an empty vector" };
-        }
-
         this->m_format = image_datas[0].format;
         this->m_mip_levels = image_datas.size();
         this->m_alloc_size = dal::createImage(
@@ -366,6 +373,76 @@ namespace dal {
         );
 
         ::print_image_info(image_datas[0].buffer.size(), this->m_alloc_size, this->format());
+    }
+
+    void TextureImage::init_without_mipmaps(
+        const ImageData& image_data, VkDevice logiDevice, const dal::PhysDevice& physDevice,
+        dal::CommandPool& cmdPool, VkQueue graphicsQ
+    ) {
+        this->m_format = image_data.format;
+        this->m_mip_levels = 1;
+        this->m_alloc_size = dal::createImage(
+            image_data.width,
+            image_data.height,
+            this->mip_level(),
+            this->format(),
+            VK_IMAGE_TILING_OPTIMAL,
+            VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            textureImage,
+            textureImageMemory,
+            logiDevice,
+            physDevice.get()
+        );
+
+        ::transitionImageLayout(
+            this->textureImage,
+            this->format(),
+            VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            this->mip_level(),
+            logiDevice, cmdPool, graphicsQ
+        );
+
+        VkBuffer stagingBuffer = VK_NULL_HANDLE;
+        VkDeviceMemory stagingBufferMemory = VK_NULL_HANDLE;
+        dal::createBuffer(
+            image_data.buffer.size(),
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            stagingBuffer,
+            stagingBufferMemory,
+            logiDevice,
+            physDevice.get()
+        );
+
+        void* data = nullptr;
+        vkMapMemory(logiDevice, stagingBufferMemory, 0, image_data.buffer.size(), 0, &data);
+        memcpy(data, image_data.buffer.data(), image_data.buffer.size());
+        vkUnmapMemory(logiDevice, stagingBufferMemory);
+
+        ::copyBufferToImage(
+            stagingBuffer,
+            this->textureImage,
+            image_data.width,
+            image_data.height,
+            0,
+            logiDevice, cmdPool, graphicsQ
+        );
+
+        vkDestroyBuffer(logiDevice, stagingBuffer, nullptr);
+        vkFreeMemory(logiDevice, stagingBufferMemory, nullptr);
+
+        ::transitionImageLayout(
+            this->textureImage,
+            this->format(),
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            this->mip_level(),
+            logiDevice, cmdPool, graphicsQ
+        );
+
+        ::print_image_info(image_data.buffer.size(), this->m_alloc_size, this->format());
     }
 
     void TextureImage::destroy(VkDevice logiDevice) {
