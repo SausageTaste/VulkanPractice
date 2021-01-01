@@ -1,6 +1,19 @@
 import os
 
 
+def find_apps_dir():
+    cur_path = "."
+
+    for _ in range(5):
+        dirs_in_fol = os.listdir(cur_path)
+        if "apps" in dirs_in_fol:
+            return os.path.join(cur_path, "apps")
+        else:
+            cur_path = os.path.join(cur_path, "..")
+
+    raise RuntimeError("apps folder not found")
+
+
 def isFileSourceCode(name: str) -> bool:
     SOURCE_FILE_EXT = (
         "py",
@@ -47,7 +60,9 @@ def countlines(start, lines=0, header=True, begin_start=None, recursive=False):
 
 
 def main():
-    totalLineCount = countlines("./../apps")
+    apps_dir = find_apps_dir()
+    print(apps_dir)
+    totalLineCount = countlines(apps_dir)
     print("Total lines: {}".format(totalLineCount))
     input("\nPress a key to continue...")
 
