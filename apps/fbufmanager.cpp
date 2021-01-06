@@ -11,15 +11,22 @@
 namespace dal {
 
     void FbufManager::init(
-        VkDevice device, VkRenderPass renderPass, const std::vector<VkImageView>& swapChainImageViews,
-        const VkExtent2D& extent, const VkImageView depth_image_view
+        const VkDevice device,
+        const VkRenderPass renderPass,
+        const std::vector<VkImageView>& swapChainImageViews,
+        const VkExtent2D& extent,
+        const VkImageView depth_image_view,
+        const dal::GbufManager& gbuf_man
     ) {
         this->m_swapChainFbufs.resize(swapChainImageViews.size());
 
         for ( size_t i = 0; i < swapChainImageViews.size(); i++ ) {
-            std::array<VkImageView, 2> attachments = {
+            std::array<VkImageView, 5> attachments = {
                 swapChainImageViews[i],
-                depth_image_view
+                depth_image_view,
+                gbuf_man.at(i).m_position.view(),
+                gbuf_man.at(i).m_normal.view(),
+                gbuf_man.at(i).m_albedo.view(),
             };
 
             VkFramebufferCreateInfo framebufferInfo = {};

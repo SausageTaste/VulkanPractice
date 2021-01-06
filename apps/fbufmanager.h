@@ -7,25 +7,6 @@
 
 namespace dal {
 
-    class FbufManager {
-
-    private:
-        std::vector<VkFramebuffer> m_swapChainFbufs;
-
-    public:
-        void init(
-            VkDevice device, VkRenderPass renderPass, const std::vector<VkImageView>& swapChainImageViews,
-            const VkExtent2D& extent, const VkImageView depth_image_view
-        );
-        void destroy(VkDevice device);
-
-        auto& getList(void) const {
-            return this->m_swapChainFbufs;
-        }
-
-    };
-
-
     class FbufAttachment {
 
     public:
@@ -47,6 +28,10 @@ namespace dal {
             const uint32_t height
         );
         void destroy(const VkDevice logiDevice);
+
+        auto& view() const {
+            return this->m_view;
+        }
 
     };
 
@@ -86,6 +71,29 @@ namespace dal {
 
         auto& at(const size_t index) const {
             return this->m_gbuf.at(index);
+        }
+
+    };
+
+
+    class FbufManager {
+
+    private:
+        std::vector<VkFramebuffer> m_swapChainFbufs;
+
+    public:
+        void init(
+            const VkDevice device,
+            const VkRenderPass renderPass,
+            const std::vector<VkImageView>& swapChainImageViews,
+            const VkExtent2D& extent,
+            const VkImageView depth_image_view,
+            const dal::GbufManager& gbuf_man
+        );
+        void destroy(VkDevice device);
+
+        auto& getList(void) const {
+            return this->m_swapChainFbufs;
         }
 
     };
