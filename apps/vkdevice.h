@@ -39,6 +39,7 @@ namespace dal {
         UniformBuffers m_uniformBufs;
         DescriptorPool m_descPool;
         DepthImage m_depth_image;
+        GbufManager m_gbuf;
 
         TextureSampler m_sampler1;
         std::vector<TextureUnit> m_textures;
