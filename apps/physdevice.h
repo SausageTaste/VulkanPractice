@@ -1,6 +1,8 @@
 #pragma once
 
+#include <set>
 #include <vector>
+#include <string>
 
 #include <vulkan/vulkan.h>
 

@@ -1,5 +1,6 @@
 #include "texture.h"
 
+#include <cmath>
 #include <iostream>
 #include <iterator>
 #include <stdexcept>
