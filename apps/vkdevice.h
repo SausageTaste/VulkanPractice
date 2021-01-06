@@ -66,6 +66,15 @@ namespace dal {
     private:
         void initSwapChain(const VkSurfaceKHR surface);
         void destroySwapChain();
+        auto make_attachment_format_array() {
+            return std::array<VkFormat, 5>{
+                this->m_swapchain.imageFormat(),
+                this->m_depth_image.format(),
+                this->m_gbuf.at(0).m_position.format(),
+                this->m_gbuf.at(0).m_normal.format(),
+                this->m_gbuf.at(0).m_albedo.format(),
+            };
+        }
 
     };
 

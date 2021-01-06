@@ -33,6 +33,10 @@ namespace dal {
             return this->m_view;
         }
 
+        auto& format() const {
+            return this->m_format;
+        }
+
     };
 
 

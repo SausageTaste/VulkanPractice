@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+
 #include <vulkan/vulkan.h>
 
 
@@ -11,7 +13,7 @@ namespace dal {
         VkRenderPass m_renderPass;
 
     public:
-        void init(VkDevice logiDevice, const VkFormat swapChainImageFormat, const VkFormat depth_format);
+        void init(const VkDevice logiDevice, const std::array<VkFormat, 5>& attachment_formats);
         void destroy(VkDevice logiDevice);
 
         auto get(void) const {

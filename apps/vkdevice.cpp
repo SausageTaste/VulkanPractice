@@ -27,13 +27,14 @@ namespace {
 namespace dal {
 
     void VulkanMaster::init(const VkInstance instance, const VkSurfaceKHR surface, const unsigned w, const unsigned h) {
+
         this->m_physDevice.init(instance, surface);
         this->m_logiDevice.init(surface, this->m_physDevice.get());
         this->m_swapchain.init(surface, this->m_physDevice.get(), this->m_logiDevice.get(), this->m_scrWidth, this->m_scrHeight);
         this->m_swapchainImages.init(this->m_logiDevice.get(), this->m_swapchain.get(), this->m_swapchain.imageFormat(), this->m_swapchain.extent());
         this->m_depth_image.init(this->m_swapchain.extent(), this->m_logiDevice.get(), this->m_physDevice.get());
         this->m_gbuf.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchainImages.size(), this->m_swapchain.extent().width, this->m_swapchain.extent().height);
-        this->m_renderPass.init(this->m_logiDevice.get(), this->m_swapchain.imageFormat(), this->m_depth_image.format());
+        this->m_renderPass.init(this->m_logiDevice.get(), this->make_attachment_format_array());
         this->m_descSetLayout.init(this->m_logiDevice.get());
         this->m_pipeline.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchain.extent(), this->m_descSetLayout.get());
         this->m_fbuf.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchainImages.getViews(), this->m_swapchain.extent(), this->m_depth_image.image_view(), this->m_gbuf);
@@ -329,7 +330,7 @@ namespace dal {
             this->m_swapchainImages.init(this->m_logiDevice.get(), this->m_swapchain.get(), this->m_swapchain.imageFormat(), this->m_swapchain.extent());
             this->m_depth_image.init(this->m_swapchain.extent(), this->m_logiDevice.get(), this->m_physDevice.get());
             this->m_gbuf.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchainImages.size(), this->m_swapchain.extent().width, this->m_swapchain.extent().height);
-            this->m_renderPass.init(this->m_logiDevice.get(), this->m_swapchain.imageFormat(), this->m_depth_image.format());
+            this->m_renderPass.init(this->m_logiDevice.get(), this->make_attachment_format_array());
             this->m_pipeline.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchain.extent(), this->m_descSetLayout.get());
             this->m_fbuf.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchainImages.getViews(), this->m_swapchain.extent(), this->m_depth_image.image_view(), this->m_gbuf);
             this->m_uniformBufs.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchainImages.size());
