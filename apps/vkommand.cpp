@@ -26,8 +26,15 @@ namespace dal {
     }
 
     void CommandBuffers::record(
-        VkRenderPass renderPass, VkPipeline graphicsPipeline, const VkExtent2D& extent, const std::vector<VkFramebuffer>& swapChainFbufs,
-        VkPipelineLayout pipelineLayout, const std::vector<std::vector<VkDescriptorSet>>& descriptorSetsList, const std::vector<MeshBuffer>& meshes
+        const VkRenderPass renderPass,
+        const VkPipeline pipeline_deferred,
+        const VkPipeline pipeline_composition,
+        const VkPipelineLayout pipelayout_deferred,
+        const VkPipelineLayout pipelayout_composition,
+        const VkExtent2D& extent,
+        const std::vector<VkFramebuffer>& swapChainFbufs,
+        const std::vector<std::vector<VkDescriptorSet>>& descriptorSetsList,
+        const std::vector<MeshBuffer>& meshes
     ) {
         VkCommandBufferBeginInfo beginInfo = {};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -58,7 +65,7 @@ namespace dal {
 
                 vkCmdBeginRenderPass(this->m_buffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
                 {
-                    vkCmdBindPipeline(this->m_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+                    vkCmdBindPipeline(this->m_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_deferred);
 
                     int descIndex = 0;
                     for (const auto& mesh : meshes) {
@@ -70,7 +77,7 @@ namespace dal {
                         vkCmdBindDescriptorSets(
                             this->m_buffers[i],
                             VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            pipelineLayout,
+                            pipelayout_deferred,
                             0, 1, &descriptorSetsList.at(descIndex)[i], 0, nullptr
                         );
 
@@ -78,6 +85,11 @@ namespace dal {
 
                         descIndex = std::min<int>(descIndex + 1, descriptorSetsList.size() - 1);
                     }
+                }
+                {
+                    vkCmdNextSubpass(this->m_buffers[i], VK_SUBPASS_CONTENTS_INLINE);
+                    vkCmdBindPipeline(this->m_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_composition);
+                    vkCmdDraw(this->m_buffers[i], 6, 1, 0, 0);
                 }
                 vkCmdEndRenderPass(this->m_buffers[i]);
             }

@@ -84,15 +84,16 @@ namespace {
 
         VkAttachmentReference colorReference{ 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
 
-        std::array<VkAttachmentReference, 3> inputReferences;
-        inputReferences[0] = { 2, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
-        inputReferences[1] = { 3, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
-        inputReferences[2] = { 4, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+        std::array<VkAttachmentReference, 4> inputReferences;
+        inputReferences[0] = { 1, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+        inputReferences[1] = { 2, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+        inputReferences[2] = { 3, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+        inputReferences[3] = { 4, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
 
         subpasses[1].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
         subpasses[1].colorAttachmentCount = 1;
         subpasses[1].pColorAttachments = &colorReference;
-        subpasses[1].pDepthStencilAttachment = &depthReference;
+        subpasses[1].pDepthStencilAttachment = nullptr;
         // Use the color attachments filled in the first pass as input attachments
         subpasses[1].inputAttachmentCount = inputReferences.size();
         subpasses[1].pInputAttachments = inputReferences.data();

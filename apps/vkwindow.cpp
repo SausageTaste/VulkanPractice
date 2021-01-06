@@ -69,7 +69,8 @@ namespace {
 
         }
 
-        std::cerr << "Vulkan Debug: " << pCallbackData->pMessage << std::endl;
+        const auto err_msg = std::string{ "Vulkan Debug: " } + pCallbackData->pMessage;
+        std::cerr << err_msg << std::endl;
         return VK_FALSE;
     }
 
