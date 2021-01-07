@@ -65,11 +65,10 @@ namespace {
         // First subpass: fill G-Buffers
         // ---------------------------------------------------------------------------------
 
-        std::array<VkAttachmentReference, 4> colorAttachmentRef{};
-        colorAttachmentRef[0] = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
-        colorAttachmentRef[1] = { 2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
-        colorAttachmentRef[2] = { 3, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
-        colorAttachmentRef[3] = { 4, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
+        std::array<VkAttachmentReference, 3> colorAttachmentRef{};
+        colorAttachmentRef[0] = { 2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
+        colorAttachmentRef[1] = { 3, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
+        colorAttachmentRef[2] = { 4, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
         VkAttachmentReference depthReference{ 1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL };
 
         subpasses[0].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;

@@ -154,7 +154,7 @@ namespace {
 
         // Color blending
 
-        std::array<VkPipelineColorBlendAttachmentState, 4> colorBlendAttachments{};
+        std::array<VkPipelineColorBlendAttachmentState, 3> colorBlendAttachments{};
 
 #if DAL_ALPHA_BLEND
         colorBlendAttachment.blendEnable = VK_TRUE;
@@ -178,7 +178,6 @@ namespace {
         colorBlendAttachments.at(0) = colorBlendAttachment;
         colorBlendAttachments.at(1) = colorBlendAttachment;
         colorBlendAttachments.at(2) = colorBlendAttachment;
-        colorBlendAttachments.at(3) = colorBlendAttachment;
 #endif
 
         VkPipelineColorBlendStateCreateInfo colorBlending = {};
