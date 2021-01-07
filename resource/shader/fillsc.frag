@@ -27,20 +27,6 @@ void main() {
     vec3 normal = subpassLoad(input_normal).xyz;
     vec3 albedo = subpassLoad(input_albedo).xyz;
 
-    float dist_from_origin = distance(position, BRIGHT_CENTER);
-    float brightness = clamp(-1.0 / FADEOUT_DISTANCE * dist_from_origin + 1, 0, 1);
-
-    if (2.0 * gl_FragCoord.x < gl_FragCoord.y) {
-        out_color = vec4(normal, 1);
-    }
-    else if (gl_FragCoord.x < gl_FragCoord.y) {
-        out_color = vec4(position, 1);
-    }
-    else if (gl_FragCoord.x < gl_FragCoord.y * 2) {
-        float remapped_depth = remap_range(depth, 0, 1, 0.95, 1);
-        out_color = vec4(vec3(remapped_depth), 1);
-    }
-    else {
-        out_color = vec4(albedo, 1) * brightness;
-    }
+    float brightness = dot(normal, vec3(1, 0.6, 0));
+    out_color = vec4(albedo, 1) * max(brightness, 0.05);
 }

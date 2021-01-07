@@ -35,6 +35,6 @@ void main() {
     vec4 world_pos = ubo.model * vec4(inPosition, 1.0);
     v_frag_pos = world_pos.xyz;
     gl_Position = ubo.proj * ubo.view * world_pos;
-    v_normal = inNormal;
+    v_normal = (ubo.model * vec4(inNormal, 1)).xyz;
     fragTexCoord = inTexCoord;
 }
