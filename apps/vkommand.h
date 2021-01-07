@@ -20,8 +20,16 @@ namespace dal {
         void destroy(const VkDevice logiDevice, const VkCommandPool cmdPool);
 
         void record(
-            VkRenderPass renderPass, VkPipeline graphicsPipeline, const VkExtent2D& extent, const std::vector<VkFramebuffer>& swapChainFbufs,
-            VkPipelineLayout pipelineLayout, const std::vector<std::vector<VkDescriptorSet>>& descriptorSetsList, const std::vector<MeshBuffer>& meshes
+            const VkRenderPass renderPass,
+            const VkPipeline pipeline_deferred,
+            const VkPipeline pipeline_composition,
+            const VkPipelineLayout pipelayout_deferred,
+            const VkPipelineLayout pipelayout_composition,
+            const VkExtent2D& extent,
+            const std::vector<VkFramebuffer>& swapChainFbufs,
+            const std::vector<std::vector<VkDescriptorSet>>& descset_deferred,
+            const std::vector<std::vector<VkDescriptorSet>>& descset_composition,
+            const std::vector<MeshBuffer>& meshes
         );
 
         auto& buffers(void) const {

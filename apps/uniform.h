@@ -7,6 +7,8 @@
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.h>
 
+#include "fbufmanager.h"
+
 
 namespace dal {
 
@@ -18,14 +20,18 @@ namespace dal {
     class DescriptorSetLayout {
 
     private:
-        VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
+        VkDescriptorSetLayout m_layout_deferred = VK_NULL_HANDLE;
+        VkDescriptorSetLayout m_layout_composition = VK_NULL_HANDLE;
 
     public:
         void init(const VkDevice logiDevice);
         void destroy(const VkDevice logiDevice);
 
-        auto& get() const {
-            return this->descriptorSetLayout;
+        auto& layout_deferred() const {
+            return this->m_layout_deferred;
+        }
+        auto& layout_composition() const {
+            return this->m_layout_composition;
         }
 
     };
@@ -35,22 +41,22 @@ namespace dal {
 
     private:
         VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
-        std::vector<std::vector<VkDescriptorSet>> descriptorSetsList;
+    public:
+        std::vector<std::vector<VkDescriptorSet>> m_descset_deferred, m_descset_composition;
 
     public:
         void initPool(VkDevice logiDevice, size_t swapchainImagesSize);
-        void addSets(
+        void addSets_deferred(
             VkDevice logiDevice, size_t swapchainImagesSize, VkDescriptorSetLayout descriptorSetLayout,
             const std::vector<VkBuffer>& uniformBuffers, VkImageView textureImageView, VkSampler textureSampler
         );
+        void addSets_composition(
+            const VkDevice logiDevice,
+            const size_t swapchainImagesSize,
+            const VkDescriptorSetLayout descriptorSetLayout,
+            const std::vector<VkImageView>& attachment_views
+        );
         void destroy(VkDevice logiDevice);
-
-        size_t size() const {
-            return this->descriptorSetsList.size();
-        }
-        auto& descSetsList() const {
-            return this->descriptorSetsList;
-        }
 
     };
 

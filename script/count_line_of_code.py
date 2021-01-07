@@ -1,18 +1,10 @@
 import os
 
+import local_tools.path_tools as ptt
+
 
 def find_apps_dir():
-    cur_path = "."
-
-    for _ in range(5):
-        dirs_in_fol = os.listdir(cur_path)
-        if "apps" in dirs_in_fol:
-            return os.path.join(cur_path, "apps")
-        else:
-            cur_path = os.path.join(cur_path, "..")
-
-    raise RuntimeError("apps folder not found")
-
+    return os.path.join(ptt.find_repo_root_path(), "apps")
 
 def isFileSourceCode(name: str) -> bool:
     SOURCE_FILE_EXT = (

@@ -11,9 +11,9 @@
 #include "util_vulkan.h"
 
 
-namespace dal {
+namespace {
 
-    void DescriptorSetLayout::init(const VkDevice logiDevice) {
+    VkDescriptorSetLayout create_layout_deferred(const VkDevice logiDevice) {
         std::array<VkDescriptorSetLayoutBinding, 2> bindings{};
 
         bindings[0].binding = 0;
@@ -30,18 +30,73 @@ namespace dal {
 
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+        layoutInfo.bindingCount = bindings.size();
         layoutInfo.pBindings = bindings.data();
 
-        if (VK_SUCCESS != vkCreateDescriptorSetLayout(logiDevice, &layoutInfo, nullptr, &this->descriptorSetLayout)) {
+        VkDescriptorSetLayout result = VK_NULL_HANDLE;
+        if (VK_SUCCESS != vkCreateDescriptorSetLayout(logiDevice, &layoutInfo, nullptr, &result)) {
             throw std::runtime_error("failed to create descriptor set layout!");
         }
+
+        return result;
+    }
+
+    VkDescriptorSetLayout create_layout_composition(const VkDevice logiDevice) {
+        std::array<VkDescriptorSetLayoutBinding, 4> bindings{};
+
+        bindings[0].binding = 0;
+        bindings[0].descriptorCount = 1;
+        bindings[0].descriptorType  = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+        bindings[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        bindings[1].binding = 1;
+        bindings[1].descriptorCount = 1;
+        bindings[1].descriptorType  = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+        bindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        bindings[2].binding = 2;
+        bindings[2].descriptorCount = 1;
+        bindings[2].descriptorType  = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+        bindings[2].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        bindings[3].binding = 3;
+        bindings[3].descriptorCount = 1;
+        bindings[3].descriptorType  = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+        bindings[3].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        VkDescriptorSetLayoutCreateInfo layoutInfo{};
+        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layoutInfo.bindingCount = bindings.size();
+        layoutInfo.pBindings = bindings.data();
+
+        VkDescriptorSetLayout result = VK_NULL_HANDLE;
+        if (VK_SUCCESS != vkCreateDescriptorSetLayout(logiDevice, &layoutInfo, nullptr, &result)) {
+            throw std::runtime_error("failed to create descriptor set layout!");
+        }
+
+        return result;
+    }
+
+}
+
+namespace dal {
+
+    void DescriptorSetLayout::init(const VkDevice logiDevice) {
+        this->destroy(logiDevice);
+
+        this->m_layout_deferred = ::create_layout_deferred(logiDevice);
+        this->m_layout_composition = ::create_layout_composition(logiDevice);
     }
 
     void DescriptorSetLayout::destroy(const VkDevice logiDevice) {
-        if (VK_NULL_HANDLE != this->descriptorSetLayout) {
-            vkDestroyDescriptorSetLayout(logiDevice, this->descriptorSetLayout, nullptr);
-            this->descriptorSetLayout = VK_NULL_HANDLE;
+        if (VK_NULL_HANDLE != this->m_layout_deferred) {
+            vkDestroyDescriptorSetLayout(logiDevice, this->m_layout_deferred, nullptr);
+            this->m_layout_deferred = VK_NULL_HANDLE;
+        }
+
+        if (VK_NULL_HANDLE != this->m_layout_composition) {
+            vkDestroyDescriptorSetLayout(logiDevice, this->m_layout_composition, nullptr);
+            this->m_layout_composition = VK_NULL_HANDLE;
         }
     }
 
@@ -51,24 +106,26 @@ namespace dal {
 namespace dal {
 
     void DescriptorPool::initPool(VkDevice logiDevice, size_t swapchainImagesSize) {
-        std::array<VkDescriptorPoolSize, 2> poolSizes{};
+        std::array<VkDescriptorPoolSize, 3> poolSizes{};
         poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        poolSizes[0].descriptorCount = static_cast<uint32_t>(swapchainImagesSize) * 5;
+        poolSizes[0].descriptorCount = static_cast<uint32_t>(swapchainImagesSize) * 15;
         poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        poolSizes[1].descriptorCount = static_cast<uint32_t>(swapchainImagesSize) * 5;
+        poolSizes[1].descriptorCount = static_cast<uint32_t>(swapchainImagesSize) * 15;
+        poolSizes[2].type = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+        poolSizes[2].descriptorCount = static_cast<uint32_t>(swapchainImagesSize) * 15;
 
         VkDescriptorPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
         poolInfo.pPoolSizes = poolSizes.data();
-        poolInfo.maxSets = static_cast<uint32_t>(swapchainImagesSize) * 5;
+        poolInfo.maxSets = static_cast<uint32_t>(swapchainImagesSize) * 15;
 
         if (VK_SUCCESS != vkCreateDescriptorPool(logiDevice, &poolInfo, nullptr, &this->descriptorPool)) {
             throw std::runtime_error("failed to create descriptor pool!");
         }
     }
 
-    void DescriptorPool::addSets(
+    void DescriptorPool::addSets_deferred(
         VkDevice logiDevice, size_t swapchainImagesSize, VkDescriptorSetLayout descriptorSetLayout,
         const std::vector<VkBuffer>& uniformBuffers, VkImageView textureImageView, VkSampler textureSampler
     ) {
@@ -80,8 +137,8 @@ namespace dal {
         allocInfo.descriptorSetCount = static_cast<uint32_t>(swapchainImagesSize);
         allocInfo.pSetLayouts = layouts.data();
 
-        this->descriptorSetsList.emplace_back();
-        auto& new_sets = this->descriptorSetsList.back();
+        this->m_descset_deferred.emplace_back();
+        auto& new_sets = this->m_descset_deferred.back();
 
         new_sets.resize(swapchainImagesSize, VK_NULL_HANDLE);
         if (vkAllocateDescriptorSets(logiDevice, &allocInfo, new_sets.data()) != VK_SUCCESS) {
@@ -129,13 +186,68 @@ namespace dal {
         }
     }
 
+    void DescriptorPool::addSets_composition(
+        const VkDevice logiDevice,
+        const size_t swapchainImagesSize,
+        const VkDescriptorSetLayout descriptorSetLayout,
+        const std::vector<VkImageView>& attachment_views
+    ) {
+        std::vector<VkDescriptorSetLayout> layouts(swapchainImagesSize, descriptorSetLayout);
+
+        VkDescriptorSetAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        allocInfo.descriptorPool = this->descriptorPool;
+        allocInfo.descriptorSetCount = static_cast<uint32_t>(swapchainImagesSize);
+        allocInfo.pSetLayouts = layouts.data();
+
+        this->m_descset_composition.emplace_back();
+        auto& new_sets = this->m_descset_composition.back();
+
+        new_sets.resize(swapchainImagesSize, VK_NULL_HANDLE);
+        if (vkAllocateDescriptorSets(logiDevice, &allocInfo, new_sets.data()) != VK_SUCCESS) {
+            throw std::runtime_error("failed to allocate descriptor sets!");
+        }
+
+        for (size_t i = 0; i < swapchainImagesSize; i++) {
+            std::vector<VkDescriptorImageInfo> imageInfo(attachment_views.size());
+            for (size_t j = 0; j < attachment_views.size(); ++j) {
+                auto& x = imageInfo.at(j);
+                x.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                x.imageView = attachment_views[j];
+                x.sampler = VK_NULL_HANDLE;
+            }
+
+            std::vector<VkWriteDescriptorSet> descriptorWrites{};
+            for (size_t j = 0; j < imageInfo.size(); ++j) {
+                descriptorWrites.emplace_back();
+                auto& x = descriptorWrites.at(j);
+
+                x.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                x.dstSet = new_sets[i];
+                x.dstBinding = j;  // specified in shader code
+                x.dstArrayElement = 0;
+                x.descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+                x.descriptorCount = 1;
+                x.pImageInfo = &imageInfo[j];
+            }
+
+            vkUpdateDescriptorSets(
+                logiDevice,
+                descriptorWrites.size(),
+                descriptorWrites.data(),
+                0, nullptr
+            );
+        }
+    }
+
     void DescriptorPool::destroy(VkDevice logiDevice) {
         if (VK_NULL_HANDLE != this->descriptorPool) {
             vkDestroyDescriptorPool(logiDevice, this->descriptorPool, nullptr);
             this->descriptorPool = VK_NULL_HANDLE;
         }
 
-        this->descriptorSetsList.clear();
+        this->m_descset_deferred.clear();
+        this->m_descset_composition.clear();
     }
 
 }
