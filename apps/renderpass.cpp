@@ -37,7 +37,7 @@ namespace {
             attachments[2].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
             attachments[2].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
             attachments[2].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            attachments[2].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            attachments[2].finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
             // Normal
             attachments[3].format = attachment_formats[3];
@@ -47,7 +47,7 @@ namespace {
             attachments[3].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
             attachments[3].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
             attachments[3].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            attachments[3].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            attachments[3].finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
             // Albedo
             attachments[4].format = attachment_formats[4];
@@ -57,7 +57,7 @@ namespace {
             attachments[4].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
             attachments[4].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
             attachments[4].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            attachments[4].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            attachments[4].finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         }
 
         std::array<VkSubpassDescription, 2> subpasses{};
