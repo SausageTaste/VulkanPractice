@@ -129,10 +129,10 @@ namespace dal {
 
         {
             static const std::vector<Vertex> VERTICES = {
-                {{-5.f, 0.f, -5.f}, {1.0f, 1.0f, 1.0f}, { 0,  0}},
-                {{-5.f, 0.f,  5.f}, {0.0f, 0.0f, 0.0f}, { 0, 10}},
-                {{ 5.f, 0.f,  5.f}, {0.0f, 0.0f, 0.0f}, {10, 10}},
-                {{ 5.f, 0.f, -5.f}, {0.0f, 0.0f, 0.0f}, {10,  0}},
+                {{-5.f, 0.f, -5.f}, {0.0f, 1.0f, 0.0f}, { 0,  0}},
+                {{-5.f, 0.f,  5.f}, {0.0f, 1.0f, 0.0f}, { 0, 10}},
+                {{ 5.f, 0.f,  5.f}, {0.0f, 1.0f, 0.0f}, {10, 10}},
+                {{ 5.f, 0.f, -5.f}, {0.0f, 1.0f, 0.0f}, {10,  0}},
             };
             static const std::vector<uint16_t> INDICES = {
                 0, 1, 2, 0, 2, 3
@@ -151,14 +151,14 @@ namespace dal {
 
         {
             static const std::vector<Vertex> VERTICES = {
-                {{-0.5f, 0.f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1, 1}}, // 0
-                {{-0.5f, 0.f,  0.5f}, {1.0f, 0.0f, 0.0f}, {0, 1}}, // 1
-                {{ 0.5f, 0.f,  0.5f}, {1.0f, 0.0f, 0.0f}, {1, 1}}, // 2
-                {{ 0.5f, 0.f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0, 1}}, // 3
-                {{-0.5f, 1.f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1, 0}}, // 4
-                {{-0.5f, 1.f,  0.5f}, {0.0f, 0.0f, 1.0f}, {0, 0}}, // 5
-                {{ 0.5f, 1.f,  0.5f}, {0.0f, 0.0f, 1.0f}, {1, 0}}, // 6
-                {{ 0.5f, 1.f, -0.5f}, {0.0f, 0.0f, 1.0f}, {0, 0}}, // 7
+                {{-0.5f, 0.f, -0.5f}, glm::normalize(glm::vec3{-1, -1, -1}), {1, 1}}, // 0
+                {{-0.5f, 0.f,  0.5f}, glm::normalize(glm::vec3{-1, -1,  1}), {0, 1}}, // 1
+                {{ 0.5f, 0.f,  0.5f}, glm::normalize(glm::vec3{ 1, -1,  1}), {1, 1}}, // 2
+                {{ 0.5f, 0.f, -0.5f}, glm::normalize(glm::vec3{ 1, -1, -1}), {0, 1}}, // 3
+                {{-0.5f, 1.f, -0.5f}, glm::normalize(glm::vec3{-1,  1, -1}), {1, 0}}, // 4
+                {{-0.5f, 1.f,  0.5f}, glm::normalize(glm::vec3{-1,  1,  1}), {0, 0}}, // 5
+                {{ 0.5f, 1.f,  0.5f}, glm::normalize(glm::vec3{ 1,  1,  1}), {1, 0}}, // 6
+                {{ 0.5f, 1.f, -0.5f}, glm::normalize(glm::vec3{ 1,  1, -1}), {0, 0}}, // 7
             };
             static const std::vector<uint16_t> INDICES = {
                 0, 2, 1, 0, 3, 2,
@@ -183,14 +183,14 @@ namespace dal {
         {
             constexpr float x_offset = 2;
             static const std::vector<Vertex> VERTICES = {
-                {{-0.5f + x_offset, 0.f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1, 1}}, // 0
-                {{-0.5f + x_offset, 0.f,  0.5f}, {1.0f, 0.0f, 0.0f}, {0, 1}}, // 1
-                {{ 0.5f + x_offset, 0.f,  0.5f}, {1.0f, 0.0f, 0.0f}, {1, 1}}, // 2
-                {{ 0.5f + x_offset, 0.f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0, 1}}, // 3
-                {{-0.5f + x_offset, 1.f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1, 0}}, // 4
-                {{-0.5f + x_offset, 1.f,  0.5f}, {0.0f, 0.0f, 1.0f}, {0, 0}}, // 5
-                {{ 0.5f + x_offset, 1.f,  0.5f}, {0.0f, 0.0f, 1.0f}, {1, 0}}, // 6
-                {{ 0.5f + x_offset, 1.f, -0.5f}, {0.0f, 0.0f, 1.0f}, {0, 0}}, // 7
+                {{-0.5f + x_offset, 0.f, -0.5f}, glm::normalize(glm::vec3{-1, -1, -1}), {1, 1}}, // 0
+                {{-0.5f + x_offset, 0.f,  0.5f}, glm::normalize(glm::vec3{-1, -1,  1}), {0, 1}}, // 1
+                {{ 0.5f + x_offset, 0.f,  0.5f}, glm::normalize(glm::vec3{ 1, -1,  1}), {1, 1}}, // 2
+                {{ 0.5f + x_offset, 0.f, -0.5f}, glm::normalize(glm::vec3{ 1, -1, -1}), {0, 1}}, // 3
+                {{-0.5f + x_offset, 1.f, -0.5f}, glm::normalize(glm::vec3{-1,  1, -1}), {1, 0}}, // 4
+                {{-0.5f + x_offset, 1.f,  0.5f}, glm::normalize(glm::vec3{-1,  1,  1}), {0, 0}}, // 5
+                {{ 0.5f + x_offset, 1.f,  0.5f}, glm::normalize(glm::vec3{ 1,  1,  1}), {1, 0}}, // 6
+                {{ 0.5f + x_offset, 1.f, -0.5f}, glm::normalize(glm::vec3{ 1,  1, -1}), {0, 0}}, // 7
             };
             static const std::vector<uint16_t> INDICES = {
                 0, 2, 1, 0, 3, 2,
