@@ -22,8 +22,10 @@ def main():
         dst_path = os.path.join(shader_dir_path, output_file_name_ext)
 
         command_text = "glslc.exe {} -o {}".format(src_path, dst_path)
-        os.system(command_text)
-        print("compiled {} -> {}".format(shader_src_name_ext, output_file_name_ext))
+        if 0 != os.system(command_text):
+            print("- failed {}".format(shader_src_name_ext))
+        else:
+            print("- done {} -> {}".format(shader_src_name_ext, output_file_name_ext))
 
 
 if "__main__" == __name__:
