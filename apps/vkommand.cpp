@@ -33,7 +33,8 @@ namespace dal {
         const VkPipelineLayout pipelayout_composition,
         const VkExtent2D& extent,
         const std::vector<VkFramebuffer>& swapChainFbufs,
-        const std::vector<std::vector<VkDescriptorSet>>& descriptorSetsList,
+        const std::vector<std::vector<VkDescriptorSet>>& descset_deferred,
+        const std::vector<std::vector<VkDescriptorSet>>& descset_composition,
         const std::vector<MeshBuffer>& meshes
     ) {
         VkCommandBufferBeginInfo beginInfo = {};
@@ -78,17 +79,23 @@ namespace dal {
                             this->m_buffers[i],
                             VK_PIPELINE_BIND_POINT_GRAPHICS,
                             pipelayout_deferred,
-                            0, 1, &descriptorSetsList.at(descIndex)[i], 0, nullptr
+                            0, 1, &descset_deferred.at(descIndex)[i], 0, nullptr
                         );
 
                         vkCmdDrawIndexed(this->m_buffers[i], mesh.indices.size(), 1, 0, 0, 0);
 
-                        descIndex = std::min<int>(descIndex + 1, descriptorSetsList.size() - 1);
+                        descIndex = std::min<int>(descIndex + 1, descset_deferred.size() - 1);
                     }
                 }
                 {
                     vkCmdNextSubpass(this->m_buffers[i], VK_SUBPASS_CONTENTS_INLINE);
                     vkCmdBindPipeline(this->m_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_composition);
+                    vkCmdBindDescriptorSets(
+                        this->m_buffers[i],
+                        VK_PIPELINE_BIND_POINT_GRAPHICS,
+                        pipelayout_composition,
+                        0, 1, &descset_composition.front()[i], 0, nullptr
+                    );
                     vkCmdDraw(this->m_buffers[i], 6, 1, 0, 0);
                 }
                 vkCmdEndRenderPass(this->m_buffers[i]);

@@ -27,7 +27,8 @@ namespace dal {
             const VkPipelineLayout pipelayout_composition,
             const VkExtent2D& extent,
             const std::vector<VkFramebuffer>& swapChainFbufs,
-            const std::vector<std::vector<VkDescriptorSet>>& descriptorSetsList,
+            const std::vector<std::vector<VkDescriptorSet>>& descset_deferred,
+            const std::vector<std::vector<VkDescriptorSet>>& descset_composition,
             const std::vector<MeshBuffer>& meshes
         );
 

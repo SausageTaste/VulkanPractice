@@ -214,13 +214,14 @@ namespace dal {
 
         this->m_cmdBuffers.record(
             this->m_renderPass.get(),
-            this->m_pipeline.m_pipeline_deferred,
-            this->m_pipeline.m_pipeline_composition,
-            this->m_pipeline.m_layout_deferred,
-            this->m_pipeline.m_layout_composition,
+            this->m_pipeline.pipeline_deferred(),
+            this->m_pipeline.pipeline_composition(),
+            this->m_pipeline.layout_deferred(),
+            this->m_pipeline.layout_composition(),
             this->m_swapchain.extent(),
             this->m_fbuf.getList(),
             this->m_descPool.m_descset_deferred,
+            this->m_descPool.m_descset_composition,
             this->m_meshes
         );
 
@@ -381,13 +382,14 @@ namespace dal {
 
         this->m_cmdBuffers.record(
             this->m_renderPass.get(),
-            this->m_pipeline.m_pipeline_deferred,
-            this->m_pipeline.m_pipeline_composition,
-            this->m_pipeline.m_layout_deferred,
-            this->m_pipeline.m_layout_composition,
+            this->m_pipeline.pipeline_deferred(),
+            this->m_pipeline.pipeline_composition(),
+            this->m_pipeline.layout_deferred(),
+            this->m_pipeline.layout_composition(),
             this->m_swapchain.extent(),
             this->m_fbuf.getList(),
             this->m_descPool.m_descset_deferred,
+            this->m_descPool.m_descset_composition,
             this->m_meshes
         );
     }
