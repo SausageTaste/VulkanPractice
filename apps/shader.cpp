@@ -294,9 +294,8 @@ namespace {
 
     auto createGraphicsPipeline_deferred(const VkDevice device, VkRenderPass renderPass, const VkExtent2D& extent, const VkDescriptorSetLayout descriptorSetLayout) {
         // Shaders
-        const auto resdir = dal::findResPath();
-        const auto vertShaderCode = ::readFile(resdir + "/shader/triangle_v.spv");
-        const auto fragShaderCode = ::readFile(resdir + "/shader/triangle_f.spv");
+        const auto vertShaderCode = ::readFile(dal::get_res_path() + "/shader/triangle_v.spv");
+        const auto fragShaderCode = ::readFile(dal::get_res_path() + "/shader/triangle_f.spv");
         const ShaderModule vert_shader_module(device, vertShaderCode.data(), vertShaderCode.size());
         const ShaderModule frag_shader_module(device, fragShaderCode.data(), fragShaderCode.size());
         std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = ::create_info_shader_stage(vert_shader_module, frag_shader_module);
@@ -362,9 +361,8 @@ namespace {
 
     auto createGraphicsPipeline_composition(const VkDevice device, VkRenderPass renderPass, const VkExtent2D& extent, const VkDescriptorSetLayout descriptorSetLayout) {
         // Shaders
-        const auto resdir = dal::findResPath();
-        const auto vertShaderCode = ::readFile(resdir + "/shader/fillsc_v.spv");
-        const auto fragShaderCode = ::readFile(resdir + "/shader/fillsc_f.spv");
+        const auto vertShaderCode = ::readFile(dal::get_res_path() + "/shader/fillsc_v.spv");
+        const auto fragShaderCode = ::readFile(dal::get_res_path() + "/shader/fillsc_f.spv");
         const ShaderModule vert_shader_module(device, vertShaderCode.data(), vertShaderCode.size());
         const ShaderModule frag_shader_module(device, fragShaderCode.data(), fragShaderCode.size());
         std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = ::create_info_shader_stage(vert_shader_module, frag_shader_module);

@@ -45,7 +45,7 @@ namespace dal {
             this->m_textures.emplace_back();
             if (this->m_physDevice.does_support_astc()) {
                 this->m_textures.back().image.init_astc(
-                    (dal::findResPath() + "/image/grass1.astc").c_str(),
+                    (dal::get_res_path() + "/image/grass1.astc").c_str(),
                     this->m_logiDevice.get(), this->m_physDevice,
                     this->m_cmdPool,
                     this->m_logiDevice.graphicsQ()
@@ -53,7 +53,7 @@ namespace dal {
             }
             else {
                 this->m_textures.back().image.init_img(
-                    (dal::findResPath() + "/image/grass1.png").c_str(),
+                    (dal::get_res_path() + "/image/grass1.png").c_str(),
                     this->m_logiDevice.get(), this->m_physDevice,
                     this->m_cmdPool,
                     this->m_logiDevice.graphicsQ()
@@ -68,22 +68,22 @@ namespace dal {
 
             std::vector<dal::ImageData> image_datas;
             if (this->m_physDevice.does_support_astc()) {
-                image_datas.emplace_back(dal::open_image_astc((dal::findResPath() + "/image/0021di_512.astc").c_str()));
-                image_datas.emplace_back(dal::open_image_astc((dal::findResPath() + "/image/0021di_256.astc").c_str()));
-                image_datas.emplace_back(dal::open_image_astc((dal::findResPath() + "/image/0021di_128.astc").c_str()));
-                image_datas.emplace_back(dal::open_image_astc((dal::findResPath() + "/image/0021di_64.astc").c_str()));
-                image_datas.emplace_back(dal::open_image_astc((dal::findResPath() + "/image/0021di_32.astc").c_str()));
-                image_datas.emplace_back(dal::open_image_astc((dal::findResPath() + "/image/0021di_16.astc").c_str()));
-                image_datas.emplace_back(dal::open_image_astc((dal::findResPath() + "/image/0021di_8.astc").c_str()));
+                image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/0021di_512.astc").c_str()));
+                image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/0021di_256.astc").c_str()));
+                image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/0021di_128.astc").c_str()));
+                image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/0021di_64.astc").c_str()));
+                image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/0021di_32.astc").c_str()));
+                image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/0021di_16.astc").c_str()));
+                image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/0021di_8.astc").c_str()));
             }
             else {
-                image_datas.emplace_back(dal::open_image_stb((dal::findResPath() + "/image/0021di_512.png").c_str()));
-                image_datas.emplace_back(dal::open_image_stb((dal::findResPath() + "/image/0021di_256.png").c_str()));
-                image_datas.emplace_back(dal::open_image_stb((dal::findResPath() + "/image/0021di_128.png").c_str()));
-                image_datas.emplace_back(dal::open_image_stb((dal::findResPath() + "/image/0021di_64.png").c_str()));
-                image_datas.emplace_back(dal::open_image_stb((dal::findResPath() + "/image/0021di_32.png").c_str()));
-                image_datas.emplace_back(dal::open_image_stb((dal::findResPath() + "/image/0021di_16.png").c_str()));
-                image_datas.emplace_back(dal::open_image_stb((dal::findResPath() + "/image/0021di_8.png").c_str()));
+                image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/0021di_512.png").c_str()));
+                image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/0021di_256.png").c_str()));
+                image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/0021di_128.png").c_str()));
+                image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/0021di_64.png").c_str()));
+                image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/0021di_32.png").c_str()));
+                image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/0021di_16.png").c_str()));
+                image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/0021di_8.png").c_str()));
             }
 
             this->m_textures.emplace_back();

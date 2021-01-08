@@ -182,6 +182,11 @@ namespace dal {
         throw std::runtime_error{ "failed to find resource folder." };
     }
 
+    const std::string& get_res_path(void) {
+        static const auto res_path = findResPath();
+        return res_path;
+    }
+
 }
 
 
