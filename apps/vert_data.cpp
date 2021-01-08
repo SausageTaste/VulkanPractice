@@ -46,7 +46,7 @@ namespace dal {
         result[1].binding = 0;
         result[1].location = 1;
         result[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-        result[1].offset = offsetof(Vertex, color);
+        result[1].offset = offsetof(Vertex, normal);
 
         result[2].binding = 0;
         result[2].location = 2;

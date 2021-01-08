@@ -3,10 +3,10 @@
 
 
 layout(location = 0) in vec3 inPosition;
-layout(location = 1) in vec3 inColor;
+layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec2 inTexCoord;
 
-layout(location = 0) out vec3 fragColor;
+layout(location = 0) out vec3 v_normal;
 layout(location = 1) out vec2 fragTexCoord;
 layout(location = 2) out vec3 v_frag_pos;
 
@@ -35,6 +35,6 @@ void main() {
     vec4 world_pos = ubo.model * vec4(inPosition, 1.0);
     v_frag_pos = world_pos.xyz;
     gl_Position = ubo.proj * ubo.view * world_pos;
-    fragColor = inColor;
+    v_normal = (ubo.model * vec4(inNormal, 1)).xyz;
     fragTexCoord = inTexCoord;
 }

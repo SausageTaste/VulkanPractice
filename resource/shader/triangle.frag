@@ -2,7 +2,7 @@
 #extension GL_ARB_separate_shader_objects : enable
 
 
-layout(location = 0) in vec3 fragColor;
+layout(location = 0) in vec3 v_normal;
 layout(location = 1) in vec2 fragTexCoord;
 layout(location = 2) in vec3 v_frag_pos;
 
@@ -16,6 +16,6 @@ layout(binding = 1) uniform sampler2D texSampler;
 
 void main() {
     out_position = vec4(v_frag_pos, 1);
-    out_normal = vec4(0, 1, 0, 1);
+    out_normal = vec4(v_normal, 1);
     out_albedo = texture(texSampler, fragTexCoord);
 }

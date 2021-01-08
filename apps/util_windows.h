@@ -10,6 +10,7 @@ namespace dal {
 
     std::string getCurrentDir(void);
     std::string findResPath(void);
+    const std::string& get_res_path(void);
 
 
     struct ImageData {

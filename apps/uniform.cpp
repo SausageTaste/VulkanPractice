@@ -301,10 +301,14 @@ namespace dal {
         ubo.proj = glm::perspective<float>(glm::radians<float>(45), ratio, 0.1, 10);
         ubo.proj[1][1] *= -1;
 
-        void* data;
-        vkMapMemory(logiDevice, uniformBuffersMemory[imageIndex], 0, sizeof(ubo), 0, &data);
+        this->copy_to_memory(logiDevice, ubo, imageIndex);
+    }
+
+    void UniformBuffers::copy_to_memory(const VkDevice logiDevice, const UniformBufferObject& ubo, const uint32_t index) const {
+        void* data = nullptr;
+        vkMapMemory(logiDevice, uniformBuffersMemory[index], 0, sizeof(ubo), 0, &data);
         memcpy(data, &ubo, sizeof(ubo));
-        vkUnmapMemory(logiDevice, uniformBuffersMemory[imageIndex]);
+        vkUnmapMemory(logiDevice, uniformBuffersMemory[index]);
     }
 
 }

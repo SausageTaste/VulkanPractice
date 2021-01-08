@@ -45,7 +45,7 @@ namespace dal {
             this->m_textures.emplace_back();
             if (this->m_physDevice.does_support_astc()) {
                 this->m_textures.back().image.init_astc(
-                    (dal::findResPath() + "/image/grass1.astc").c_str(),
+                    (dal::get_res_path() + "/image/grass1.astc").c_str(),
                     this->m_logiDevice.get(), this->m_physDevice,
                     this->m_cmdPool,
                     this->m_logiDevice.graphicsQ()
@@ -53,7 +53,7 @@ namespace dal {
             }
             else {
                 this->m_textures.back().image.init_img(
-                    (dal::findResPath() + "/image/grass1.png").c_str(),
+                    (dal::get_res_path() + "/image/grass1.png").c_str(),
                     this->m_logiDevice.get(), this->m_physDevice,
                     this->m_cmdPool,
                     this->m_logiDevice.graphicsQ()
@@ -68,22 +68,22 @@ namespace dal {
 
             std::vector<dal::ImageData> image_datas;
             if (this->m_physDevice.does_support_astc()) {
-                image_datas.emplace_back(dal::open_image_astc((dal::findResPath() + "/image/0021di_512.astc").c_str()));
-                image_datas.emplace_back(dal::open_image_astc((dal::findResPath() + "/image/0021di_256.astc").c_str()));
-                image_datas.emplace_back(dal::open_image_astc((dal::findResPath() + "/image/0021di_128.astc").c_str()));
-                image_datas.emplace_back(dal::open_image_astc((dal::findResPath() + "/image/0021di_64.astc").c_str()));
-                image_datas.emplace_back(dal::open_image_astc((dal::findResPath() + "/image/0021di_32.astc").c_str()));
-                image_datas.emplace_back(dal::open_image_astc((dal::findResPath() + "/image/0021di_16.astc").c_str()));
-                image_datas.emplace_back(dal::open_image_astc((dal::findResPath() + "/image/0021di_8.astc").c_str()));
+                image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/0021di_512.astc").c_str()));
+                image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/0021di_256.astc").c_str()));
+                image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/0021di_128.astc").c_str()));
+                image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/0021di_64.astc").c_str()));
+                image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/0021di_32.astc").c_str()));
+                image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/0021di_16.astc").c_str()));
+                image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/0021di_8.astc").c_str()));
             }
             else {
-                image_datas.emplace_back(dal::open_image_stb((dal::findResPath() + "/image/0021di_512.png").c_str()));
-                image_datas.emplace_back(dal::open_image_stb((dal::findResPath() + "/image/0021di_256.png").c_str()));
-                image_datas.emplace_back(dal::open_image_stb((dal::findResPath() + "/image/0021di_128.png").c_str()));
-                image_datas.emplace_back(dal::open_image_stb((dal::findResPath() + "/image/0021di_64.png").c_str()));
-                image_datas.emplace_back(dal::open_image_stb((dal::findResPath() + "/image/0021di_32.png").c_str()));
-                image_datas.emplace_back(dal::open_image_stb((dal::findResPath() + "/image/0021di_16.png").c_str()));
-                image_datas.emplace_back(dal::open_image_stb((dal::findResPath() + "/image/0021di_8.png").c_str()));
+                image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/0021di_512.png").c_str()));
+                image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/0021di_256.png").c_str()));
+                image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/0021di_128.png").c_str()));
+                image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/0021di_64.png").c_str()));
+                image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/0021di_32.png").c_str()));
+                image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/0021di_16.png").c_str()));
+                image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/0021di_8.png").c_str()));
             }
 
             this->m_textures.emplace_back();
@@ -129,10 +129,10 @@ namespace dal {
 
         {
             static const std::vector<Vertex> VERTICES = {
-                {{-5.f, 0.f, -5.f}, {1.0f, 1.0f, 1.0f}, { 0,  0}},
-                {{-5.f, 0.f,  5.f}, {0.0f, 0.0f, 0.0f}, { 0, 10}},
-                {{ 5.f, 0.f,  5.f}, {0.0f, 0.0f, 0.0f}, {10, 10}},
-                {{ 5.f, 0.f, -5.f}, {0.0f, 0.0f, 0.0f}, {10,  0}},
+                {{-5.f, 0.f, -5.f}, {0.0f, 1.0f, 0.0f}, { 0,  0}},
+                {{-5.f, 0.f,  5.f}, {0.0f, 1.0f, 0.0f}, { 0, 10}},
+                {{ 5.f, 0.f,  5.f}, {0.0f, 1.0f, 0.0f}, {10, 10}},
+                {{ 5.f, 0.f, -5.f}, {0.0f, 1.0f, 0.0f}, {10,  0}},
             };
             static const std::vector<uint16_t> INDICES = {
                 0, 1, 2, 0, 2, 3
@@ -151,14 +151,14 @@ namespace dal {
 
         {
             static const std::vector<Vertex> VERTICES = {
-                {{-0.5f, 0.f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1, 1}}, // 0
-                {{-0.5f, 0.f,  0.5f}, {1.0f, 0.0f, 0.0f}, {0, 1}}, // 1
-                {{ 0.5f, 0.f,  0.5f}, {1.0f, 0.0f, 0.0f}, {1, 1}}, // 2
-                {{ 0.5f, 0.f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0, 1}}, // 3
-                {{-0.5f, 1.f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1, 0}}, // 4
-                {{-0.5f, 1.f,  0.5f}, {0.0f, 0.0f, 1.0f}, {0, 0}}, // 5
-                {{ 0.5f, 1.f,  0.5f}, {0.0f, 0.0f, 1.0f}, {1, 0}}, // 6
-                {{ 0.5f, 1.f, -0.5f}, {0.0f, 0.0f, 1.0f}, {0, 0}}, // 7
+                {{-0.5f, 0.f, -0.5f}, glm::normalize(glm::vec3{-1, -1, -1}), {1, 1}}, // 0
+                {{-0.5f, 0.f,  0.5f}, glm::normalize(glm::vec3{-1, -1,  1}), {0, 1}}, // 1
+                {{ 0.5f, 0.f,  0.5f}, glm::normalize(glm::vec3{ 1, -1,  1}), {1, 1}}, // 2
+                {{ 0.5f, 0.f, -0.5f}, glm::normalize(glm::vec3{ 1, -1, -1}), {0, 1}}, // 3
+                {{-0.5f, 1.f, -0.5f}, glm::normalize(glm::vec3{-1,  1, -1}), {1, 0}}, // 4
+                {{-0.5f, 1.f,  0.5f}, glm::normalize(glm::vec3{-1,  1,  1}), {0, 0}}, // 5
+                {{ 0.5f, 1.f,  0.5f}, glm::normalize(glm::vec3{ 1,  1,  1}), {1, 0}}, // 6
+                {{ 0.5f, 1.f, -0.5f}, glm::normalize(glm::vec3{ 1,  1, -1}), {0, 0}}, // 7
             };
             static const std::vector<uint16_t> INDICES = {
                 0, 2, 1, 0, 3, 2,
@@ -183,14 +183,14 @@ namespace dal {
         {
             constexpr float x_offset = 2;
             static const std::vector<Vertex> VERTICES = {
-                {{-0.5f + x_offset, 0.f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1, 1}}, // 0
-                {{-0.5f + x_offset, 0.f,  0.5f}, {1.0f, 0.0f, 0.0f}, {0, 1}}, // 1
-                {{ 0.5f + x_offset, 0.f,  0.5f}, {1.0f, 0.0f, 0.0f}, {1, 1}}, // 2
-                {{ 0.5f + x_offset, 0.f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0, 1}}, // 3
-                {{-0.5f + x_offset, 1.f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1, 0}}, // 4
-                {{-0.5f + x_offset, 1.f,  0.5f}, {0.0f, 0.0f, 1.0f}, {0, 0}}, // 5
-                {{ 0.5f + x_offset, 1.f,  0.5f}, {0.0f, 0.0f, 1.0f}, {1, 0}}, // 6
-                {{ 0.5f + x_offset, 1.f, -0.5f}, {0.0f, 0.0f, 1.0f}, {0, 0}}, // 7
+                {{-0.5f + x_offset, 0.f, -0.5f}, glm::normalize(glm::vec3{-1, -1, -1}), {1, 1}}, // 0
+                {{-0.5f + x_offset, 0.f,  0.5f}, glm::normalize(glm::vec3{-1, -1,  1}), {0, 1}}, // 1
+                {{ 0.5f + x_offset, 0.f,  0.5f}, glm::normalize(glm::vec3{ 1, -1,  1}), {1, 1}}, // 2
+                {{ 0.5f + x_offset, 0.f, -0.5f}, glm::normalize(glm::vec3{ 1, -1, -1}), {0, 1}}, // 3
+                {{-0.5f + x_offset, 1.f, -0.5f}, glm::normalize(glm::vec3{-1,  1, -1}), {1, 0}}, // 4
+                {{-0.5f + x_offset, 1.f,  0.5f}, glm::normalize(glm::vec3{-1,  1,  1}), {0, 0}}, // 5
+                {{ 0.5f + x_offset, 1.f,  0.5f}, glm::normalize(glm::vec3{ 1,  1,  1}), {1, 0}}, // 6
+                {{ 0.5f + x_offset, 1.f, -0.5f}, glm::normalize(glm::vec3{ 1,  1, -1}), {0, 0}}, // 7
             };
             static const std::vector<uint16_t> INDICES = {
                 0, 2, 1, 0, 3, 2,

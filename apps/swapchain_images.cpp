@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <stdexcept>
+#include <iostream>
 
 #include "util_vulkan.h"
 
@@ -15,6 +16,8 @@ namespace dal {
             vkGetSwapchainImagesKHR(logicalDevice, swapChain, &imageCount, nullptr);
             this->m_images.resize(imageCount);
             vkGetSwapchainImagesKHR(logicalDevice, swapChain, &imageCount, this->m_images.data());
+
+            std::cout << "Swapchain image count: " << imageCount << std::endl;
         }
 
         // Create image views
