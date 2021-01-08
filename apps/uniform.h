@@ -72,6 +72,7 @@ namespace dal {
         void destroy(const VkDevice logiDevice);
 
         void update(const uint32_t imageIndex, const VkExtent2D swapchainExtent, const VkDevice logiDevice);
+        void copy_to_memory(const VkDevice logiDevice, const UniformBufferObject& ubo, const uint32_t index) const;
 
         auto& buffers() const {
             assert(0 != this->uniformBuffers.size());
