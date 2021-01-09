@@ -115,7 +115,7 @@ namespace dal {
 
 namespace dal {
 
-    void IndexBuffer::init(const std::vector<uint16_t>& indices, const VkDevice logiDevice,
+    void IndexBuffer::init(const std::vector<uint32_t>& indices, const VkDevice logiDevice,
             const VkPhysicalDevice physDevice, dal::CommandPool& cmdPool, VkQueue graphicsQueue)
     {
         VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();

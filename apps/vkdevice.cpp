@@ -135,7 +135,7 @@ namespace dal {
                 {{ 5.f, 0.f,  5.f}, {0.0f, 1.0f, 0.0f}, {10, 10}},
                 {{ 5.f, 0.f, -5.f}, {0.0f, 1.0f, 0.0f}, {10,  0}},
             };
-            static const std::vector<uint16_t> INDICES = {
+            static const std::vector<uint32_t> INDICES = {
                 0, 1, 2, 0, 2, 3
             };
 
@@ -162,7 +162,7 @@ namespace dal {
                 {{ 0.5f + x_offset, 1.f,  0.5f}, glm::normalize(glm::vec3{ 1,  1,  1}), {1, 0}}, // 6
                 {{ 0.5f + x_offset, 1.f, -0.5f}, glm::normalize(glm::vec3{ 1,  1, -1}), {0, 0}}, // 7
             };
-            static const std::vector<uint16_t> INDICES = {
+            static const std::vector<uint32_t> INDICES = {
                 0, 2, 1, 0, 3, 2,
                 5, 1, 2, 5, 2, 6,
                 6, 2, 3, 6, 3, 7,

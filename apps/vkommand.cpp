@@ -73,7 +73,7 @@ namespace dal {
                         VkBuffer vertBuffers[] = {mesh.vertices.getBuf()};
                         VkDeviceSize offsets[] = {0};
                         vkCmdBindVertexBuffers(this->m_buffers[i], 0, 1, vertBuffers, offsets);
-                        vkCmdBindIndexBuffer(this->m_buffers[i], mesh.indices.getBuf(), 0, VK_INDEX_TYPE_UINT16);
+                        vkCmdBindIndexBuffer(this->m_buffers[i], mesh.indices.getBuf(), 0, VK_INDEX_TYPE_UINT32);
 
                         vkCmdBindDescriptorSets(
                             this->m_buffers[i],

@@ -62,7 +62,7 @@ namespace dal {
         IndexBuffer& operator=(const IndexBuffer&) = delete;
 
     public:
-        void init(const std::vector<uint16_t>& indices, const VkDevice logiDevice,
+        void init(const std::vector<uint32_t>& indices, const VkDevice logiDevice,
             const VkPhysicalDevice physDevice, dal::CommandPool& cmdPool, VkQueue graphicsQueue);
         void destroy(const VkDevice device);
 
