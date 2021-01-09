@@ -151,37 +151,6 @@ namespace dal {
         }
 
         {
-            static const std::vector<Vertex> VERTICES = {
-                {{-0.5f, 0.f, -0.5f}, glm::normalize(glm::vec3{-1, -1, -1}), {1, 1}}, // 0
-                {{-0.5f, 0.f,  0.5f}, glm::normalize(glm::vec3{-1, -1,  1}), {0, 1}}, // 1
-                {{ 0.5f, 0.f,  0.5f}, glm::normalize(glm::vec3{ 1, -1,  1}), {1, 1}}, // 2
-                {{ 0.5f, 0.f, -0.5f}, glm::normalize(glm::vec3{ 1, -1, -1}), {0, 1}}, // 3
-                {{-0.5f, 1.f, -0.5f}, glm::normalize(glm::vec3{-1,  1, -1}), {1, 0}}, // 4
-                {{-0.5f, 1.f,  0.5f}, glm::normalize(glm::vec3{-1,  1,  1}), {0, 0}}, // 5
-                {{ 0.5f, 1.f,  0.5f}, glm::normalize(glm::vec3{ 1,  1,  1}), {1, 0}}, // 6
-                {{ 0.5f, 1.f, -0.5f}, glm::normalize(glm::vec3{ 1,  1, -1}), {0, 0}}, // 7
-            };
-            static const std::vector<uint16_t> INDICES = {
-                0, 2, 1, 0, 3, 2,
-                5, 1, 2, 5, 2, 6,
-                6, 2, 3, 6, 3, 7,
-                7, 3, 0, 7, 0, 4,
-                4, 0, 1, 4, 1, 5,
-                4, 5, 6, 4, 6, 7
-            };
-
-            this->m_meshes.emplace_back();
-            this->m_meshes.back().vertices.init(
-                VERTICES, this->m_logiDevice.get(), this->m_physDevice.get(),
-                this->m_cmdPool, this->m_logiDevice.graphicsQ()
-            );
-            this->m_meshes.back().indices.init(
-                INDICES, this->m_logiDevice.get(), this->m_physDevice.get(),
-                this->m_cmdPool, this->m_logiDevice.graphicsQ()
-            );
-        }
-
-        {
             constexpr float x_offset = 2;
             static const std::vector<Vertex> VERTICES = {
                 {{-0.5f + x_offset, 0.f, -0.5f}, glm::normalize(glm::vec3{-1, -1, -1}), {1, 1}}, // 0
@@ -209,6 +178,20 @@ namespace dal {
             );
             this->m_meshes.back().indices.init(
                 INDICES, this->m_logiDevice.get(), this->m_physDevice.get(),
+                this->m_cmdPool, this->m_logiDevice.graphicsQ()
+            );
+        }
+
+        {
+            const auto model = get_test_model();
+
+            this->m_meshes.emplace_back();
+            this->m_meshes.back().vertices.init(
+                model.m_vertices, this->m_logiDevice.get(), this->m_physDevice.get(),
+                this->m_cmdPool, this->m_logiDevice.graphicsQ()
+            );
+            this->m_meshes.back().indices.init(
+                model.m_indices, this->m_logiDevice.get(), this->m_physDevice.get(),
                 this->m_cmdPool, this->m_logiDevice.graphicsQ()
             );
         }
