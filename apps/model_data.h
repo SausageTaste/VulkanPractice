@@ -22,6 +22,6 @@ namespace dal {
     };
 
 
-    ModelData get_test_model();
+    std::vector<ModelData> get_test_model();
 
 }

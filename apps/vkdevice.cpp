@@ -183,17 +183,17 @@ namespace dal {
         }
 
         {
-            const auto model = get_test_model();
-
-            this->m_meshes.emplace_back();
-            this->m_meshes.back().vertices.init(
-                model.m_vertices, this->m_logiDevice.get(), this->m_physDevice.get(),
-                this->m_cmdPool, this->m_logiDevice.graphicsQ()
-            );
-            this->m_meshes.back().indices.init(
-                model.m_indices, this->m_logiDevice.get(), this->m_physDevice.get(),
-                this->m_cmdPool, this->m_logiDevice.graphicsQ()
-            );
+            for (const auto& model : get_test_model()) {
+                this->m_meshes.emplace_back();
+                this->m_meshes.back().vertices.init(
+                    model.m_vertices, this->m_logiDevice.get(), this->m_physDevice.get(),
+                    this->m_cmdPool, this->m_logiDevice.graphicsQ()
+                );
+                this->m_meshes.back().indices.init(
+                    model.m_indices, this->m_logiDevice.get(), this->m_physDevice.get(),
+                    this->m_cmdPool, this->m_logiDevice.graphicsQ()
+                );
+            }
         }
 
         this->m_cmdBuffers.record(
