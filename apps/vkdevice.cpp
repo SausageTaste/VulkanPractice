@@ -4,6 +4,7 @@
 #include <stdexcept>
 
 #include "util_windows.h"
+#include "model_data.h"
 
 
 namespace {

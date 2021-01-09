@@ -25,7 +25,7 @@ namespace {
 
 namespace dal {
 
-    VkVertexInputBindingDescription Vertex::getBindingDesc() {
+    VkVertexInputBindingDescription getBindingDesc() {
         VkVertexInputBindingDescription result;
 
         result.binding = 0;
@@ -35,7 +35,7 @@ namespace dal {
         return result;
     }
 
-    std::array<VkVertexInputAttributeDescription, 3> Vertex::getAttributeDescriptions() {
+    std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() {
         std::array<VkVertexInputAttributeDescription, 3> result;
 
         result[0].binding = 0;

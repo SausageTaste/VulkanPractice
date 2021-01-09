@@ -12,6 +12,9 @@ namespace dal {
     std::string findResPath(void);
     const std::string& get_res_path(void);
 
+    std::vector<char> readFile(const char* const path);
+    std::vector<char> readFile(const std::string& path);
+
 
     struct ImageData {
         uint32_t width, height, channels;

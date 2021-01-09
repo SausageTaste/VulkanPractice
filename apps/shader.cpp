@@ -11,33 +11,6 @@
 #define DAL_ALPHA_BLEND false
 
 
-namespace {
-
-    std::vector<char> readFile(const char* const path) {
-        std::ifstream file{ path, std::ios::ate | std::ios::binary };
-
-        if ( !file.is_open() ) {
-            throw std::runtime_error(std::string{"failed to open file: "} + path);
-        }
-
-        const auto fileSize = static_cast<size_t>(file.tellg());
-        std::vector<char> buffer;
-        buffer.resize(fileSize);
-
-        file.seekg(0);
-        file.read(buffer.data(), fileSize);
-        file.close();
-
-        return buffer;
-    }
-
-    std::vector<char> readFile(const std::string& path) {
-        return ::readFile(path.c_str());
-    }
-
-}
-
-
 // Shader module tools
 namespace {
 
@@ -294,15 +267,15 @@ namespace {
 
     auto createGraphicsPipeline_deferred(const VkDevice device, VkRenderPass renderPass, const VkExtent2D& extent, const VkDescriptorSetLayout descriptorSetLayout) {
         // Shaders
-        const auto vertShaderCode = ::readFile(dal::get_res_path() + "/shader/triangle_v.spv");
-        const auto fragShaderCode = ::readFile(dal::get_res_path() + "/shader/triangle_f.spv");
+        const auto vertShaderCode = dal::readFile(dal::get_res_path() + "/shader/triangle_v.spv");
+        const auto fragShaderCode = dal::readFile(dal::get_res_path() + "/shader/triangle_f.spv");
         const ShaderModule vert_shader_module(device, vertShaderCode.data(), vertShaderCode.size());
         const ShaderModule frag_shader_module(device, fragShaderCode.data(), fragShaderCode.size());
         std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = ::create_info_shader_stage(vert_shader_module, frag_shader_module);
 
         // Vertex input
-        const auto bindingDesc = dal::Vertex::getBindingDesc();
-        const auto attribDesc = dal::Vertex::getAttributeDescriptions();
+        const auto bindingDesc = dal::getBindingDesc();
+        const auto attribDesc = dal::getAttributeDescriptions();
         auto vertexInputInfo = ::create_vertex_input_state(&bindingDesc, 1, attribDesc.data(), attribDesc.size());
 
         // Input assembly
@@ -361,8 +334,8 @@ namespace {
 
     auto createGraphicsPipeline_composition(const VkDevice device, VkRenderPass renderPass, const VkExtent2D& extent, const VkDescriptorSetLayout descriptorSetLayout) {
         // Shaders
-        const auto vertShaderCode = ::readFile(dal::get_res_path() + "/shader/fillsc_v.spv");
-        const auto fragShaderCode = ::readFile(dal::get_res_path() + "/shader/fillsc_f.spv");
+        const auto vertShaderCode = dal::readFile(dal::get_res_path() + "/shader/fillsc_v.spv");
+        const auto fragShaderCode = dal::readFile(dal::get_res_path() + "/shader/fillsc_f.spv");
         const ShaderModule vert_shader_module(device, vertShaderCode.data(), vertShaderCode.size());
         const ShaderModule frag_shader_module(device, fragShaderCode.data(), fragShaderCode.size());
         std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = ::create_info_shader_stage(vert_shader_module, frag_shader_module);

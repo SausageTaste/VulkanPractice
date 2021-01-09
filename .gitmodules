@@ -7,3 +7,6 @@
 [submodule "extern/stb"]
 	path = extern/stb
 	url = https://github.com/nothings/stb
+[submodule "extern/io_scene_dalbaragi"]
+	path = extern/io_scene_dalbaragi
+	url = https://github.com/SausageTaste/io_scene_dalbaragi

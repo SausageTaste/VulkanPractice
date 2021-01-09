@@ -3,24 +3,16 @@
 #include <array>
 #include <vector>
 
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
 #include <vulkan/vulkan.h>
 
 #include "command_pool.h"
+#include "model_data.h"
 
 
 namespace dal {
 
-    struct Vertex {
-        glm::vec3 pos;
-        glm::vec3 normal;
-        glm::vec2 texCoord;
-
-        static VkVertexInputBindingDescription getBindingDesc();
-        static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions();
-    };
+    VkVertexInputBindingDescription getBindingDesc();
+    std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions();
 
 
     class VertexBuffer {
