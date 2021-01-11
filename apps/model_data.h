@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <vector>
 
 #define GLM_FORCE_RADIANS
@@ -15,13 +16,17 @@ namespace dal {
         glm::vec2 texCoord;
     };
 
+    struct Material {
+        std::string m_albedo_map;
+    };
 
-    struct ModelData {
+    struct RenderUnit {
         std::vector<Vertex> m_vertices;
         std::vector<uint32_t> m_indices;
+        Material m_material;
     };
 
 
-    std::vector<ModelData> get_test_model();
+    std::vector<RenderUnit> get_test_model();
 
 }

@@ -9,8 +9,8 @@
 
 namespace dal {
 
-    std::vector<ModelData> get_test_model() {
-        std::vector<ModelData> result;
+    std::vector<RenderUnit> get_test_model() {
+        std::vector<RenderUnit> result;
 
         const auto model_path = get_res_path() + "/model/yuri_cso2.dmd";
         const auto file_content = readFile(model_path);
@@ -23,17 +23,21 @@ namespace dal {
             assert(x.m_mesh.m_vertices.size() % 9 == 0);
 
             const auto indexed_mesh = parser::convert_to_indexed(x.m_mesh);
-            auto& output_model = result.emplace_back();
+            auto& output_render_unit = result.emplace_back();
 
             for (const auto& vert : indexed_mesh.m_vertices) {
-                auto& fitted_vert = output_model.m_vertices.emplace_back();
+                auto& fitted_vert = output_render_unit.m_vertices.emplace_back();
                 fitted_vert.pos = vert.m_position * 0.02f;
                 fitted_vert.texCoord = vert.m_uv_coords;
                 fitted_vert.normal = vert.m_normal;
             }
 
             for (const auto& index : indexed_mesh.m_indices) {
-                output_model.m_indices.emplace_back(index);
+                output_render_unit.m_indices.emplace_back(index);
+            }
+
+            {
+                output_render_unit.m_material.m_albedo_map = x.m_material.m_albedo_map;
             }
         }
 
