@@ -37,18 +37,59 @@ namespace dal {
     };
 
 
+    class DescriptorSet {
+
+    private:
+        std::vector<VkDescriptorSet> m_handles;
+
+    public:
+        void destroy(const VkDescriptorPool pool, const VkDevice logi_device);
+
+        void init(
+            const uint32_t swapchain_count,
+            const VkDescriptorSetLayout descriptor_set_layout,
+            const VkDescriptorPool pool,
+            const VkDevice logi_device
+        );
+
+        void record_deferred(
+            const std::vector<VkBuffer>& uniformBuffers,
+            const VkImageView textureImageView,
+            const VkSampler textureSampler,
+            const VkDevice logi_device
+        );
+        void record_composition(
+            const size_t swapchainImagesSize,
+            const VkDescriptorSetLayout descriptorSetLayout,
+            const std::vector<VkImageView>& attachment_views,
+            const VkDevice logiDevice
+        );
+
+        auto& at(const uint32_t swapchain_index) const {
+            return this->m_handles.at(swapchain_index);
+        }
+        auto& vector() const {
+            return this->m_handles;
+        }
+
+    };
+
+
     class DescriptorPool {
 
     private:
         VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
-    public:
-        std::vector<std::vector<VkDescriptorSet>> m_descset_deferred, m_descset_composition;
+        std::vector<DescriptorSet> m_descset_deferred, m_descset_composition;
 
     public:
         void initPool(VkDevice logiDevice, size_t swapchainImagesSize);
         void addSets_deferred(
-            VkDevice logiDevice, size_t swapchainImagesSize, VkDescriptorSetLayout descriptorSetLayout,
-            const std::vector<VkBuffer>& uniformBuffers, VkImageView textureImageView, VkSampler textureSampler
+            const VkDevice logiDevice,
+            const size_t swapchainImagesSize,
+            const VkDescriptorSetLayout descriptorSetLayout,
+            const std::vector<VkBuffer>& uniformBuffers,
+            const VkImageView textureImageView,
+            const VkSampler textureSampler
         );
         void addSets_composition(
             const VkDevice logiDevice,
@@ -57,6 +98,9 @@ namespace dal {
             const std::vector<VkImageView>& attachment_views
         );
         void destroy(VkDevice logiDevice);
+
+        std::vector<std::vector<VkDescriptorSet>> descset_deferred() const;
+        std::vector<std::vector<VkDescriptorSet>> descset_composition() const;
 
     };
 

@@ -204,8 +204,8 @@ namespace dal {
             this->m_pipeline.layout_composition(),
             this->m_swapchain.extent(),
             this->m_fbuf.getList(),
-            this->m_descPool.m_descset_deferred,
-            this->m_descPool.m_descset_composition,
+            this->m_descPool.descset_deferred(),
+            this->m_descPool.descset_composition(),
             this->m_meshes
         );
 
@@ -372,8 +372,8 @@ namespace dal {
             this->m_pipeline.layout_composition(),
             this->m_swapchain.extent(),
             this->m_fbuf.getList(),
-            this->m_descPool.m_descset_deferred,
-            this->m_descPool.m_descset_composition,
+            this->m_descPool.descset_deferred(),
+            this->m_descPool.descset_composition(),
             this->m_meshes
         );
     }
