@@ -34,7 +34,7 @@ namespace dal {
         this->m_swapchain.init(surface, this->m_physDevice.get(), this->m_logiDevice.get(), this->m_scrWidth, this->m_scrHeight);
         this->m_swapchainImages.init(this->m_logiDevice.get(), this->m_swapchain.get(), this->m_swapchain.imageFormat(), this->m_swapchain.extent());
         this->m_depth_image.init(this->m_swapchain.extent(), this->m_logiDevice.get(), this->m_physDevice.get());
-        this->m_gbuf.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchainImages.size(), this->m_swapchain.extent().width, this->m_swapchain.extent().height);
+        this->m_gbuf.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchain.extent().width, this->m_swapchain.extent().height);
         this->m_renderPass.init(this->m_logiDevice.get(), this->make_attachment_format_array());
         this->m_descSetLayout.init(this->m_logiDevice.get());
         this->m_pipeline.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchain.extent(), this->m_descSetLayout.layout_deferred(), this->m_descSetLayout.layout_composition());
@@ -46,16 +46,16 @@ namespace dal {
 
         this->m_uniformBufs.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchainImages.size());
         this->m_descPool.initPool(this->m_logiDevice.get(), this->m_swapchainImages.size());
-        for (const auto& x : this->m_gbuf.m_gbuf) {
+        for (size_t i = 0; i < this->m_swapchainImages.size(); ++i) {
             this->m_descPool.addSets_composition(
                 this->m_logiDevice.get(),
                 this->m_swapchainImages.size(),
                 this->m_descSetLayout.layout_composition(),
                 {
                     this->m_depth_image.image_view(),
-                    x.m_position.view(),
-                    x.m_normal.view(),
-                    x.m_albedo.view(),
+                    this->m_gbuf.get().m_position.view(),
+                    this->m_gbuf.get().m_normal.view(),
+                    this->m_gbuf.get().m_albedo.view(),
                 }
             );
         }
@@ -195,7 +195,7 @@ namespace dal {
             this->m_swapchain.init(surface, this->m_physDevice.get(), this->m_logiDevice.get(), this->m_scrWidth, this->m_scrHeight);
             this->m_swapchainImages.init(this->m_logiDevice.get(), this->m_swapchain.get(), this->m_swapchain.imageFormat(), this->m_swapchain.extent());
             this->m_depth_image.init(this->m_swapchain.extent(), this->m_logiDevice.get(), this->m_physDevice.get());
-            this->m_gbuf.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchainImages.size(), this->m_swapchain.extent().width, this->m_swapchain.extent().height);
+            this->m_gbuf.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchain.extent().width, this->m_swapchain.extent().height);
             this->m_renderPass.init(this->m_logiDevice.get(), this->make_attachment_format_array());
             this->m_pipeline.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchain.extent(), this->m_descSetLayout.layout_deferred(), this->m_descSetLayout.layout_composition());
             this->m_fbuf.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchainImages.getViews(), this->m_swapchain.extent(), this->m_depth_image.image_view(), this->m_gbuf);
@@ -215,16 +215,16 @@ namespace dal {
                 }
             }
 
-            for (const auto& x : this->m_gbuf.m_gbuf) {
+            for (size_t i = 0; i < this->m_swapchainImages.size(); ++i) {
                 this->m_descPool.addSets_composition(
                     this->m_logiDevice.get(),
                     this->m_swapchainImages.size(),
                     this->m_descSetLayout.layout_composition(),
                     {
                         this->m_depth_image.image_view(),
-                        x.m_position.view(),
-                        x.m_normal.view(),
-                        x.m_albedo.view(),
+                        this->m_gbuf.get().m_position.view(),
+                        this->m_gbuf.get().m_normal.view(),
+                        this->m_gbuf.get().m_albedo.view(),
                     }
                 );
             }

@@ -24,9 +24,9 @@ namespace dal {
             std::array<VkImageView, 5> attachments = {
                 swapChainImageViews[i],
                 depth_image_view,
-                gbuf_man.at(i).m_position.view(),
-                gbuf_man.at(i).m_normal.view(),
-                gbuf_man.at(i).m_albedo.view(),
+                gbuf_man.get().m_position.view(),
+                gbuf_man.get().m_normal.view(),
+                gbuf_man.get().m_albedo.view(),
             };
 
             VkFramebufferCreateInfo framebufferInfo = {};
@@ -214,23 +214,14 @@ namespace dal {
     void GbufManager::init(
         const VkDevice logiDevice,
         const VkPhysicalDevice physDevice,
-        const size_t swapchain_count,
         const uint32_t width,
         const uint32_t height
     ) {
-        this->m_gbuf.resize(swapchain_count);
-
-        for (auto& gbuf : this->m_gbuf) {
-            gbuf.init(logiDevice, physDevice, width, height);
-        }
+        this->m_gbuf.init(logiDevice, physDevice, width, height);
     }
 
     void GbufManager::destroy(const VkDevice logiDevice) {
-        for (auto& gbuf : this->m_gbuf) {
-            gbuf.destroy(logiDevice);
-        }
-
-        this->m_gbuf.clear();
+        this->m_gbuf.destroy(logiDevice);
     }
 
 }

@@ -74,9 +74,9 @@ namespace dal {
             return std::array<VkFormat, 5>{
                 this->m_swapchain.imageFormat(),
                 this->m_depth_image.format(),
-                this->m_gbuf.at(0).m_position.format(),
-                this->m_gbuf.at(0).m_normal.format(),
-                this->m_gbuf.at(0).m_albedo.format(),
+                this->m_gbuf.get().m_position.format(),
+                this->m_gbuf.get().m_normal.format(),
+                this->m_gbuf.get().m_albedo.format(),
             };
         }
 
