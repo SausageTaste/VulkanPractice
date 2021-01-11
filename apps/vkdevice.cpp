@@ -1,6 +1,7 @@
 #include "vkdevice.h"
 
 #include <array>
+#include <iostream>
 #include <stdexcept>
 
 #include "util_windows.h"
@@ -218,12 +219,20 @@ namespace dal {
                     this->m_logiDevice.graphicsQ()
                 );
 
+                const auto& tex = this->m_tex_man.request_texture(
+                    model_data.m_material.m_albedo_map.c_str(),
+                    this->m_cmdPool,
+                    this->m_logiDevice.get(),
+                    this->m_physDevice,
+                    this->m_logiDevice.graphicsQ()
+                );
+
                 unit.m_material.set_material(
                     this->m_descPool.pool(),
                     this->m_swapchainImages.size(),
                     this->m_descSetLayout.layout_deferred(),
                     this->m_uniformBufs.buffers(),
-                    this->m_tex_tile->view.get(),
+                    tex->view.get(),
                     this->m_tex_man.sampler_1().get(),
                     this->m_logiDevice.get()
                 );

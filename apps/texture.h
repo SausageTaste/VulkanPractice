@@ -113,6 +113,8 @@ namespace dal {
             return this->m_sampler1;
         }
 
+        bool has_texture(const std::string& tex_name) const;
+
         std::shared_ptr<TextureUnit> request_texture(
             const char* const tex_name_ext,
             dal::CommandPool& cmd_pool,

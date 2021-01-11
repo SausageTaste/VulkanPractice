@@ -532,6 +532,10 @@ namespace dal {
         this->m_textures.clear();
     }
 
+    bool TextureManager::has_texture(const std::string& tex_name) const {
+        return this->m_textures.end() != this->m_textures.find(tex_name);
+    }
+
     std::shared_ptr<TextureUnit> TextureManager::request_texture(
         const char* const tex_name_ext,
         dal::CommandPool& cmd_pool,
@@ -539,6 +543,11 @@ namespace dal {
         const dal::PhysDevice& phys_device,
         const VkQueue graphics_queue
     ) {
+        const auto iter = this->m_textures.find(tex_name_ext);
+        if (this->m_textures.end() != iter) {
+            return iter->second;
+        }
+
         std::shared_ptr<TextureUnit> tex;
         tex.reset(new TextureUnit);
 
@@ -567,6 +576,11 @@ namespace dal {
         const dal::PhysDevice& phys_device,
         const VkQueue graphics_queue
     ) {
+        const auto iter = this->m_textures.find(tex_name_ext);
+        if (this->m_textures.end() != iter) {
+            return iter->second;
+        }
+
         std::shared_ptr<TextureUnit> tex;
         tex.reset(new TextureUnit);
 
