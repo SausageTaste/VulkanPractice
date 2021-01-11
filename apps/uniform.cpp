@@ -222,19 +222,21 @@ namespace dal {
 namespace dal {
 
     void DescriptorPool::initPool(VkDevice logiDevice, size_t swapchainImagesSize) {
+        constexpr uint32_t POOL_SIZE_MULTIPLIER = 40;
+
         std::array<VkDescriptorPoolSize, 3> poolSizes{};
         poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        poolSizes[0].descriptorCount = static_cast<uint32_t>(swapchainImagesSize) * 15;
+        poolSizes[0].descriptorCount = static_cast<uint32_t>(swapchainImagesSize) * POOL_SIZE_MULTIPLIER;
         poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        poolSizes[1].descriptorCount = static_cast<uint32_t>(swapchainImagesSize) * 15;
+        poolSizes[1].descriptorCount = static_cast<uint32_t>(swapchainImagesSize) * POOL_SIZE_MULTIPLIER;
         poolSizes[2].type = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
-        poolSizes[2].descriptorCount = static_cast<uint32_t>(swapchainImagesSize) * 15;
+        poolSizes[2].descriptorCount = static_cast<uint32_t>(swapchainImagesSize) * POOL_SIZE_MULTIPLIER;
 
         VkDescriptorPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
         poolInfo.pPoolSizes = poolSizes.data();
-        poolInfo.maxSets = static_cast<uint32_t>(swapchainImagesSize) * 15;
+        poolInfo.maxSets = static_cast<uint32_t>(swapchainImagesSize) * POOL_SIZE_MULTIPLIER;
 
         if (VK_SUCCESS != vkCreateDescriptorPool(logiDevice, &poolInfo, nullptr, &this->descriptorPool)) {
             throw std::runtime_error("failed to create descriptor pool!");

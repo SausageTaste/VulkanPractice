@@ -412,6 +412,46 @@ namespace dal {
                 );
             }
         }
+
+        // Irin
+        {
+            auto& model = this->m_models.emplace_back();
+
+            auto& inst2 = model.add_instance();
+            inst2.transform().m_scale = 0.8;
+            inst2.transform().m_pos.x = -2;
+
+            for (const auto& model_data : load_dmd_model("irin.dmd")) {
+                auto& unit = model.add_unit();
+
+                unit.set_mesh(
+                    model_data.m_vertices,
+                    model_data.m_indices,
+                    this->m_cmdPool,
+                    this->m_logiDevice.get(),
+                    this->m_physDevice.get(),
+                    this->m_logiDevice.graphicsQ()
+                );
+
+                const auto& tex = this->m_tex_man.request_texture(
+                    model_data.m_material.m_albedo_map.c_str(),
+                    this->m_cmdPool,
+                    this->m_logiDevice.get(),
+                    this->m_physDevice,
+                    this->m_logiDevice.graphicsQ()
+                );
+
+                unit.m_material.set_material(
+                    this->m_descPool.pool(),
+                    this->m_swapchainImages.size(),
+                    this->m_descSetLayout.layout_deferred(),
+                    this->m_uniformBufs.buffers(),
+                    tex->view.get(),
+                    this->m_tex_man.sampler_1().get(),
+                    this->m_logiDevice.get()
+                );
+            }
+        }
     }
 
     void VulkanMaster::notifyScreenResize(const unsigned w, const unsigned h) {
