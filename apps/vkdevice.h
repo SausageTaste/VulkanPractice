@@ -62,6 +62,7 @@ namespace dal {
         void waitLogiDeviceIdle(void) const;
         void recreateSwapChain(const VkSurfaceKHR surface);
 
+        void load_textures();
         void load_models();
 
         void notifyScreenResize(const unsigned w, const unsigned h);

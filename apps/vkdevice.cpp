@@ -40,74 +40,9 @@ namespace dal {
         this->m_pipeline.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchain.extent(), this->m_descSetLayout.layout_deferred(), this->m_descSetLayout.layout_composition());
         this->m_fbuf.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchainImages.getViews(), this->m_swapchain.extent(), this->m_depth_image.image_view(), this->m_gbuf);
         this->m_cmdPool.init(this->m_physDevice.get(), this->m_logiDevice.get(), surface);
-
         this->m_tex_man.init(this->m_logiDevice.get(), this->m_physDevice.get());
-        // Load texture images
-        {
-            // grass1
-            {
-                if (this->m_physDevice.does_support_astc()) {
-                    this->m_tex_grass = this->m_tex_man.request_texture_astc(
-                        "grass1.astc",
-                        this->m_cmdPool,
-                        this->m_logiDevice.get(),
-                        this->m_physDevice,
-                        this->m_logiDevice.graphicsQ()
-                    );
-                }
-                else {
-                    this->m_tex_grass = this->m_tex_man.request_texture(
-                        "grass1.png",
-                        this->m_cmdPool,
-                        this->m_logiDevice.get(),
-                        this->m_physDevice,
-                        this->m_logiDevice.graphicsQ()
-                    );
-                }
-            }
 
-            // 0021di
-            {
-                if (this->m_physDevice.does_support_astc()) {
-                    const std::vector<std::string> image_names{
-                        "0021di_512.astc",
-                        "0021di_256.astc",
-                        "0021di_128.astc",
-                        "0021di_64.astc",
-                        "0021di_32.astc",
-                        "0021di_16.astc",
-                        "0021di_8.astc",
-                    };
-
-                    this->m_tex_tile = this->m_tex_man.request_texture_with_mipmaps_astc(
-                        image_names,
-                        this->m_cmdPool,
-                        this->m_logiDevice.get(),
-                        this->m_physDevice,
-                        this->m_logiDevice.graphicsQ()
-                    );
-                }
-                else {
-                    const std::vector<std::string> image_names{
-                        "0021di_512.png",
-                        "0021di_256.png",
-                        "0021di_128.png",
-                        "0021di_64.png",
-                        "0021di_32.png",
-                        "0021di_16.png",
-                        "0021di_8.png",
-                    };
-
-                    this->m_tex_tile = this->m_tex_man.request_texture_with_mipmaps(
-                        image_names,
-                        this->m_cmdPool,
-                        this->m_logiDevice.get(),
-                        this->m_physDevice,
-                        this->m_logiDevice.graphicsQ()
-                    );
-                }
-            }
-        } // Load texture images
+        this->load_textures();
 
         this->m_uniformBufs.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchainImages.size());
         this->m_descPool.initPool(this->m_logiDevice.get(), this->m_swapchainImages.size());
@@ -309,6 +244,72 @@ namespace dal {
             this->m_descPool.descset_composition(),
             this->m_models
         );
+    }
+
+    void VulkanMaster::load_textures() {
+        // grass1
+        {
+            if (this->m_physDevice.does_support_astc()) {
+                this->m_tex_grass = this->m_tex_man.request_texture_astc(
+                    "grass1.astc",
+                    this->m_cmdPool,
+                    this->m_logiDevice.get(),
+                    this->m_physDevice,
+                    this->m_logiDevice.graphicsQ()
+                );
+            }
+            else {
+                this->m_tex_grass = this->m_tex_man.request_texture(
+                    "grass1.png",
+                    this->m_cmdPool,
+                    this->m_logiDevice.get(),
+                    this->m_physDevice,
+                    this->m_logiDevice.graphicsQ()
+                );
+            }
+        }
+
+        // 0021di
+        {
+            if (this->m_physDevice.does_support_astc()) {
+                const std::vector<std::string> image_names{
+                    "0021di_512.astc",
+                    "0021di_256.astc",
+                    "0021di_128.astc",
+                    "0021di_64.astc",
+                    "0021di_32.astc",
+                    "0021di_16.astc",
+                    "0021di_8.astc",
+                };
+
+                this->m_tex_tile = this->m_tex_man.request_texture_with_mipmaps_astc(
+                    image_names,
+                    this->m_cmdPool,
+                    this->m_logiDevice.get(),
+                    this->m_physDevice,
+                    this->m_logiDevice.graphicsQ()
+                );
+            }
+            else {
+                const std::vector<std::string> image_names{
+                    "0021di_512.png",
+                    "0021di_256.png",
+                    "0021di_128.png",
+                    "0021di_64.png",
+                    "0021di_32.png",
+                    "0021di_16.png",
+                    "0021di_8.png",
+                };
+
+                this->m_tex_tile = this->m_tex_man.request_texture_with_mipmaps(
+                    image_names,
+                    this->m_cmdPool,
+                    this->m_logiDevice.get(),
+                    this->m_physDevice,
+                    this->m_logiDevice.graphicsQ()
+                );
+            }
+        }
     }
 
     void VulkanMaster::load_models() {
