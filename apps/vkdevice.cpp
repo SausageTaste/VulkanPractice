@@ -42,66 +42,95 @@ namespace dal {
         this->m_cmdPool.init(this->m_physDevice.get(), this->m_logiDevice.get(), surface);
 
         this->m_sampler1.init(this->m_logiDevice.get(), this->m_physDevice.get());
+
+        // Load texture images
         {
-            this->m_textures.emplace_back();
-            if (this->m_physDevice.does_support_astc()) {
-                this->m_textures.back().image.init_astc(
-                    (dal::get_res_path() + "/image/grass1.astc").c_str(),
+            // grass1
+            {
+                auto& tex = this->m_textures.emplace_back();
+
+                if (this->m_physDevice.does_support_astc()) {
+                    tex.image.init_astc(
+                        (dal::get_res_path() + "/image/grass1.astc").c_str(),
+                        this->m_logiDevice.get(), this->m_physDevice,
+                        this->m_cmdPool,
+                        this->m_logiDevice.graphicsQ()
+                    );
+                }
+                else {
+                    tex.image.init_img(
+                        (dal::get_res_path() + "/image/grass1.png").c_str(),
+                        this->m_logiDevice.get(), this->m_physDevice,
+                        this->m_cmdPool,
+                        this->m_logiDevice.graphicsQ()
+                    );
+                }
+                tex.view.init(
+                    this->m_logiDevice.get(),
+                    tex.image.image(),
+                    tex.image.format(),
+                    tex.image.mip_level()
+                );
+            }
+
+            // 0021di
+            {
+                std::vector<dal::ImageData> image_datas;
+                if (this->m_physDevice.does_support_astc()) {
+                    image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/0021di_512.astc").c_str()));
+                    image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/0021di_256.astc").c_str()));
+                    image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/0021di_128.astc").c_str()));
+                    image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/0021di_64.astc").c_str()));
+                    image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/0021di_32.astc").c_str()));
+                    image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/0021di_16.astc").c_str()));
+                    image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/0021di_8.astc").c_str()));
+                }
+                else {
+                    image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/0021di_512.png").c_str()));
+                    image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/0021di_256.png").c_str()));
+                    image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/0021di_128.png").c_str()));
+                    image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/0021di_64.png").c_str()));
+                    image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/0021di_32.png").c_str()));
+                    image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/0021di_16.png").c_str()));
+                    image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/0021di_8.png").c_str()));
+                }
+
+                auto& tex = this->m_textures.emplace_back();
+
+                tex.image.init_mipmaps(
+                    image_datas,
+                    this->m_logiDevice.get(),
+                    this->m_physDevice,
+                    this->m_cmdPool,
+                    this->m_logiDevice.graphicsQ()
+                );
+                tex.view.init(
+                    this->m_logiDevice.get(),
+                    tex.image.image(),
+                    tex.image.format(),
+                    tex.image.mip_level()
+                );
+            }
+
+            // tr_yuri
+            {
+                auto& tex = this->m_textures.emplace_back();
+
+                tex.image.init_img(
+                    (dal::get_res_path() + "/image/tr_yuri.png").c_str(),
                     this->m_logiDevice.get(), this->m_physDevice,
                     this->m_cmdPool,
                     this->m_logiDevice.graphicsQ()
                 );
-            }
-            else {
-                this->m_textures.back().image.init_img(
-                    (dal::get_res_path() + "/image/grass1.png").c_str(),
-                    this->m_logiDevice.get(), this->m_physDevice,
-                    this->m_cmdPool,
-                    this->m_logiDevice.graphicsQ()
+
+                tex.view.init(
+                    this->m_logiDevice.get(),
+                    tex.image.image(),
+                    tex.image.format(),
+                    tex.image.mip_level()
                 );
             }
-            this->m_textures.back().view.init(
-                this->m_logiDevice.get(),
-                this->m_textures.back().image.image(),
-                this->m_textures.back().image.format(),
-                this->m_textures.back().image.mip_level()
-            );
-
-            std::vector<dal::ImageData> image_datas;
-            if (this->m_physDevice.does_support_astc()) {
-                image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/0021di_512.astc").c_str()));
-                image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/0021di_256.astc").c_str()));
-                image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/0021di_128.astc").c_str()));
-                image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/0021di_64.astc").c_str()));
-                image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/0021di_32.astc").c_str()));
-                image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/0021di_16.astc").c_str()));
-                image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/0021di_8.astc").c_str()));
-            }
-            else {
-                image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/0021di_512.png").c_str()));
-                image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/0021di_256.png").c_str()));
-                image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/0021di_128.png").c_str()));
-                image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/0021di_64.png").c_str()));
-                image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/0021di_32.png").c_str()));
-                image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/0021di_16.png").c_str()));
-                image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/0021di_8.png").c_str()));
-            }
-
-            this->m_textures.emplace_back();
-            this->m_textures.back().image.init_mipmaps(
-                image_datas,
-                this->m_logiDevice.get(),
-                this->m_physDevice,
-                this->m_cmdPool,
-                this->m_logiDevice.graphicsQ()
-            );
-            this->m_textures.back().view.init(
-                this->m_logiDevice.get(),
-                this->m_textures.back().image.image(),
-                this->m_textures.back().image.format(),
-                this->m_textures.back().image.mip_level()
-            );
-        }
+        } // Load texture images
 
         this->m_uniformBufs.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchainImages.size());
         this->m_descPool.initPool(this->m_logiDevice.get(), this->m_swapchainImages.size());
@@ -218,7 +247,7 @@ namespace dal {
                     this->m_swapchainImages.size(),
                     this->m_descSetLayout.layout_deferred(),
                     this->m_uniformBufs.buffers(),
-                    this->m_textures.at(0).view.get(),
+                    this->m_textures.at(2).view.get(),
                     this->m_sampler1.get(),
                     this->m_logiDevice.get()
                 );

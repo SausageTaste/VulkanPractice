@@ -30,6 +30,9 @@ namespace dal {
                 fitted_vert.pos = vert.m_position * 0.02f;
                 fitted_vert.texCoord = vert.m_uv_coords;
                 fitted_vert.normal = vert.m_normal;
+
+
+                fitted_vert.texCoord.y = 1.f - fitted_vert.texCoord.y;
             }
 
             for (const auto& index : indexed_mesh.m_indices) {
