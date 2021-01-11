@@ -333,19 +333,19 @@ namespace dal {
             logiDevice, cmdPool, graphicsQ
         );
 
-        for (int i = 0; i < image_datas.size(); ++i) {
-            VkBuffer stagingBuffer = VK_NULL_HANDLE;
-            VkDeviceMemory stagingBufferMemory = VK_NULL_HANDLE;
-            dal::createBuffer(
-                image_datas[i].buffer.size(),
-                VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                stagingBuffer,
-                stagingBufferMemory,
-                logiDevice,
-                physDevice.get()
-            );
 
+        VkBuffer stagingBuffer = VK_NULL_HANDLE;
+        VkDeviceMemory stagingBufferMemory = VK_NULL_HANDLE;
+        dal::createBuffer(
+            image_datas[0].buffer.size() * 2,
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            stagingBuffer,
+            stagingBufferMemory,
+            logiDevice,
+            physDevice.get()
+        );
+        for (int i = 0; i < image_datas.size(); ++i) {
             void* data = nullptr;
             vkMapMemory(logiDevice, stagingBufferMemory, 0, image_datas[i].buffer.size(), 0, &data);
             memcpy(data, image_datas[i].buffer.data(), image_datas[i].buffer.size());
@@ -359,10 +359,9 @@ namespace dal {
                 i,
                 logiDevice, cmdPool, graphicsQ
             );
-
-            vkDestroyBuffer(logiDevice, stagingBuffer, nullptr);
-            vkFreeMemory(logiDevice, stagingBufferMemory, nullptr);
         }
+        vkDestroyBuffer(logiDevice, stagingBuffer, nullptr);
+        vkFreeMemory(logiDevice, stagingBufferMemory, nullptr);
 
         ::transitionImageLayout(
             this->textureImage,
