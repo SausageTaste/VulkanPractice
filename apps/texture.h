@@ -1,6 +1,9 @@
 #pragma once
 
 #include <vector>
+#include <memory>
+#include <string>
+#include <unordered_map>
 
 #include <vulkan/vulkan.h>
 
@@ -91,6 +94,53 @@ namespace dal {
         auto& get() const {
             return this->textureSampler;
         }
+
+    };
+
+
+    class TextureManager {
+
+    private:
+        TextureSampler m_sampler1;
+
+        std::unordered_map< std::string, std::shared_ptr<TextureUnit> > m_textures;
+
+    public:
+        void init(const VkDevice logi_device, const VkPhysicalDevice phys_device);
+        void destroy(const VkDevice logi_device);
+
+        auto& sampler_1() const {
+            return this->m_sampler1;
+        }
+
+        std::shared_ptr<TextureUnit> request_texture(
+            const char* const tex_name_ext,
+            dal::CommandPool& cmd_pool,
+            const VkDevice logi_device,
+            const dal::PhysDevice& phys_device,
+            const VkQueue graphics_queue
+        );
+        std::shared_ptr<TextureUnit> request_texture_astc(
+            const char* const tex_name_ext,
+            dal::CommandPool& cmd_pool,
+            const VkDevice logi_device,
+            const dal::PhysDevice& phys_device,
+            const VkQueue graphics_queue
+        );
+        std::shared_ptr<TextureUnit> request_texture_with_mipmaps(
+            const std::vector<std::string> tex_names_ext,
+            dal::CommandPool& cmd_pool,
+            const VkDevice logi_device,
+            const dal::PhysDevice& phys_device,
+            const VkQueue graphics_queue
+        );
+        std::shared_ptr<TextureUnit> request_texture_with_mipmaps_astc(
+            const std::vector<std::string> tex_names_ext,
+            dal::CommandPool& cmd_pool,
+            const VkDevice logi_device,
+            const dal::PhysDevice& phys_device,
+            const VkQueue graphics_queue
+        );
 
     };
 

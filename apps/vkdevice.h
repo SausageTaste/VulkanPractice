@@ -41,10 +41,10 @@ namespace dal {
         DescriptorPool m_descPool;
         DepthImage m_depth_image;
         GbufManager m_gbuf;
+        TextureManager m_tex_man;
 
-        TextureSampler m_sampler1;
-        std::vector<TextureUnit> m_textures;
         std::vector<ModelVK> m_models;
+        std::shared_ptr<TextureUnit> m_tex_grass, m_tex_tile;
 
         unsigned m_currentFrame = 0;
         bool m_needResize = false;

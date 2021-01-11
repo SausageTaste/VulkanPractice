@@ -1,5 +1,7 @@
 #include "model_data.h"
 
+#include <stdexcept>
+
 #include <dal_model_parser.h>
 #include <dal_modifier.h>
 

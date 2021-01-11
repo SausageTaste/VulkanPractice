@@ -28,7 +28,6 @@ namespace {
 namespace dal {
 
     void VulkanMaster::init(const VkInstance instance, const VkSurfaceKHR surface, const unsigned w, const unsigned h) {
-
         this->m_physDevice.init(instance, surface);
         this->m_logiDevice.init(surface, this->m_physDevice.get());
         this->m_swapchain.init(surface, this->m_physDevice.get(), this->m_logiDevice.get(), this->m_scrWidth, this->m_scrHeight);
@@ -41,94 +40,71 @@ namespace dal {
         this->m_fbuf.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchainImages.getViews(), this->m_swapchain.extent(), this->m_depth_image.image_view(), this->m_gbuf);
         this->m_cmdPool.init(this->m_physDevice.get(), this->m_logiDevice.get(), surface);
 
-        this->m_sampler1.init(this->m_logiDevice.get(), this->m_physDevice.get());
-
+        this->m_tex_man.init(this->m_logiDevice.get(), this->m_physDevice.get());
         // Load texture images
         {
             // grass1
             {
-                auto& tex = this->m_textures.emplace_back();
-
                 if (this->m_physDevice.does_support_astc()) {
-                    tex.image.init_astc(
-                        (dal::get_res_path() + "/image/grass1.astc").c_str(),
-                        this->m_logiDevice.get(), this->m_physDevice,
+                    this->m_tex_grass = this->m_tex_man.request_texture_astc(
+                        "grass1.astc",
                         this->m_cmdPool,
+                        this->m_logiDevice.get(),
+                        this->m_physDevice,
                         this->m_logiDevice.graphicsQ()
                     );
                 }
                 else {
-                    tex.image.init_img(
-                        (dal::get_res_path() + "/image/grass1.png").c_str(),
-                        this->m_logiDevice.get(), this->m_physDevice,
+                    this->m_tex_grass = this->m_tex_man.request_texture(
+                        "grass1.png",
                         this->m_cmdPool,
+                        this->m_logiDevice.get(),
+                        this->m_physDevice,
                         this->m_logiDevice.graphicsQ()
                     );
                 }
-                tex.view.init(
-                    this->m_logiDevice.get(),
-                    tex.image.image(),
-                    tex.image.format(),
-                    tex.image.mip_level()
-                );
             }
 
             // 0021di
             {
-                std::vector<dal::ImageData> image_datas;
                 if (this->m_physDevice.does_support_astc()) {
-                    image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/0021di_512.astc").c_str()));
-                    image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/0021di_256.astc").c_str()));
-                    image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/0021di_128.astc").c_str()));
-                    image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/0021di_64.astc").c_str()));
-                    image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/0021di_32.astc").c_str()));
-                    image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/0021di_16.astc").c_str()));
-                    image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/0021di_8.astc").c_str()));
+                    const std::vector<std::string> image_names{
+                        "0021di_512.astc",
+                        "0021di_256.astc",
+                        "0021di_128.astc",
+                        "0021di_64.astc",
+                        "0021di_32.astc",
+                        "0021di_16.astc",
+                        "0021di_8.astc",
+                    };
+
+                    this->m_tex_tile = this->m_tex_man.request_texture_with_mipmaps_astc(
+                        image_names,
+                        this->m_cmdPool,
+                        this->m_logiDevice.get(),
+                        this->m_physDevice,
+                        this->m_logiDevice.graphicsQ()
+                    );
                 }
                 else {
-                    image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/0021di_512.png").c_str()));
-                    image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/0021di_256.png").c_str()));
-                    image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/0021di_128.png").c_str()));
-                    image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/0021di_64.png").c_str()));
-                    image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/0021di_32.png").c_str()));
-                    image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/0021di_16.png").c_str()));
-                    image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/0021di_8.png").c_str()));
+                    const std::vector<std::string> image_names{
+                        "0021di_512.png",
+                        "0021di_256.png",
+                        "0021di_128.png",
+                        "0021di_64.png",
+                        "0021di_32.png",
+                        "0021di_16.png",
+                        "0021di_8.png",
+                    };
+
+                    this->m_tex_tile = this->m_tex_man.request_texture_with_mipmaps(
+                        image_names,
+                        this->m_cmdPool,
+                        this->m_logiDevice.get(),
+                        this->m_physDevice,
+                        this->m_logiDevice.graphicsQ()
+                    );
                 }
-
-                auto& tex = this->m_textures.emplace_back();
-
-                tex.image.init_mipmaps(
-                    image_datas,
-                    this->m_logiDevice.get(),
-                    this->m_physDevice,
-                    this->m_cmdPool,
-                    this->m_logiDevice.graphicsQ()
-                );
-                tex.view.init(
-                    this->m_logiDevice.get(),
-                    tex.image.image(),
-                    tex.image.format(),
-                    tex.image.mip_level()
-                );
-            }
-
-            // tr_yuri
-            {
-                auto& tex = this->m_textures.emplace_back();
-
-                tex.image.init_img(
-                    (dal::get_res_path() + "/image/tr_yuri.png").c_str(),
-                    this->m_logiDevice.get(), this->m_physDevice,
-                    this->m_cmdPool,
-                    this->m_logiDevice.graphicsQ()
-                );
-
-                tex.view.init(
-                    this->m_logiDevice.get(),
-                    tex.image.image(),
-                    tex.image.format(),
-                    tex.image.mip_level()
-                );
             }
         } // Load texture images
 
@@ -178,8 +154,8 @@ namespace dal {
                 this->m_swapchainImages.size(),
                 this->m_descSetLayout.layout_deferred(),
                 this->m_uniformBufs.buffers(),
-                this->m_textures.at(0).view.get(),
-                this->m_sampler1.get(),
+                this->m_tex_grass->view.get(),
+                this->m_tex_man.sampler_1().get(),
                 this->m_logiDevice.get()
             );
         }
@@ -221,8 +197,8 @@ namespace dal {
                 this->m_swapchainImages.size(),
                 this->m_descSetLayout.layout_deferred(),
                 this->m_uniformBufs.buffers(),
-                this->m_textures.at(1).view.get(),
-                this->m_sampler1.get(),
+                this->m_tex_tile->view.get(),
+                this->m_tex_man.sampler_1().get(),
                 this->m_logiDevice.get()
             );
         }
@@ -247,8 +223,8 @@ namespace dal {
                     this->m_swapchainImages.size(),
                     this->m_descSetLayout.layout_deferred(),
                     this->m_uniformBufs.buffers(),
-                    this->m_textures.at(2).view.get(),
-                    this->m_sampler1.get(),
+                    this->m_tex_tile->view.get(),
+                    this->m_tex_man.sampler_1().get(),
                     this->m_logiDevice.get()
                 );
             }
@@ -281,13 +257,7 @@ namespace dal {
         //this->m_cmdBuffers.destroy(this->m_logiDevice.get(), this->m_cmdPool.pool());
         this->m_descPool.destroy(this->m_logiDevice.get());
         this->m_uniformBufs.destroy(this->m_logiDevice.get());
-
-        for (auto& tex : this->m_textures) {
-            tex.view.destroy(this->m_logiDevice.get());
-            tex.image.destroy(this->m_logiDevice.get());
-        }
-        this->m_textures.clear();
-        this->m_sampler1.destroy(this->m_logiDevice.get());
+        this->m_tex_man.destroy(this->m_logiDevice.get());
 
         this->m_cmdPool.destroy(this->m_logiDevice.get());
         this->m_fbuf.destroy(this->m_logiDevice.get());
@@ -404,7 +374,7 @@ namespace dal {
                         this->m_swapchainImages.size(),
                         this->m_descSetLayout.layout_deferred(),
                         this->m_uniformBufs.buffers(),
-                        this->m_sampler1.get(),
+                        this->m_tex_man.sampler_1().get(),
                         this->m_logiDevice.get()
                     );
                 }
