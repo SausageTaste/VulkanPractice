@@ -81,7 +81,13 @@ namespace dal {
                                 0, 1, &render_unit.m_material.m_desc_set.at(i), 0, nullptr
                             );
 
-                            vkCmdDrawIndexed(this->m_buffers[i], render_unit.m_mesh.indices.size(), 1, 0, 0, 0);
+                            for (const auto& inst : model.instances()) {
+                                PushedConstValues pushed_consts;
+                                pushed_consts.m_model_mat = inst.transform().make_mat();
+                                vkCmdPushConstants(this->m_buffers[i], pipelayout_deferred, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushedConstValues), &pushed_consts);
+
+                                vkCmdDrawIndexed(this->m_buffers[i], render_unit.m_mesh.indices.size(), 1, 0, 0, 0);
+                            }
                         }
                     }
                 }

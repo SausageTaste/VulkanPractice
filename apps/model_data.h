@@ -6,9 +6,28 @@
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 
 namespace dal {
+
+
+    class Transform {
+
+    public:
+        glm::quat m_quat;
+        glm::vec3 m_pos;
+        float m_scale = 1;
+
+    public:
+        glm::mat4 make_mat() const;
+
+    };
+
+
+    struct PushedConstValues {
+        glm::mat4 m_model_mat;
+    };
 
     struct Vertex {
         glm::vec3 pos;

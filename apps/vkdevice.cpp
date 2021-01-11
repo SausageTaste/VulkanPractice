@@ -140,6 +140,9 @@ namespace dal {
             };
 
             auto& model = this->m_models.emplace_back();
+
+            auto& inst = model.add_instance();
+
             auto& unit = model.add_unit();
             unit.set_mesh(
                 VERTICES,
@@ -183,6 +186,9 @@ namespace dal {
             };
 
             auto& model = this->m_models.emplace_back();
+
+            auto& inst = model.add_instance();
+
             auto& unit = model.add_unit();
             unit.set_mesh(
                 VERTICES,
@@ -206,6 +212,13 @@ namespace dal {
 
         {
             auto& model = this->m_models.emplace_back();
+
+            auto& inst1 = model.add_instance();
+            inst1.transform().m_scale = 0.02;
+
+            auto& inst2 = model.add_instance();
+            inst2.transform().m_scale = 0.02;
+            inst2.transform().m_pos.x = -1;
 
             for (const auto& model_data : get_test_model()) {
                 auto& unit = model.add_unit();

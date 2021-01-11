@@ -55,22 +55,45 @@ namespace dal {
 
     };
 
+    class ModelInstance {
+
+    private:
+        Transform m_transform;
+
+    public:
+        auto& transform() {
+            return this->m_transform;
+        }
+        auto& transform() const {
+            return this->m_transform;
+        }
+
+    };
+
 
     class ModelVK {
 
     private:
        std::vector<RenderUnitVK> m_render_units;
+       std::vector<ModelInstance> m_instances;
 
     public:
         void destroy(const VkDevice logi_device, const VkDescriptorPool pool);
 
         RenderUnitVK& add_unit();
+        ModelInstance& add_instance();
 
         auto& render_units() {
             return this->m_render_units;
         }
         auto& render_units() const {
             return this->m_render_units;
+        }
+        auto& instances() {
+            return this->m_instances;
+        }
+        auto& instances() const {
+            return this->m_instances;
         }
 
     };

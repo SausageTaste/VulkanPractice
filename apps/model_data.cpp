@@ -11,6 +11,14 @@
 
 namespace dal {
 
+    glm::mat4 Transform::make_mat() const {
+        const auto identity = glm::mat4{ 1 };
+        const auto scaleMat = glm::scale(identity, glm::vec3{ this->m_scale, this->m_scale , this->m_scale });
+        const auto translateMat = glm::translate(identity, this->m_pos);
+
+        return translateMat * glm::mat4_cast(this->m_quat) * scaleMat;
+    }
+
     std::vector<RenderUnit> get_test_model() {
         std::vector<RenderUnit> result;
 
@@ -29,7 +37,7 @@ namespace dal {
 
             for (const auto& vert : indexed_mesh.m_vertices) {
                 auto& fitted_vert = output_render_unit.m_vertices.emplace_back();
-                fitted_vert.pos = vert.m_position * 0.02f;
+                fitted_vert.pos = vert.m_position;
                 fitted_vert.texCoord = vert.m_uv_coords;
                 fitted_vert.normal = vert.m_normal;
 

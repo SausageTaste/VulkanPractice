@@ -13,7 +13,7 @@
 namespace dal {
 
     struct UniformBufferObject {
-        glm::mat4 model, view, proj;
+        glm::mat4 view, proj;
     };
 
 

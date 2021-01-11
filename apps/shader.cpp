@@ -7,6 +7,8 @@
 
 #include "util_windows.h"
 #include "vert_data.h"
+#include "model_data.h"
+
 
 #define DAL_ALPHA_BLEND false
 
@@ -246,15 +248,29 @@ namespace {
         return dynamicState;
     }
 
+    template <typename _Struct>
+    auto create_info_push_constant() {
+        std::array<VkPushConstantRange, 1> result;
 
-    auto create_pipeline_layout(const VkDescriptorSetLayout* layouts, const uint32_t layout_count, const VkDevice logi_device) {
+        result[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+        result[0].offset = 0;
+        result[0].size = sizeof(_Struct);
+
+        return result;
+    }
+
+    auto create_pipeline_layout(
+        const VkDescriptorSetLayout* const layouts, const uint32_t layout_count,
+        const VkPushConstantRange* const push_consts, const uint32_t push_const_count,
+        const VkDevice logi_device
+    ) {
         VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 
         pipelineLayoutInfo.setLayoutCount = layout_count;
         pipelineLayoutInfo.pSetLayouts = layouts;
-        pipelineLayoutInfo.pushConstantRangeCount = 0;
-        pipelineLayoutInfo.pPushConstantRanges = nullptr;
+        pipelineLayoutInfo.pushConstantRangeCount = push_const_count;
+        pipelineLayoutInfo.pPushConstantRanges = push_consts;
 
         VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
         if ( vkCreatePipelineLayout(logi_device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS ) {
@@ -303,7 +319,8 @@ namespace {
         const auto dynamicState = ::create_info_dynamic_state(dynamicStates.data(), dynamicStates.size());
 
         // Pipeline layout
-        const auto pipelineLayout = ::create_pipeline_layout(&descriptorSetLayout, 1, device);
+        const auto push_consts = ::create_info_push_constant<dal::PushedConstValues>();
+        const auto pipelineLayout = ::create_pipeline_layout(&descriptorSetLayout, 1, push_consts.data(), push_consts.size(), device);
 
         // Pipeline, finally
         VkGraphicsPipelineCreateInfo pipelineInfo{};
@@ -370,7 +387,7 @@ namespace {
         const auto dynamicState = ::create_info_dynamic_state(dynamicStates.data(), dynamicStates.size());
 
         // Pipeline layout
-        VkPipelineLayout pipelineLayout = ::create_pipeline_layout(&descriptorSetLayout, 1, device);
+        VkPipelineLayout pipelineLayout = ::create_pipeline_layout(&descriptorSetLayout, 1, nullptr, 0, device);
 
         // Pipeline, finally
         VkGraphicsPipelineCreateInfo pipelineInfo{};

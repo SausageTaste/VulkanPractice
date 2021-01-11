@@ -64,4 +64,8 @@ namespace dal {
         return this->m_render_units.emplace_back();
     }
 
+    ModelInstance& ModelVK::add_instance() {
+        return this->m_instances.emplace_back();
+    }
+
 }
