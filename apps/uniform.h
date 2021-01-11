@@ -83,14 +83,6 @@ namespace dal {
 
     public:
         void initPool(VkDevice logiDevice, size_t swapchainImagesSize);
-        void addSets_deferred(
-            const VkDevice logiDevice,
-            const size_t swapchainImagesSize,
-            const VkDescriptorSetLayout descriptorSetLayout,
-            const std::vector<VkBuffer>& uniformBuffers,
-            const VkImageView textureImageView,
-            const VkSampler textureSampler
-        );
         void addSets_composition(
             const VkDevice logiDevice,
             const size_t swapchainImagesSize,
@@ -99,7 +91,9 @@ namespace dal {
         );
         void destroy(VkDevice logiDevice);
 
-        std::vector<std::vector<VkDescriptorSet>> descset_deferred() const;
+        auto& pool() const {
+            return this->descriptorPool;
+        }
         std::vector<std::vector<VkDescriptorSet>> descset_composition() const;
 
     };

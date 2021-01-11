@@ -28,6 +28,7 @@ add_executable(vulkan_practice
     command_pool.h      command_pool.cpp
     depth_image.h       depth_image.cpp
     model_data.h        model_data.cpp
+    model_render.h      model_render.cpp
 )
 target_compile_features(vulkan_practice PUBLIC cxx_std_17)
 

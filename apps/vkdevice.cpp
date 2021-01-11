@@ -105,12 +105,6 @@ namespace dal {
 
         this->m_uniformBufs.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchainImages.size());
         this->m_descPool.initPool(this->m_logiDevice.get(), this->m_swapchainImages.size());
-        for (const auto& tex : this->m_textures) {
-            this->m_descPool.addSets_deferred(
-                this->m_logiDevice.get(), this->m_swapchainImages.size(), this->m_descSetLayout.layout_deferred(),
-                this->m_uniformBufs.buffers(), tex.view.get(), this->m_sampler1.get()
-            );
-        }
         for (const auto& x : this->m_gbuf.m_gbuf) {
             this->m_descPool.addSets_composition(
                 this->m_logiDevice.get(),
@@ -139,14 +133,25 @@ namespace dal {
                 0, 1, 2, 0, 2, 3
             };
 
-            this->m_meshes.emplace_back();
-            this->m_meshes.back().vertices.init(
-                VERTICES, this->m_logiDevice.get(), this->m_physDevice.get(),
-                this->m_cmdPool, this->m_logiDevice.graphicsQ()
+            auto& model = this->m_models.emplace_back();
+            auto& unit = model.add_unit();
+            unit.set_mesh(
+                VERTICES,
+                INDICES,
+                this->m_cmdPool,
+                this->m_logiDevice.get(),
+                this->m_physDevice.get(),
+                this->m_logiDevice.graphicsQ()
             );
-            this->m_meshes.back().indices.init(
-                INDICES, this->m_logiDevice.get(), this->m_physDevice.get(),
-                this->m_cmdPool, this->m_logiDevice.graphicsQ()
+
+            unit.m_material.set_material(
+                this->m_descPool.pool(),
+                this->m_swapchainImages.size(),
+                this->m_descSetLayout.layout_deferred(),
+                this->m_uniformBufs.buffers(),
+                this->m_textures.at(0).view.get(),
+                this->m_sampler1.get(),
+                this->m_logiDevice.get()
             );
         }
 
@@ -171,27 +176,51 @@ namespace dal {
                 4, 5, 6, 4, 6, 7
             };
 
-            this->m_meshes.emplace_back();
-            this->m_meshes.back().vertices.init(
-                VERTICES, this->m_logiDevice.get(), this->m_physDevice.get(),
-                this->m_cmdPool, this->m_logiDevice.graphicsQ()
+            auto& model = this->m_models.emplace_back();
+            auto& unit = model.add_unit();
+            unit.set_mesh(
+                VERTICES,
+                INDICES,
+                this->m_cmdPool,
+                this->m_logiDevice.get(),
+                this->m_physDevice.get(),
+                this->m_logiDevice.graphicsQ()
             );
-            this->m_meshes.back().indices.init(
-                INDICES, this->m_logiDevice.get(), this->m_physDevice.get(),
-                this->m_cmdPool, this->m_logiDevice.graphicsQ()
+
+            unit.m_material.set_material(
+                this->m_descPool.pool(),
+                this->m_swapchainImages.size(),
+                this->m_descSetLayout.layout_deferred(),
+                this->m_uniformBufs.buffers(),
+                this->m_textures.at(1).view.get(),
+                this->m_sampler1.get(),
+                this->m_logiDevice.get()
             );
         }
 
         {
-            for (const auto& model : get_test_model()) {
-                this->m_meshes.emplace_back();
-                this->m_meshes.back().vertices.init(
-                    model.m_vertices, this->m_logiDevice.get(), this->m_physDevice.get(),
-                    this->m_cmdPool, this->m_logiDevice.graphicsQ()
+            auto& model = this->m_models.emplace_back();
+
+            for (const auto& model_data : get_test_model()) {
+                auto& unit = model.add_unit();
+
+                unit.set_mesh(
+                    model_data.m_vertices,
+                    model_data.m_indices,
+                    this->m_cmdPool,
+                    this->m_logiDevice.get(),
+                    this->m_physDevice.get(),
+                    this->m_logiDevice.graphicsQ()
                 );
-                this->m_meshes.back().indices.init(
-                    model.m_indices, this->m_logiDevice.get(), this->m_physDevice.get(),
-                    this->m_cmdPool, this->m_logiDevice.graphicsQ()
+
+                unit.m_material.set_material(
+                    this->m_descPool.pool(),
+                    this->m_swapchainImages.size(),
+                    this->m_descSetLayout.layout_deferred(),
+                    this->m_uniformBufs.buffers(),
+                    this->m_textures.at(0).view.get(),
+                    this->m_sampler1.get(),
+                    this->m_logiDevice.get()
                 );
             }
         }
@@ -204,9 +233,8 @@ namespace dal {
             this->m_pipeline.layout_composition(),
             this->m_swapchain.extent(),
             this->m_fbuf.getList(),
-            this->m_descPool.descset_deferred(),
             this->m_descPool.descset_composition(),
-            this->m_meshes
+            this->m_models
         );
 
         this->m_currentFrame = 0;
@@ -215,11 +243,10 @@ namespace dal {
     }
 
     void VulkanMaster::destroy(void) {
-        for (auto& mesh : this->m_meshes) {
-            mesh.vertices.destroy(this->m_logiDevice.get());
-            mesh.indices.destroy(this->m_logiDevice.get());
+        for (auto& model : this->m_models) {
+            model.destroy(this->m_logiDevice.get(), this->m_descPool.pool());
         }
-        this->m_meshes.clear();
+        this->m_models.clear();
 
         this->m_syncMas.destroy(this->m_logiDevice.get());
         //this->m_cmdBuffers.destroy(this->m_logiDevice.get(), this->m_cmdPool.pool());
@@ -340,12 +367,20 @@ namespace dal {
             this->m_fbuf.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchainImages.getViews(), this->m_swapchain.extent(), this->m_depth_image.image_view(), this->m_gbuf);
             this->m_uniformBufs.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchainImages.size());
             this->m_descPool.initPool(this->m_logiDevice.get(), this->m_swapchainImages.size());
-            for (const auto& tex : this->m_textures) {
-                this->m_descPool.addSets_deferred(
-                    this->m_logiDevice.get(), this->m_swapchainImages.size(), this->m_descSetLayout.layout_deferred(),
-                    this->m_uniformBufs.buffers(), tex.view.get(), this->m_sampler1.get()
-                );
+
+            for (auto& model : this->m_models) {
+                for (auto& unit : model.render_units()) {
+                    unit.m_material.set_material(
+                        this->m_descPool.pool(),
+                        this->m_swapchainImages.size(),
+                        this->m_descSetLayout.layout_deferred(),
+                        this->m_uniformBufs.buffers(),
+                        this->m_sampler1.get(),
+                        this->m_logiDevice.get()
+                    );
+                }
             }
+
             for (const auto& x : this->m_gbuf.m_gbuf) {
                 this->m_descPool.addSets_composition(
                     this->m_logiDevice.get(),
@@ -372,9 +407,8 @@ namespace dal {
             this->m_pipeline.layout_composition(),
             this->m_swapchain.extent(),
             this->m_fbuf.getList(),
-            this->m_descPool.descset_deferred(),
             this->m_descPool.descset_composition(),
-            this->m_meshes
+            this->m_models
         );
     }
 

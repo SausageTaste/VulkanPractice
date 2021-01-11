@@ -18,6 +18,7 @@
 #include "uniform.h"
 #include "texture.h"
 #include "depth_image.h"
+#include "model_render.h"
 
 
 namespace dal {
@@ -43,7 +44,7 @@ namespace dal {
 
         TextureSampler m_sampler1;
         std::vector<TextureUnit> m_textures;
-        std::vector<MeshBuffer> m_meshes;
+        std::vector<ModelVK> m_models;
 
         unsigned m_currentFrame = 0;
         bool m_needResize = false;

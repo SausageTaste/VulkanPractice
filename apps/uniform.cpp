@@ -241,19 +241,6 @@ namespace dal {
         }
     }
 
-    void DescriptorPool::addSets_deferred(
-        const VkDevice logiDevice,
-        const size_t swapchainImagesSize,
-        const VkDescriptorSetLayout descriptorSetLayout,
-        const std::vector<VkBuffer>& uniformBuffers,
-        const VkImageView textureImageView,
-        const VkSampler textureSampler
-    ) {
-        auto& new_one = this->m_descset_deferred.emplace_back();
-        new_one.init(swapchainImagesSize, descriptorSetLayout, this->descriptorPool, logiDevice);
-        new_one.record_deferred(uniformBuffers, textureImageView, textureSampler, logiDevice);
-    }
-
     void DescriptorPool::addSets_composition(
         const VkDevice logiDevice,
         const size_t swapchainImagesSize,
@@ -273,16 +260,6 @@ namespace dal {
 
         this->m_descset_deferred.clear();
         this->m_descset_composition.clear();
-    }
-
-    std::vector<std::vector<VkDescriptorSet>> DescriptorPool::descset_deferred() const{
-        std::vector<std::vector<VkDescriptorSet>> result;
-
-        for (auto& x : this->m_descset_deferred) {
-            result.emplace_back(x.vector());
-        }
-
-        return result;
     }
 
     std::vector<std::vector<VkDescriptorSet>> DescriptorPool::descset_composition() const {

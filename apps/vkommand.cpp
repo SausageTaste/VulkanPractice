@@ -33,9 +33,8 @@ namespace dal {
         const VkPipelineLayout pipelayout_composition,
         const VkExtent2D& extent,
         const std::vector<VkFramebuffer>& swapChainFbufs,
-        const std::vector<std::vector<VkDescriptorSet>>& descset_deferred,
         const std::vector<std::vector<VkDescriptorSet>>& descset_composition,
-        const std::vector<MeshBuffer>& meshes
+        const std::vector<ModelVK>& models
     ) {
         VkCommandBufferBeginInfo beginInfo = {};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -68,23 +67,22 @@ namespace dal {
                 {
                     vkCmdBindPipeline(this->m_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_deferred);
 
-                    int descIndex = 0;
-                    for (const auto& mesh : meshes) {
-                        VkBuffer vertBuffers[] = {mesh.vertices.getBuf()};
-                        VkDeviceSize offsets[] = {0};
-                        vkCmdBindVertexBuffers(this->m_buffers[i], 0, 1, vertBuffers, offsets);
-                        vkCmdBindIndexBuffer(this->m_buffers[i], mesh.indices.getBuf(), 0, VK_INDEX_TYPE_UINT32);
+                    for (const auto& model : models) {
+                        for (const auto& render_unit : model.render_units()) {
+                            VkBuffer vertBuffers[] = {render_unit.m_mesh.vertices.getBuf()};
+                            VkDeviceSize offsets[] = {0};
+                            vkCmdBindVertexBuffers(this->m_buffers[i], 0, 1, vertBuffers, offsets);
+                            vkCmdBindIndexBuffer(this->m_buffers[i], render_unit.m_mesh.indices.getBuf(), 0, VK_INDEX_TYPE_UINT32);
 
-                        vkCmdBindDescriptorSets(
-                            this->m_buffers[i],
-                            VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            pipelayout_deferred,
-                            0, 1, &descset_deferred.at(descIndex)[i], 0, nullptr
-                        );
+                            vkCmdBindDescriptorSets(
+                                this->m_buffers[i],
+                                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                pipelayout_deferred,
+                                0, 1, &render_unit.m_material.m_desc_set.at(i), 0, nullptr
+                            );
 
-                        vkCmdDrawIndexed(this->m_buffers[i], mesh.indices.size(), 1, 0, 0, 0);
-
-                        descIndex = std::min<int>(descIndex + 1, descset_deferred.size() - 1);
+                            vkCmdDrawIndexed(this->m_buffers[i], render_unit.m_mesh.indices.size(), 1, 0, 0, 0);
+                        }
                     }
                 }
                 {
