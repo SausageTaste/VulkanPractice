@@ -12,11 +12,11 @@ namespace dal {
     std::vector<ModelData> get_test_model() {
         std::vector<ModelData> result;
 
-        const auto model_path = get_res_path() + "/model/irin.dmd";
+        const auto model_path = get_res_path() + "/model/yuri_cso2.dmd";
         const auto file_content = readFile(model_path);
         const auto model_data = parser::parse_model_straight(reinterpret_cast<const uint8_t*>(file_content.data()), file_content.size());
         if (!model_data) {
-            throw std::runtime_error{ "failed to parser model file: irin.dmd" };
+            throw std::runtime_error{ "failed to parser model file: " + model_path };
         }
 
         for (const auto& x : model_data->m_render_units) {
@@ -27,7 +27,7 @@ namespace dal {
 
             for (const auto& vert : indexed_mesh.m_vertices) {
                 auto& fitted_vert = output_model.m_vertices.emplace_back();
-                fitted_vert.pos = vert.m_position;
+                fitted_vert.pos = vert.m_position * 0.02f;
                 fitted_vert.texCoord = vert.m_uv_coords;
                 fitted_vert.normal = vert.m_normal;
             }
