@@ -46,6 +46,10 @@ namespace dal {
     };
 
 
+    std::vector<RenderUnit> load_dmd_model(const char* const model_name_ext);
     std::vector<RenderUnit> get_test_model();
+
+    RenderUnit get_horizontal_plane(const float x_length, const float z_length);
+    RenderUnit get_aabb_box();
 
 }
