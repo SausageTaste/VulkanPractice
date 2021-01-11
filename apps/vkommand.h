@@ -5,7 +5,7 @@
 
 #include <vulkan/vulkan.h>
 
-#include "vert_data.h"
+#include "model_render.h"
 
 
 namespace dal {
@@ -27,9 +27,8 @@ namespace dal {
             const VkPipelineLayout pipelayout_composition,
             const VkExtent2D& extent,
             const std::vector<VkFramebuffer>& swapChainFbufs,
-            const std::vector<std::vector<VkDescriptorSet>>& descset_deferred,
             const std::vector<std::vector<VkDescriptorSet>>& descset_composition,
-            const std::vector<MeshBuffer>& meshes
+            const std::vector<ModelVK>& models
         );
 
         auto& buffers(void) const {

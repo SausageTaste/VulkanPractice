@@ -513,3 +513,161 @@ namespace dal {
     }
 
 }
+
+
+namespace dal {
+
+    void TextureManager::init(const VkDevice logi_device, const VkPhysicalDevice phys_device) {
+        this->m_sampler1.init(logi_device, phys_device);
+    }
+
+    void TextureManager::destroy(const VkDevice logi_device) {
+        this->m_sampler1.destroy(logi_device);
+
+        for (auto& [name, tex] : this->m_textures) {
+            tex->view.destroy(logi_device);
+            tex->image.destroy(logi_device);
+        }
+
+        this->m_textures.clear();
+    }
+
+    bool TextureManager::has_texture(const std::string& tex_name) const {
+        return this->m_textures.end() != this->m_textures.find(tex_name);
+    }
+
+    std::shared_ptr<TextureUnit> TextureManager::request_texture(
+        const char* const tex_name_ext,
+        dal::CommandPool& cmd_pool,
+        const VkDevice logi_device,
+        const dal::PhysDevice& phys_device,
+        const VkQueue graphics_queue
+    ) {
+        const auto iter = this->m_textures.find(tex_name_ext);
+        if (this->m_textures.end() != iter) {
+            return iter->second;
+        }
+
+        std::shared_ptr<TextureUnit> tex;
+        tex.reset(new TextureUnit);
+
+        tex->image.init_img(
+            (dal::get_res_path() + "/image/" + tex_name_ext).c_str(),
+            logi_device,
+            phys_device,
+            cmd_pool,
+            graphics_queue
+        );
+        tex->view.init(
+            logi_device,
+            tex->image.image(),
+            tex->image.format(),
+            tex->image.mip_level()
+        );
+
+        this->m_textures[tex_name_ext] = tex;
+        return tex;
+    }
+
+    std::shared_ptr<TextureUnit> TextureManager::request_texture_astc(
+        const char* const tex_name_ext,
+        dal::CommandPool& cmd_pool,
+        const VkDevice logi_device,
+        const dal::PhysDevice& phys_device,
+        const VkQueue graphics_queue
+    ) {
+        const auto iter = this->m_textures.find(tex_name_ext);
+        if (this->m_textures.end() != iter) {
+            return iter->second;
+        }
+
+        std::shared_ptr<TextureUnit> tex;
+        tex.reset(new TextureUnit);
+
+        tex->image.init_astc(
+            (dal::get_res_path() + "/image/" + tex_name_ext).c_str(),
+            logi_device,
+            phys_device,
+            cmd_pool,
+            graphics_queue
+        );
+        tex->view.init(
+            logi_device,
+            tex->image.image(),
+            tex->image.format(),
+            tex->image.mip_level()
+        );
+
+        this->m_textures[tex_name_ext] = tex;
+        return tex;
+    }
+
+    std::shared_ptr<TextureUnit> TextureManager::request_texture_with_mipmaps(
+        const std::vector<std::string> tex_names_ext,
+        dal::CommandPool& cmd_pool,
+        const VkDevice logi_device,
+        const dal::PhysDevice& phys_device,
+        const VkQueue graphics_queue
+    ) {
+        std::vector<dal::ImageData> image_datas;
+
+        for (const auto& tex_name_ext : tex_names_ext) {
+            image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/" + tex_name_ext).c_str()));
+        }
+
+        std::shared_ptr<TextureUnit> tex;
+        tex.reset(new TextureUnit);
+
+        tex->image.init_mipmaps(
+            image_datas,
+            logi_device,
+            phys_device,
+            cmd_pool,
+            graphics_queue
+        );
+        tex->view.init(
+            logi_device,
+            tex->image.image(),
+            tex->image.format(),
+            tex->image.mip_level()
+        );
+
+        this->m_textures[tex_names_ext[0]] = tex;
+        return tex;
+    }
+
+    std::shared_ptr<TextureUnit> TextureManager::request_texture_with_mipmaps_astc(
+        const std::vector<std::string> tex_names_ext,
+        dal::CommandPool& cmd_pool,
+        const VkDevice logi_device,
+        const dal::PhysDevice& phys_device,
+        const VkQueue graphics_queue
+    ) {
+        std::vector<dal::ImageData> image_datas;
+
+        for (const auto& tex_name_ext : tex_names_ext) {
+            image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/" + tex_name_ext).c_str()));
+        }
+
+        std::shared_ptr<TextureUnit> tex;
+        tex.reset(new TextureUnit);
+
+        tex->image.init_mipmaps(
+            image_datas,
+            logi_device,
+            phys_device,
+            cmd_pool,
+            graphics_queue
+        );
+        tex->view.init(
+            logi_device,
+            tex->image.image(),
+            tex->image.format(),
+            tex->image.mip_level()
+        );
+
+        this->m_textures[tex_names_ext[0]] = tex;
+        return tex;
+    }
+
+}

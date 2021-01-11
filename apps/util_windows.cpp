@@ -187,6 +187,29 @@ namespace dal {
         return res_path;
     }
 
+
+    std::vector<char> readFile(const char* const path) {
+        std::ifstream file{ path, std::ios::ate | std::ios::binary };
+
+        if ( !file.is_open() ) {
+            throw std::runtime_error(std::string{"failed to open file: "} + path);
+        }
+
+        const auto fileSize = static_cast<size_t>(file.tellg());
+        std::vector<char> buffer;
+        buffer.resize(fileSize);
+
+        file.seekg(0);
+        file.read(buffer.data(), fileSize);
+        file.close();
+
+        return buffer;
+    }
+
+    std::vector<char> readFile(const std::string& path) {
+        return readFile(path.c_str());
+    }
+
 }
 
 

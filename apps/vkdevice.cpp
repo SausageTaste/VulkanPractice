@@ -1,9 +1,11 @@
 #include "vkdevice.h"
 
 #include <array>
+#include <iostream>
 #include <stdexcept>
 
 #include "util_windows.h"
+#include "model_data.h"
 
 
 namespace {
@@ -27,7 +29,6 @@ namespace {
 namespace dal {
 
     void VulkanMaster::init(const VkInstance instance, const VkSurfaceKHR surface, const unsigned w, const unsigned h) {
-
         this->m_physDevice.init(instance, surface);
         this->m_logiDevice.init(surface, this->m_physDevice.get());
         this->m_swapchain.init(surface, this->m_physDevice.get(), this->m_logiDevice.get(), this->m_scrWidth, this->m_scrHeight);
@@ -40,76 +41,76 @@ namespace dal {
         this->m_fbuf.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchainImages.getViews(), this->m_swapchain.extent(), this->m_depth_image.image_view(), this->m_gbuf);
         this->m_cmdPool.init(this->m_physDevice.get(), this->m_logiDevice.get(), surface);
 
-        this->m_sampler1.init(this->m_logiDevice.get(), this->m_physDevice.get());
+        this->m_tex_man.init(this->m_logiDevice.get(), this->m_physDevice.get());
+        // Load texture images
         {
-            this->m_textures.emplace_back();
-            if (this->m_physDevice.does_support_astc()) {
-                this->m_textures.back().image.init_astc(
-                    (dal::get_res_path() + "/image/grass1.astc").c_str(),
-                    this->m_logiDevice.get(), this->m_physDevice,
-                    this->m_cmdPool,
-                    this->m_logiDevice.graphicsQ()
-                );
-            }
-            else {
-                this->m_textures.back().image.init_img(
-                    (dal::get_res_path() + "/image/grass1.png").c_str(),
-                    this->m_logiDevice.get(), this->m_physDevice,
-                    this->m_cmdPool,
-                    this->m_logiDevice.graphicsQ()
-                );
-            }
-            this->m_textures.back().view.init(
-                this->m_logiDevice.get(),
-                this->m_textures.back().image.image(),
-                this->m_textures.back().image.format(),
-                this->m_textures.back().image.mip_level()
-            );
-
-            std::vector<dal::ImageData> image_datas;
-            if (this->m_physDevice.does_support_astc()) {
-                image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/0021di_512.astc").c_str()));
-                image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/0021di_256.astc").c_str()));
-                image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/0021di_128.astc").c_str()));
-                image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/0021di_64.astc").c_str()));
-                image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/0021di_32.astc").c_str()));
-                image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/0021di_16.astc").c_str()));
-                image_datas.emplace_back(dal::open_image_astc((dal::get_res_path() + "/image/0021di_8.astc").c_str()));
-            }
-            else {
-                image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/0021di_512.png").c_str()));
-                image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/0021di_256.png").c_str()));
-                image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/0021di_128.png").c_str()));
-                image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/0021di_64.png").c_str()));
-                image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/0021di_32.png").c_str()));
-                image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/0021di_16.png").c_str()));
-                image_datas.emplace_back(dal::open_image_stb((dal::get_res_path() + "/image/0021di_8.png").c_str()));
+            // grass1
+            {
+                if (this->m_physDevice.does_support_astc()) {
+                    this->m_tex_grass = this->m_tex_man.request_texture_astc(
+                        "grass1.astc",
+                        this->m_cmdPool,
+                        this->m_logiDevice.get(),
+                        this->m_physDevice,
+                        this->m_logiDevice.graphicsQ()
+                    );
+                }
+                else {
+                    this->m_tex_grass = this->m_tex_man.request_texture(
+                        "grass1.png",
+                        this->m_cmdPool,
+                        this->m_logiDevice.get(),
+                        this->m_physDevice,
+                        this->m_logiDevice.graphicsQ()
+                    );
+                }
             }
 
-            this->m_textures.emplace_back();
-            this->m_textures.back().image.init_mipmaps(
-                image_datas,
-                this->m_logiDevice.get(),
-                this->m_physDevice,
-                this->m_cmdPool,
-                this->m_logiDevice.graphicsQ()
-            );
-            this->m_textures.back().view.init(
-                this->m_logiDevice.get(),
-                this->m_textures.back().image.image(),
-                this->m_textures.back().image.format(),
-                this->m_textures.back().image.mip_level()
-            );
-        }
+            // 0021di
+            {
+                if (this->m_physDevice.does_support_astc()) {
+                    const std::vector<std::string> image_names{
+                        "0021di_512.astc",
+                        "0021di_256.astc",
+                        "0021di_128.astc",
+                        "0021di_64.astc",
+                        "0021di_32.astc",
+                        "0021di_16.astc",
+                        "0021di_8.astc",
+                    };
+
+                    this->m_tex_tile = this->m_tex_man.request_texture_with_mipmaps_astc(
+                        image_names,
+                        this->m_cmdPool,
+                        this->m_logiDevice.get(),
+                        this->m_physDevice,
+                        this->m_logiDevice.graphicsQ()
+                    );
+                }
+                else {
+                    const std::vector<std::string> image_names{
+                        "0021di_512.png",
+                        "0021di_256.png",
+                        "0021di_128.png",
+                        "0021di_64.png",
+                        "0021di_32.png",
+                        "0021di_16.png",
+                        "0021di_8.png",
+                    };
+
+                    this->m_tex_tile = this->m_tex_man.request_texture_with_mipmaps(
+                        image_names,
+                        this->m_cmdPool,
+                        this->m_logiDevice.get(),
+                        this->m_physDevice,
+                        this->m_logiDevice.graphicsQ()
+                    );
+                }
+            }
+        } // Load texture images
 
         this->m_uniformBufs.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchainImages.size());
         this->m_descPool.initPool(this->m_logiDevice.get(), this->m_swapchainImages.size());
-        for (const auto& tex : this->m_textures) {
-            this->m_descPool.addSets_deferred(
-                this->m_logiDevice.get(), this->m_swapchainImages.size(), this->m_descSetLayout.layout_deferred(),
-                this->m_uniformBufs.buffers(), tex.view.get(), this->m_sampler1.get()
-            );
-        }
         for (const auto& x : this->m_gbuf.m_gbuf) {
             this->m_descPool.addSets_composition(
                 this->m_logiDevice.get(),
@@ -127,90 +128,7 @@ namespace dal {
         this->m_cmdBuffers.init(this->m_logiDevice.get(), this->m_fbuf.getList(), this->m_cmdPool.pool());
         this->m_syncMas.init(this->m_logiDevice.get(), this->m_swapchainImages.size());
 
-        {
-            static const std::vector<Vertex> VERTICES = {
-                {{-5.f, 0.f, -5.f}, {0.0f, 1.0f, 0.0f}, { 0,  0}},
-                {{-5.f, 0.f,  5.f}, {0.0f, 1.0f, 0.0f}, { 0, 10}},
-                {{ 5.f, 0.f,  5.f}, {0.0f, 1.0f, 0.0f}, {10, 10}},
-                {{ 5.f, 0.f, -5.f}, {0.0f, 1.0f, 0.0f}, {10,  0}},
-            };
-            static const std::vector<uint16_t> INDICES = {
-                0, 1, 2, 0, 2, 3
-            };
-
-            this->m_meshes.emplace_back();
-            this->m_meshes.back().vertices.init(
-                VERTICES, this->m_logiDevice.get(), this->m_physDevice.get(),
-                this->m_cmdPool, this->m_logiDevice.graphicsQ()
-            );
-            this->m_meshes.back().indices.init(
-                INDICES, this->m_logiDevice.get(), this->m_physDevice.get(),
-                this->m_cmdPool, this->m_logiDevice.graphicsQ()
-            );
-        }
-
-        {
-            static const std::vector<Vertex> VERTICES = {
-                {{-0.5f, 0.f, -0.5f}, glm::normalize(glm::vec3{-1, -1, -1}), {1, 1}}, // 0
-                {{-0.5f, 0.f,  0.5f}, glm::normalize(glm::vec3{-1, -1,  1}), {0, 1}}, // 1
-                {{ 0.5f, 0.f,  0.5f}, glm::normalize(glm::vec3{ 1, -1,  1}), {1, 1}}, // 2
-                {{ 0.5f, 0.f, -0.5f}, glm::normalize(glm::vec3{ 1, -1, -1}), {0, 1}}, // 3
-                {{-0.5f, 1.f, -0.5f}, glm::normalize(glm::vec3{-1,  1, -1}), {1, 0}}, // 4
-                {{-0.5f, 1.f,  0.5f}, glm::normalize(glm::vec3{-1,  1,  1}), {0, 0}}, // 5
-                {{ 0.5f, 1.f,  0.5f}, glm::normalize(glm::vec3{ 1,  1,  1}), {1, 0}}, // 6
-                {{ 0.5f, 1.f, -0.5f}, glm::normalize(glm::vec3{ 1,  1, -1}), {0, 0}}, // 7
-            };
-            static const std::vector<uint16_t> INDICES = {
-                0, 2, 1, 0, 3, 2,
-                5, 1, 2, 5, 2, 6,
-                6, 2, 3, 6, 3, 7,
-                7, 3, 0, 7, 0, 4,
-                4, 0, 1, 4, 1, 5,
-                4, 5, 6, 4, 6, 7
-            };
-
-            this->m_meshes.emplace_back();
-            this->m_meshes.back().vertices.init(
-                VERTICES, this->m_logiDevice.get(), this->m_physDevice.get(),
-                this->m_cmdPool, this->m_logiDevice.graphicsQ()
-            );
-            this->m_meshes.back().indices.init(
-                INDICES, this->m_logiDevice.get(), this->m_physDevice.get(),
-                this->m_cmdPool, this->m_logiDevice.graphicsQ()
-            );
-        }
-
-        {
-            constexpr float x_offset = 2;
-            static const std::vector<Vertex> VERTICES = {
-                {{-0.5f + x_offset, 0.f, -0.5f}, glm::normalize(glm::vec3{-1, -1, -1}), {1, 1}}, // 0
-                {{-0.5f + x_offset, 0.f,  0.5f}, glm::normalize(glm::vec3{-1, -1,  1}), {0, 1}}, // 1
-                {{ 0.5f + x_offset, 0.f,  0.5f}, glm::normalize(glm::vec3{ 1, -1,  1}), {1, 1}}, // 2
-                {{ 0.5f + x_offset, 0.f, -0.5f}, glm::normalize(glm::vec3{ 1, -1, -1}), {0, 1}}, // 3
-                {{-0.5f + x_offset, 1.f, -0.5f}, glm::normalize(glm::vec3{-1,  1, -1}), {1, 0}}, // 4
-                {{-0.5f + x_offset, 1.f,  0.5f}, glm::normalize(glm::vec3{-1,  1,  1}), {0, 0}}, // 5
-                {{ 0.5f + x_offset, 1.f,  0.5f}, glm::normalize(glm::vec3{ 1,  1,  1}), {1, 0}}, // 6
-                {{ 0.5f + x_offset, 1.f, -0.5f}, glm::normalize(glm::vec3{ 1,  1, -1}), {0, 0}}, // 7
-            };
-            static const std::vector<uint16_t> INDICES = {
-                0, 2, 1, 0, 3, 2,
-                5, 1, 2, 5, 2, 6,
-                6, 2, 3, 6, 3, 7,
-                7, 3, 0, 7, 0, 4,
-                4, 0, 1, 4, 1, 5,
-                4, 5, 6, 4, 6, 7
-            };
-
-            this->m_meshes.emplace_back();
-            this->m_meshes.back().vertices.init(
-                VERTICES, this->m_logiDevice.get(), this->m_physDevice.get(),
-                this->m_cmdPool, this->m_logiDevice.graphicsQ()
-            );
-            this->m_meshes.back().indices.init(
-                INDICES, this->m_logiDevice.get(), this->m_physDevice.get(),
-                this->m_cmdPool, this->m_logiDevice.graphicsQ()
-            );
-        }
+        this->load_models();
 
         this->m_cmdBuffers.record(
             this->m_renderPass.get(),
@@ -220,9 +138,8 @@ namespace dal {
             this->m_pipeline.layout_composition(),
             this->m_swapchain.extent(),
             this->m_fbuf.getList(),
-            this->m_descPool.m_descset_deferred,
-            this->m_descPool.m_descset_composition,
-            this->m_meshes
+            this->m_descPool.descset_composition(),
+            this->m_models
         );
 
         this->m_currentFrame = 0;
@@ -231,23 +148,16 @@ namespace dal {
     }
 
     void VulkanMaster::destroy(void) {
-        for (auto& mesh : this->m_meshes) {
-            mesh.vertices.destroy(this->m_logiDevice.get());
-            mesh.indices.destroy(this->m_logiDevice.get());
+        for (auto& model : this->m_models) {
+            model.destroy(this->m_logiDevice.get(), this->m_descPool.pool());
         }
-        this->m_meshes.clear();
+        this->m_models.clear();
 
         this->m_syncMas.destroy(this->m_logiDevice.get());
         //this->m_cmdBuffers.destroy(this->m_logiDevice.get(), this->m_cmdPool.pool());
         this->m_descPool.destroy(this->m_logiDevice.get());
         this->m_uniformBufs.destroy(this->m_logiDevice.get());
-
-        for (auto& tex : this->m_textures) {
-            tex.view.destroy(this->m_logiDevice.get());
-            tex.image.destroy(this->m_logiDevice.get());
-        }
-        this->m_textures.clear();
-        this->m_sampler1.destroy(this->m_logiDevice.get());
+        this->m_tex_man.destroy(this->m_logiDevice.get());
 
         this->m_cmdPool.destroy(this->m_logiDevice.get());
         this->m_fbuf.destroy(this->m_logiDevice.get());
@@ -356,12 +266,20 @@ namespace dal {
             this->m_fbuf.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchainImages.getViews(), this->m_swapchain.extent(), this->m_depth_image.image_view(), this->m_gbuf);
             this->m_uniformBufs.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchainImages.size());
             this->m_descPool.initPool(this->m_logiDevice.get(), this->m_swapchainImages.size());
-            for (const auto& tex : this->m_textures) {
-                this->m_descPool.addSets_deferred(
-                    this->m_logiDevice.get(), this->m_swapchainImages.size(), this->m_descSetLayout.layout_deferred(),
-                    this->m_uniformBufs.buffers(), tex.view.get(), this->m_sampler1.get()
-                );
+
+            for (auto& model : this->m_models) {
+                for (auto& unit : model.render_units()) {
+                    unit.m_material.set_material(
+                        this->m_descPool.pool(),
+                        this->m_swapchainImages.size(),
+                        this->m_descSetLayout.layout_deferred(),
+                        this->m_uniformBufs.buffers(),
+                        this->m_tex_man.sampler_1().get(),
+                        this->m_logiDevice.get()
+                    );
+                }
             }
+
             for (const auto& x : this->m_gbuf.m_gbuf) {
                 this->m_descPool.addSets_composition(
                     this->m_logiDevice.get(),
@@ -388,10 +306,152 @@ namespace dal {
             this->m_pipeline.layout_composition(),
             this->m_swapchain.extent(),
             this->m_fbuf.getList(),
-            this->m_descPool.m_descset_deferred,
-            this->m_descPool.m_descset_composition,
-            this->m_meshes
+            this->m_descPool.descset_composition(),
+            this->m_models
         );
+    }
+
+    void VulkanMaster::load_models() {
+        // Floor
+        {
+            const auto mdoel_data = dal::get_horizontal_plane(15, 15);
+            auto& model = this->m_models.emplace_back();
+
+            auto& inst = model.add_instance();
+
+            auto& unit = model.add_unit();
+            unit.set_mesh(
+                mdoel_data.m_vertices,
+                mdoel_data.m_indices,
+                this->m_cmdPool,
+                this->m_logiDevice.get(),
+                this->m_physDevice.get(),
+                this->m_logiDevice.graphicsQ()
+            );
+
+            unit.m_material.set_material(
+                this->m_descPool.pool(),
+                this->m_swapchainImages.size(),
+                this->m_descSetLayout.layout_deferred(),
+                this->m_uniformBufs.buffers(),
+                this->m_tex_grass->view.get(),
+                this->m_tex_man.sampler_1().get(),
+                this->m_logiDevice.get()
+            );
+        }
+
+        // Box
+        {
+            const auto model_data = dal::get_aabb_box();
+
+            auto& model = this->m_models.emplace_back();
+
+            auto& inst = model.add_instance();
+            inst.transform().m_pos.x = 2;
+
+            auto& unit = model.add_unit();
+            unit.set_mesh(
+                model_data.m_vertices,
+                model_data.m_indices,
+                this->m_cmdPool,
+                this->m_logiDevice.get(),
+                this->m_physDevice.get(),
+                this->m_logiDevice.graphicsQ()
+            );
+
+            unit.m_material.set_material(
+                this->m_descPool.pool(),
+                this->m_swapchainImages.size(),
+                this->m_descSetLayout.layout_deferred(),
+                this->m_uniformBufs.buffers(),
+                this->m_tex_tile->view.get(),
+                this->m_tex_man.sampler_1().get(),
+                this->m_logiDevice.get()
+            );
+        }
+
+        // Yuri
+        {
+            auto& model = this->m_models.emplace_back();
+
+            auto& inst1 = model.add_instance();
+            inst1.transform().m_scale = 0.02;
+
+            auto& inst2 = model.add_instance();
+            inst2.transform().m_scale = 0.02;
+            inst2.transform().m_pos.x = -1;
+
+            for (const auto& model_data : get_test_model()) {
+                auto& unit = model.add_unit();
+
+                unit.set_mesh(
+                    model_data.m_vertices,
+                    model_data.m_indices,
+                    this->m_cmdPool,
+                    this->m_logiDevice.get(),
+                    this->m_physDevice.get(),
+                    this->m_logiDevice.graphicsQ()
+                );
+
+                const auto& tex = this->m_tex_man.request_texture(
+                    model_data.m_material.m_albedo_map.c_str(),
+                    this->m_cmdPool,
+                    this->m_logiDevice.get(),
+                    this->m_physDevice,
+                    this->m_logiDevice.graphicsQ()
+                );
+
+                unit.m_material.set_material(
+                    this->m_descPool.pool(),
+                    this->m_swapchainImages.size(),
+                    this->m_descSetLayout.layout_deferred(),
+                    this->m_uniformBufs.buffers(),
+                    tex->view.get(),
+                    this->m_tex_man.sampler_1().get(),
+                    this->m_logiDevice.get()
+                );
+            }
+        }
+
+        // Irin
+        {
+            auto& model = this->m_models.emplace_back();
+
+            auto& inst2 = model.add_instance();
+            inst2.transform().m_scale = 0.8;
+            inst2.transform().m_pos.x = -2;
+
+            for (const auto& model_data : load_dmd_model("irin.dmd")) {
+                auto& unit = model.add_unit();
+
+                unit.set_mesh(
+                    model_data.m_vertices,
+                    model_data.m_indices,
+                    this->m_cmdPool,
+                    this->m_logiDevice.get(),
+                    this->m_physDevice.get(),
+                    this->m_logiDevice.graphicsQ()
+                );
+
+                const auto& tex = this->m_tex_man.request_texture(
+                    model_data.m_material.m_albedo_map.c_str(),
+                    this->m_cmdPool,
+                    this->m_logiDevice.get(),
+                    this->m_physDevice,
+                    this->m_logiDevice.graphicsQ()
+                );
+
+                unit.m_material.set_material(
+                    this->m_descPool.pool(),
+                    this->m_swapchainImages.size(),
+                    this->m_descSetLayout.layout_deferred(),
+                    this->m_uniformBufs.buffers(),
+                    tex->view.get(),
+                    this->m_tex_man.sampler_1().get(),
+                    this->m_logiDevice.get()
+                );
+            }
+        }
     }
 
     void VulkanMaster::notifyScreenResize(const unsigned w, const unsigned h) {

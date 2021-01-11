@@ -105,47 +105,40 @@ namespace dal {
 
 namespace dal {
 
-    void DescriptorPool::initPool(VkDevice logiDevice, size_t swapchainImagesSize) {
-        std::array<VkDescriptorPoolSize, 3> poolSizes{};
-        poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        poolSizes[0].descriptorCount = static_cast<uint32_t>(swapchainImagesSize) * 15;
-        poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        poolSizes[1].descriptorCount = static_cast<uint32_t>(swapchainImagesSize) * 15;
-        poolSizes[2].type = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
-        poolSizes[2].descriptorCount = static_cast<uint32_t>(swapchainImagesSize) * 15;
-
-        VkDescriptorPoolCreateInfo poolInfo{};
-        poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-        poolInfo.pPoolSizes = poolSizes.data();
-        poolInfo.maxSets = static_cast<uint32_t>(swapchainImagesSize) * 15;
-
-        if (VK_SUCCESS != vkCreateDescriptorPool(logiDevice, &poolInfo, nullptr, &this->descriptorPool)) {
-            throw std::runtime_error("failed to create descriptor pool!");
-        }
+    void DescriptorSet::destroy(const VkDescriptorPool pool, const VkDevice logi_device) {
+        vkFreeDescriptorSets(logi_device, pool, this->m_handles.size(), this->m_handles.data());
+        this->m_handles.clear();
     }
 
-    void DescriptorPool::addSets_deferred(
-        VkDevice logiDevice, size_t swapchainImagesSize, VkDescriptorSetLayout descriptorSetLayout,
-        const std::vector<VkBuffer>& uniformBuffers, VkImageView textureImageView, VkSampler textureSampler
+    void DescriptorSet::init(
+        const uint32_t swapchain_count,
+        const VkDescriptorSetLayout descriptor_set_layout,
+        const VkDescriptorPool pool,
+        const VkDevice logi_device
     ) {
-        std::vector<VkDescriptorSetLayout> layouts(swapchainImagesSize, descriptorSetLayout);
+        std::vector<VkDescriptorSetLayout> layouts(swapchain_count, descriptor_set_layout);
 
         VkDescriptorSetAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        allocInfo.descriptorPool = this->descriptorPool;
-        allocInfo.descriptorSetCount = static_cast<uint32_t>(swapchainImagesSize);
+        allocInfo.descriptorPool = pool;
+        allocInfo.descriptorSetCount = swapchain_count;
         allocInfo.pSetLayouts = layouts.data();
 
-        this->m_descset_deferred.emplace_back();
-        auto& new_sets = this->m_descset_deferred.back();
+        this->m_handles.resize(swapchain_count);
 
-        new_sets.resize(swapchainImagesSize, VK_NULL_HANDLE);
-        if (vkAllocateDescriptorSets(logiDevice, &allocInfo, new_sets.data()) != VK_SUCCESS) {
+        if (vkAllocateDescriptorSets(logi_device, &allocInfo, this->m_handles.data()) != VK_SUCCESS) {
             throw std::runtime_error("failed to allocate descriptor sets!");
         }
 
-        for (size_t i = 0; i < swapchainImagesSize; i++) {
+    }
+
+    void DescriptorSet::record_deferred(
+        const std::vector<VkBuffer>& uniformBuffers,
+        const VkImageView textureImageView,
+        const VkSampler textureSampler,
+        const VkDevice logi_device
+    ) {
+        for (size_t i = 0; i < this->m_handles.size(); i++) {
             VkDescriptorBufferInfo bufferInfo{};
             bufferInfo.buffer = uniformBuffers[i];
             bufferInfo.offset = 0;
@@ -158,7 +151,7 @@ namespace dal {
 
             std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
             descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[0].dstSet = new_sets[i];
+            descriptorWrites[0].dstSet = this->m_handles.at(i);
             descriptorWrites[0].dstBinding = 0;  // specified in shader code
             descriptorWrites[0].dstArrayElement = 0;
             descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -168,7 +161,7 @@ namespace dal {
             descriptorWrites[0].pTexelBufferView = nullptr; // Optional
 
             descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[1].dstSet = new_sets[i];
+            descriptorWrites[1].dstSet = this->m_handles.at(i);
             descriptorWrites[1].dstBinding = 1;
             descriptorWrites[1].dstArrayElement = 0;
             descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -178,7 +171,7 @@ namespace dal {
             descriptorWrites[1].pTexelBufferView = nullptr; // Optional
 
             vkUpdateDescriptorSets(
-                logiDevice,
+                logi_device,
                 static_cast<uint32_t>(descriptorWrites.size()),
                 descriptorWrites.data(),
                 0, nullptr
@@ -186,28 +179,12 @@ namespace dal {
         }
     }
 
-    void DescriptorPool::addSets_composition(
-        const VkDevice logiDevice,
+    void DescriptorSet::record_composition(
         const size_t swapchainImagesSize,
         const VkDescriptorSetLayout descriptorSetLayout,
-        const std::vector<VkImageView>& attachment_views
+        const std::vector<VkImageView>& attachment_views,
+        const VkDevice logiDevice
     ) {
-        std::vector<VkDescriptorSetLayout> layouts(swapchainImagesSize, descriptorSetLayout);
-
-        VkDescriptorSetAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        allocInfo.descriptorPool = this->descriptorPool;
-        allocInfo.descriptorSetCount = static_cast<uint32_t>(swapchainImagesSize);
-        allocInfo.pSetLayouts = layouts.data();
-
-        this->m_descset_composition.emplace_back();
-        auto& new_sets = this->m_descset_composition.back();
-
-        new_sets.resize(swapchainImagesSize, VK_NULL_HANDLE);
-        if (vkAllocateDescriptorSets(logiDevice, &allocInfo, new_sets.data()) != VK_SUCCESS) {
-            throw std::runtime_error("failed to allocate descriptor sets!");
-        }
-
         for (size_t i = 0; i < swapchainImagesSize; i++) {
             std::vector<VkDescriptorImageInfo> imageInfo(attachment_views.size());
             for (size_t j = 0; j < attachment_views.size(); ++j) {
@@ -217,13 +194,12 @@ namespace dal {
                 x.sampler = VK_NULL_HANDLE;
             }
 
-            std::vector<VkWriteDescriptorSet> descriptorWrites{};
+            std::vector<VkWriteDescriptorSet> descriptorWrites(imageInfo.size());
             for (size_t j = 0; j < imageInfo.size(); ++j) {
-                descriptorWrites.emplace_back();
                 auto& x = descriptorWrites.at(j);
 
                 x.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                x.dstSet = new_sets[i];
+                x.dstSet = this->m_handles.at(i);
                 x.dstBinding = j;  // specified in shader code
                 x.dstArrayElement = 0;
                 x.descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
@@ -240,6 +216,44 @@ namespace dal {
         }
     }
 
+}
+
+
+namespace dal {
+
+    void DescriptorPool::initPool(VkDevice logiDevice, size_t swapchainImagesSize) {
+        constexpr uint32_t POOL_SIZE_MULTIPLIER = 40;
+
+        std::array<VkDescriptorPoolSize, 3> poolSizes{};
+        poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        poolSizes[0].descriptorCount = static_cast<uint32_t>(swapchainImagesSize) * POOL_SIZE_MULTIPLIER;
+        poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        poolSizes[1].descriptorCount = static_cast<uint32_t>(swapchainImagesSize) * POOL_SIZE_MULTIPLIER;
+        poolSizes[2].type = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+        poolSizes[2].descriptorCount = static_cast<uint32_t>(swapchainImagesSize) * POOL_SIZE_MULTIPLIER;
+
+        VkDescriptorPoolCreateInfo poolInfo{};
+        poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+        poolInfo.pPoolSizes = poolSizes.data();
+        poolInfo.maxSets = static_cast<uint32_t>(swapchainImagesSize) * POOL_SIZE_MULTIPLIER;
+
+        if (VK_SUCCESS != vkCreateDescriptorPool(logiDevice, &poolInfo, nullptr, &this->descriptorPool)) {
+            throw std::runtime_error("failed to create descriptor pool!");
+        }
+    }
+
+    void DescriptorPool::addSets_composition(
+        const VkDevice logiDevice,
+        const size_t swapchainImagesSize,
+        const VkDescriptorSetLayout descriptorSetLayout,
+        const std::vector<VkImageView>& attachment_views
+    ) {
+        auto& new_one = this->m_descset_composition.emplace_back();
+        new_one.init(swapchainImagesSize, descriptorSetLayout, this->descriptorPool, logiDevice);
+        new_one.record_composition(swapchainImagesSize, descriptorSetLayout, attachment_views, logiDevice);
+    }
+
     void DescriptorPool::destroy(VkDevice logiDevice) {
         if (VK_NULL_HANDLE != this->descriptorPool) {
             vkDestroyDescriptorPool(logiDevice, this->descriptorPool, nullptr);
@@ -248,6 +262,16 @@ namespace dal {
 
         this->m_descset_deferred.clear();
         this->m_descset_composition.clear();
+    }
+
+    std::vector<std::vector<VkDescriptorSet>> DescriptorPool::descset_composition() const {
+        std::vector<std::vector<VkDescriptorSet>> result;
+
+        for (auto& x : this->m_descset_composition) {
+            result.emplace_back(x.vector());
+        }
+
+        return result;
     }
 
 }
@@ -289,14 +313,9 @@ namespace dal {
     }
 
     void UniformBuffers::update(const uint32_t imageIndex, const VkExtent2D swapchainExtent, const VkDevice logiDevice) {
-        static const auto startTime = std::chrono::high_resolution_clock::now();
-
-        const auto currentTime = std::chrono::high_resolution_clock::now();
-        const float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
         const float ratio = static_cast<float>(swapchainExtent.width) / static_cast<float>(swapchainExtent.height);
 
         dal::UniformBufferObject ubo;
-        ubo.model = glm::rotate(glm::mat4(1), 0.5f * time * glm::radians<float>(90), glm::vec3(0, 1, 0));
         ubo.view = glm::lookAt(glm::vec3(0, 2, 4), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
         ubo.proj = glm::perspective<float>(glm::radians<float>(45), ratio, 0.1, 10);
         ubo.proj[1][1] *= -1;

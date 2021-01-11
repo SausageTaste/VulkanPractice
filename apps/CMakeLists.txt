@@ -27,6 +27,8 @@ add_executable(vulkan_practice
     texture.h           texture.cpp
     command_pool.h      command_pool.cpp
     depth_image.h       depth_image.cpp
+    model_data.h        model_data.cpp
+    model_render.h      model_render.cpp
 )
 target_compile_features(vulkan_practice PUBLIC cxx_std_17)
 
@@ -37,6 +39,10 @@ set(extern_dir ${CMAKE_CURRENT_SOURCE_DIR}/../extern)
 
 add_subdirectory(${extern_dir}/glfw ${CMAKE_CURRENT_BINARY_DIR}/glfw)
 target_link_libraries(vulkan_practice PRIVATE glfw)
+
+add_subdirectory(${extern_dir}/io_scene_dalbaragi ${CMAKE_CURRENT_BINARY_DIR}/io_scene_dalbaragi)
+target_link_libraries(vulkan_practice PRIVATE dalbaragi_model_parser)
+target_include_directories(vulkan_practice PRIVATE ${extern_dir}/io_scene_dalbaragi/cpp)
 
 add_subdirectory(${extern_dir}/glm ${CMAKE_CURRENT_BINARY_DIR}/glm)
 target_include_directories(vulkan_practice PRIVATE ${extern_dir}/glm)
