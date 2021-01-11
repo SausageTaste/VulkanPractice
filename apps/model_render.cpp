@@ -56,7 +56,7 @@ namespace dal {
         for (auto& unit : this->m_render_units) {
             unit.m_mesh.vertices.destroy(logi_device);
             unit.m_mesh.indices.destroy(logi_device);
-            unit.m_material.m_desc_set.destroy(pool, logi_device);
+            //unit.m_material.m_desc_set.destroy(pool, logi_device);
         }
     }
 
