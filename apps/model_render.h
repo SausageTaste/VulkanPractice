@@ -13,8 +13,14 @@ namespace dal {
     class MaterialVK {
 
     public:
+        U_Material m_material_data;
+        UniformBufferConst<U_Material> m_material_buffer;
+
         DescriptorSet m_desc_set;
         VkImageView m_albedo_map = VK_NULL_HANDLE;
+
+    public:
+        void destroy(const VkDevice logi_device);
 
         void set_material(
             const VkDescriptorPool pool,
@@ -23,7 +29,8 @@ namespace dal {
             const std::vector<VkBuffer>& uniform_buffers,
             const VkImageView texture_image_view,
             const VkSampler texture_sampler,
-            const VkDevice logi_device
+            const VkDevice logi_device,
+            const VkPhysicalDevice phys_device
         );
         void set_material(
             const VkDescriptorPool pool,
@@ -31,7 +38,8 @@ namespace dal {
             const VkDescriptorSetLayout descriptor_set_layout,
             const std::vector<VkBuffer>& uniform_buffers,
             const VkSampler texture_sampler,
-            const VkDevice logi_device
+            const VkDevice logi_device,
+            const VkPhysicalDevice phys_device
         );
 
     };

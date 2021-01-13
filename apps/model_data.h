@@ -37,6 +37,8 @@ namespace dal {
 
     struct Material {
         std::string m_albedo_map;
+        float m_roughness;
+        float m_metallic;
     };
 
     struct RenderUnit {

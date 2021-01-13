@@ -210,7 +210,8 @@ namespace dal {
                         this->m_descSetLayout.layout_deferred(),
                         this->m_uniformBufs.buffers(),
                         this->m_tex_man.sampler_1().get(),
-                        this->m_logiDevice.get()
+                        this->m_logiDevice.get(),
+                        this->m_physDevice.get()
                     );
                 }
             }
@@ -330,6 +331,9 @@ namespace dal {
                 this->m_logiDevice.graphicsQ()
             );
 
+            unit.m_material.m_material_data.m_roughness = mdoel_data.m_material.m_roughness;
+            unit.m_material.m_material_data.m_metallic = mdoel_data.m_material.m_metallic;
+
             unit.m_material.set_material(
                 this->m_descPool.pool(),
                 this->m_swapchainImages.size(),
@@ -337,7 +341,8 @@ namespace dal {
                 this->m_uniformBufs.buffers(),
                 this->m_tex_grass->view.get(),
                 this->m_tex_man.sampler_1().get(),
-                this->m_logiDevice.get()
+                this->m_logiDevice.get(),
+                this->m_physDevice.get()
             );
         }
 
@@ -360,6 +365,9 @@ namespace dal {
                 this->m_logiDevice.graphicsQ()
             );
 
+            unit.m_material.m_material_data.m_roughness = model_data.m_material.m_roughness;
+            unit.m_material.m_material_data.m_metallic = model_data.m_material.m_metallic;
+
             unit.m_material.set_material(
                 this->m_descPool.pool(),
                 this->m_swapchainImages.size(),
@@ -367,7 +375,8 @@ namespace dal {
                 this->m_uniformBufs.buffers(),
                 this->m_tex_tile->view.get(),
                 this->m_tex_man.sampler_1().get(),
-                this->m_logiDevice.get()
+                this->m_logiDevice.get(),
+                this->m_physDevice.get()
             );
         }
 
@@ -402,6 +411,9 @@ namespace dal {
                     this->m_logiDevice.graphicsQ()
                 );
 
+                unit.m_material.m_material_data.m_roughness = model_data.m_material.m_roughness;
+                unit.m_material.m_material_data.m_metallic = model_data.m_material.m_metallic;
+
                 unit.m_material.set_material(
                     this->m_descPool.pool(),
                     this->m_swapchainImages.size(),
@@ -409,7 +421,8 @@ namespace dal {
                     this->m_uniformBufs.buffers(),
                     tex->view.get(),
                     this->m_tex_man.sampler_1().get(),
-                    this->m_logiDevice.get()
+                    this->m_logiDevice.get(),
+                    this->m_physDevice.get()
                 );
             }
         }
@@ -442,6 +455,9 @@ namespace dal {
                     this->m_logiDevice.graphicsQ()
                 );
 
+                unit.m_material.m_material_data.m_roughness = model_data.m_material.m_roughness;
+                unit.m_material.m_material_data.m_metallic = model_data.m_material.m_metallic;
+
                 unit.m_material.set_material(
                     this->m_descPool.pool(),
                     this->m_swapchainImages.size(),
@@ -449,7 +465,8 @@ namespace dal {
                     this->m_uniformBufs.buffers(),
                     tex->view.get(),
                     this->m_tex_man.sampler_1().get(),
-                    this->m_logiDevice.get()
+                    this->m_logiDevice.get(),
+                    this->m_physDevice.get()
                 );
             }
         }

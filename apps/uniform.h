@@ -1,5 +1,6 @@
 #pragma once
 
+#include <tuple>
 #include <vector>
 
 #define GLM_FORCE_RADIANS
@@ -14,6 +15,48 @@ namespace dal {
 
     struct UniformBufferObject {
         glm::mat4 view, proj;
+    };
+
+    struct U_Material {
+        float m_roughness = 0.5;
+        float m_metallic = 0;
+    };
+
+
+    std::pair<VkBuffer, VkDeviceMemory> _init_uniform_buffer(const void* const data, const VkDeviceSize data_size, const VkDevice logi_device, const VkPhysicalDevice phys_device);
+    void _destroy_buffer_memory(const VkBuffer buffer, const VkDeviceMemory memory, const VkDevice logi_device);
+
+    template <typename _UniformStruct>
+    class UniformBufferConst {
+
+    private:
+        VkBuffer m_buffer = VK_NULL_HANDLE;
+        VkDeviceMemory m_memory = VK_NULL_HANDLE;
+
+    public:
+        void init(const _UniformStruct& data, const VkDevice logi_device, const VkPhysicalDevice phys_device) {
+            this->destroy(logi_device);
+            std::tie(this->m_buffer, this->m_memory) = dal::_init_uniform_buffer(
+                reinterpret_cast<const void*>(&data),
+                this->data_size(),
+                logi_device,
+                phys_device
+            );
+        }
+        void destroy(const VkDevice logi_device) {
+            _destroy_buffer_memory(this->m_buffer, this->m_memory, logi_device);
+            this->m_buffer = VK_NULL_HANDLE;
+            this->m_memory = VK_NULL_HANDLE;
+        }
+
+        auto& buffer() const {
+            assert(VK_NULL_HANDLE != this->m_buffer);
+            return this->m_buffer;
+        }
+        auto data_size() const {
+            return sizeof(_UniformStruct);
+        }
+
     };
 
 
@@ -54,6 +97,7 @@ namespace dal {
 
         void record_deferred(
             const std::vector<VkBuffer>& uniformBuffers,
+            const UniformBufferConst<U_Material>& m_material_buffer,
             const VkImageView textureImageView,
             const VkSampler textureSampler,
             const VkDevice logi_device
@@ -79,7 +123,7 @@ namespace dal {
 
     private:
         VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
-        std::vector<DescriptorSet> m_descset_deferred, m_descset_composition;
+        std::vector<DescriptorSet> m_descset_composition;
 
     public:
         void initPool(VkDevice logiDevice, size_t swapchainImagesSize);
@@ -97,6 +141,7 @@ namespace dal {
         std::vector<std::vector<VkDescriptorSet>> descset_composition() const;
 
     };
+
 
 
     class UniformBuffers {

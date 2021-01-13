@@ -13,6 +13,11 @@ layout(location = 2) out vec4 out_albedo;
 
 layout(binding = 1) uniform sampler2D texSampler;
 
+layout(binding = 2) uniform U_Material {
+    float m_roughness;
+    float m_metallic;
+} u_material;
+
 
 void main() {
     out_position = vec4(v_frag_pos, 1);

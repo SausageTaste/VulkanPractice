@@ -3,6 +3,10 @@
 
 namespace dal {
 
+    void MaterialVK::destroy(const VkDevice logi_device) {
+        this->m_material_buffer.destroy(logi_device);
+    }
+
     void MaterialVK::set_material(
         const VkDescriptorPool pool,
         const size_t swapchain_count,
@@ -10,12 +14,15 @@ namespace dal {
         const std::vector<VkBuffer>& uniform_buffers,
         const VkImageView texture_image_view,
         const VkSampler texture_sampler,
-        const VkDevice logi_device
+        const VkDevice logi_device,
+        const VkPhysicalDevice phys_device
     ) {
         this->m_albedo_map = texture_image_view;
 
+        this->m_material_buffer.init(this->m_material_data, logi_device, phys_device);
+
         this->m_desc_set.init(swapchain_count, descriptor_set_layout, pool, logi_device);
-        this->m_desc_set.record_deferred(uniform_buffers, this->m_albedo_map, texture_sampler, logi_device);
+        this->m_desc_set.record_deferred(uniform_buffers, this->m_material_buffer, this->m_albedo_map, texture_sampler, logi_device);
     }
 
     void MaterialVK::set_material(
@@ -24,10 +31,13 @@ namespace dal {
         const VkDescriptorSetLayout descriptor_set_layout,
         const std::vector<VkBuffer>& uniform_buffers,
         const VkSampler texture_sampler,
-        const VkDevice logi_device
+        const VkDevice logi_device,
+        const VkPhysicalDevice phys_device
     ) {
+        this->m_material_buffer.init(this->m_material_data, logi_device, phys_device);
+
         this->m_desc_set.init(swapchain_count, descriptor_set_layout, pool, logi_device);
-        this->m_desc_set.record_deferred(uniform_buffers, this->m_albedo_map, texture_sampler, logi_device);
+        this->m_desc_set.record_deferred(uniform_buffers, this->m_material_buffer, this->m_albedo_map, texture_sampler, logi_device);
     }
 
 }
@@ -56,7 +66,7 @@ namespace dal {
         for (auto& unit : this->m_render_units) {
             unit.m_mesh.vertices.destroy(logi_device);
             unit.m_mesh.indices.destroy(logi_device);
-            //unit.m_material.m_desc_set.destroy(pool, logi_device);
+            unit.m_material.destroy(logi_device);
         }
     }
 

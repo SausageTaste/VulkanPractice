@@ -11,10 +11,46 @@
 #include "util_vulkan.h"
 
 
+namespace dal {
+
+    std::pair<VkBuffer, VkDeviceMemory> _init_uniform_buffer(const void* const data, const VkDeviceSize data_size, const VkDevice logi_device, const VkPhysicalDevice phys_device) {
+        std::pair<VkBuffer, VkDeviceMemory> result;
+
+        dal::createBuffer(
+            data_size,
+            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            result.first,
+            result.second,
+            logi_device,
+            phys_device
+        );
+
+        void* dst_ptr = nullptr;
+        vkMapMemory(logi_device, result.second, 0, data_size, 0, &dst_ptr);
+        memcpy(dst_ptr, data, data_size);
+        vkUnmapMemory(logi_device, result.second);
+
+        return result;
+    }
+
+    void _destroy_buffer_memory(const VkBuffer buffer, const VkDeviceMemory memory, const VkDevice logi_device) {
+        if (VK_NULL_HANDLE != memory) {
+            vkFreeMemory(logi_device, memory, nullptr);
+        }
+
+        if (VK_NULL_HANDLE != buffer) {
+            vkDestroyBuffer(logi_device, buffer, nullptr);
+        }
+    }
+
+}
+
+
 namespace {
 
     VkDescriptorSetLayout create_layout_deferred(const VkDevice logiDevice) {
-        std::array<VkDescriptorSetLayoutBinding, 2> bindings{};
+        std::array<VkDescriptorSetLayoutBinding, 3> bindings{};
 
         bindings[0].binding = 0;
         bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -27,6 +63,12 @@ namespace {
         bindings[1].descriptorCount = 1;
         bindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
         bindings[1].pImmutableSamplers = nullptr;
+
+        bindings[2].binding = 2;
+        bindings[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        bindings[2].descriptorCount = 1;
+        bindings[2].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        bindings[2].pImmutableSamplers = nullptr;
 
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -134,6 +176,7 @@ namespace dal {
 
     void DescriptorSet::record_deferred(
         const std::vector<VkBuffer>& uniformBuffers,
+        const UniformBufferConst<U_Material>& m_material_buffer,
         const VkImageView textureImageView,
         const VkSampler textureSampler,
         const VkDevice logi_device
@@ -149,7 +192,14 @@ namespace dal {
             imageInfo.imageView = textureImageView;
             imageInfo.sampler = textureSampler;
 
-            std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+            VkDescriptorBufferInfo buffer_material_info{};
+            buffer_material_info.buffer = m_material_buffer.buffer();
+            buffer_material_info.offset = 0;
+            buffer_material_info.range = m_material_buffer.data_size();
+
+
+            std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
+
             descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             descriptorWrites[0].dstSet = this->m_handles.at(i);
             descriptorWrites[0].dstBinding = 0;  // specified in shader code
@@ -169,6 +219,17 @@ namespace dal {
             descriptorWrites[1].pBufferInfo = nullptr; // Optional
             descriptorWrites[1].pImageInfo = &imageInfo;
             descriptorWrites[1].pTexelBufferView = nullptr; // Optional
+
+            descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[2].dstSet = this->m_handles.at(i);
+            descriptorWrites[2].dstBinding = 2;
+            descriptorWrites[2].dstArrayElement = 0;
+            descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            descriptorWrites[2].descriptorCount = 1;
+            descriptorWrites[2].pBufferInfo = &buffer_material_info;
+            descriptorWrites[2].pImageInfo = nullptr;
+            descriptorWrites[2].pTexelBufferView = nullptr;
+
 
             vkUpdateDescriptorSets(
                 logi_device,
@@ -260,7 +321,6 @@ namespace dal {
             this->descriptorPool = VK_NULL_HANDLE;
         }
 
-        this->m_descset_deferred.clear();
         this->m_descset_composition.clear();
     }
 
