@@ -80,7 +80,7 @@ namespace dal {
             0, 1, 2, 0, 2, 3
         };
 
-        result.m_material.m_roughness = 0.7;
+        result.m_material.m_roughness = 0.1;
         result.m_material.m_metallic = 0;
 
         return result;
@@ -109,8 +109,8 @@ namespace dal {
             4, 5, 6, 4, 6, 7
         };
 
-        result.m_material.m_roughness = 0.1;
-        result.m_material.m_metallic = 1;
+        result.m_material.m_roughness = 0.5;
+        result.m_material.m_metallic = 0.5;
 
         return result;
     }
