@@ -6,6 +6,7 @@ layout (input_attachment_index = 0, binding = 0) uniform subpassInput input_dept
 layout (input_attachment_index = 1, binding = 1) uniform subpassInput input_position;
 layout (input_attachment_index = 2, binding = 2) uniform subpassInput input_normal;
 layout (input_attachment_index = 3, binding = 3) uniform subpassInput input_albedo;
+layout (input_attachment_index = 4, binding = 4) uniform subpassInput input_material;
 
 layout (location = 0) out vec4 out_color;
 
@@ -26,6 +27,7 @@ void main() {
     vec3 position = subpassLoad(input_position).xyz;
     vec3 normal = subpassLoad(input_normal).xyz;
     vec3 albedo = subpassLoad(input_albedo).xyz;
+    vec2 material = subpassLoad(input_material).xy;
 
     float brightness = dot(normal, vec3(1, 0.6, 0));
     out_color = vec4(albedo, 1) * max(brightness, 0.05);
