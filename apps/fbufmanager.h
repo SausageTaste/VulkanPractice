@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <vector>
 
 #include <vulkan/vulkan.h>
@@ -46,7 +47,7 @@ namespace dal {
         class Gbuf {
 
         public:
-            FbufAttachment m_position, m_normal, m_albedo;
+            FbufAttachment m_position, m_normal, m_albedo, m_material;
             uint32_t m_width, m_height;
 
         public:
@@ -60,7 +61,7 @@ namespace dal {
 
         };
 
-    public:
+    private:
         Gbuf m_gbuf;
 
     public:
@@ -72,8 +73,34 @@ namespace dal {
         );
         void destroy(const VkDevice logiDevice);
 
-        auto& get() const {
-            return this->m_gbuf;
+        auto make_views_array(const VkImageView swapchain_image_view, const VkImageView depth_image_view) const {
+            return std::array<VkImageView, 6>{
+                swapchain_image_view,
+                depth_image_view,
+                this->m_gbuf.m_position.view(),
+                this->m_gbuf.m_normal.view(),
+                this->m_gbuf.m_albedo.view(),
+                this->m_gbuf.m_material.view(),
+            };
+        }
+        auto make_formats_array(const VkFormat swapchain_image_format, const VkFormat depth_image_format) const {
+            return std::array<VkFormat, 6>{
+                swapchain_image_format,
+                depth_image_format,
+                this->m_gbuf.m_position.format(),
+                this->m_gbuf.m_normal.format(),
+                this->m_gbuf.m_albedo.format(),
+                this->m_gbuf.m_material.format(),
+            };
+        }
+        auto make_views_vector(const VkImageView depth_image_view) const {
+            return std::vector<VkImageView>{
+                depth_image_view,
+                this->m_gbuf.m_position.view(),
+                this->m_gbuf.m_normal.view(),
+                this->m_gbuf.m_albedo.view(),
+                this->m_gbuf.m_material.view(),
+            };
         }
 
     };

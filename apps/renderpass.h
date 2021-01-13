@@ -13,7 +13,7 @@ namespace dal {
         VkRenderPass m_renderPass;
 
     public:
-        void init(const VkDevice logiDevice, const std::array<VkFormat, 5>& attachment_formats);
+        void init(const VkDevice logiDevice, const std::array<VkFormat, 6>& attachment_formats);
         void destroy(VkDevice logiDevice);
 
         auto get(void) const {

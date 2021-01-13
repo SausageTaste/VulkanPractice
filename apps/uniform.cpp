@@ -84,7 +84,7 @@ namespace {
     }
 
     VkDescriptorSetLayout create_layout_composition(const VkDevice logiDevice) {
-        std::array<VkDescriptorSetLayoutBinding, 4> bindings{};
+        std::array<VkDescriptorSetLayoutBinding, 5> bindings{};
 
         bindings[0].binding = 0;
         bindings[0].descriptorCount = 1;
@@ -105,6 +105,11 @@ namespace {
         bindings[3].descriptorCount = 1;
         bindings[3].descriptorType  = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
         bindings[3].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        bindings[4].binding = 4;
+        bindings[4].descriptorCount = 1;
+        bindings[4].descriptorType  = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+        bindings[4].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;

@@ -70,14 +70,8 @@ namespace dal {
     private:
         void initSwapChain(const VkSurfaceKHR surface);
         void destroySwapChain();
-        auto make_attachment_format_array() {
-            return std::array<VkFormat, 5>{
-                this->m_swapchain.imageFormat(),
-                this->m_depth_image.format(),
-                this->m_gbuf.get().m_position.format(),
-                this->m_gbuf.get().m_normal.format(),
-                this->m_gbuf.get().m_albedo.format(),
-            };
+        auto make_attachment_format_array() const {
+            return this->m_gbuf.make_formats_array(this->m_swapchain.imageFormat(), this->m_depth_image.format());
         }
 
     };

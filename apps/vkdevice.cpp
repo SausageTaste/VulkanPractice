@@ -51,12 +51,7 @@ namespace dal {
                 this->m_logiDevice.get(),
                 this->m_swapchainImages.size(),
                 this->m_descSetLayout.layout_composition(),
-                {
-                    this->m_depth_image.image_view(),
-                    this->m_gbuf.get().m_position.view(),
-                    this->m_gbuf.get().m_normal.view(),
-                    this->m_gbuf.get().m_albedo.view(),
-                }
+                this->m_gbuf.make_views_vector(this->m_depth_image.image_view())
             );
         }
 
@@ -221,12 +216,7 @@ namespace dal {
                     this->m_logiDevice.get(),
                     this->m_swapchainImages.size(),
                     this->m_descSetLayout.layout_composition(),
-                    {
-                        this->m_depth_image.image_view(),
-                        this->m_gbuf.get().m_position.view(),
-                        this->m_gbuf.get().m_normal.view(),
-                        this->m_gbuf.get().m_albedo.view(),
-                    }
+                    this->m_gbuf.make_views_vector(this->m_depth_image.image_view())
                 );
             }
 
