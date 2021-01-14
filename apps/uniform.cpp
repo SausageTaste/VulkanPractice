@@ -463,7 +463,7 @@ namespace dal {
 
         dal::UniformBufferObject ubo;
         ubo.view = view_mat;
-        ubo.proj = glm::perspective<float>(glm::radians<float>(45), ratio, 0.1, 10);
+        ubo.proj = glm::perspective<float>(glm::radians<float>(45), ratio, 0.1, 100);
         ubo.proj[1][1] *= -1;
 
         this->copy_to_memory(logiDevice, ubo, imageIndex);
