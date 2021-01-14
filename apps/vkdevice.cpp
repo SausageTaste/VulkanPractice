@@ -75,6 +75,9 @@ namespace dal {
         this->m_currentFrame = 0;
         this->m_scrWidth = w;
         this->m_scrHeight = h;
+
+        this->m_camera.m_pos = glm::vec3{ 0, 2, 4 };
+        this->m_camera.m_view_direc = -this->m_camera.m_pos;
     }
 
     void VulkanMaster::destroy(void) {
@@ -121,7 +124,7 @@ namespace dal {
             imagesInFlight[imageIndex.first] = this->m_syncMas.fenceInFlight(this->m_currentFrame).get();
         }
 
-        this->m_uniformBufs.update(imageIndex.first, this->m_swapchain.extent(), this->m_logiDevice.get());
+        this->m_uniformBufs.update(this->m_camera.make_view_mat(), imageIndex.first, this->m_swapchain.extent(), this->m_logiDevice.get());
 
         VkSubmitInfo submitInfo = {};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;

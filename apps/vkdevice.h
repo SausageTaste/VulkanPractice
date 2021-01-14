@@ -19,6 +19,7 @@
 #include "texture.h"
 #include "depth_image.h"
 #include "model_render.h"
+#include "view_camera.h"
 
 
 namespace dal {
@@ -43,6 +44,7 @@ namespace dal {
         GbufManager m_gbuf;
         TextureManager m_tex_man;
 
+        CameraLookAt m_camera;
         std::vector<ModelVK> m_models;
         std::shared_ptr<TextureUnit> m_tex_grass, m_tex_tile;
 
@@ -57,6 +59,10 @@ namespace dal {
 
         void init(const VkInstance instance, const VkSurfaceKHR surface, const unsigned w, const unsigned h);
         void destroy(void);
+
+        auto& camera() {
+            return this->m_camera;
+        }
 
         void render(const VkSurfaceKHR surface);
         void waitLogiDeviceIdle(void) const;

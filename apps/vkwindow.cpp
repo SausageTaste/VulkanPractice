@@ -11,13 +11,76 @@ namespace {
 
     const char* const WINDOW_TITLE = "Vulkan Practice";
 
-    dal::Timer g_timer;
+    dal::Timer g_timer, g_timer_for_delta_time;
     size_t g_fpsCounter = 0;
 
 }
 
 
 namespace {
+
+    class {
+
+    public:
+        bool m_left = false;
+        bool m_right = false;
+        bool m_forward = false;
+        bool m_back = false;
+
+    public:
+        auto make_move_direc() const {
+            float direc_x = 0, direc_z = 0;
+
+            if (this->m_left) {
+                direc_x -= 1;
+            }
+            if (this->m_right) {
+                direc_x += 1;
+            }
+            if (this->m_forward) {
+                direc_z -= 1;
+            }
+            if (this->m_back) {
+                direc_z += 1;
+            }
+
+            return std::make_pair(direc_x, direc_z);
+        }
+
+    } g_input_state;
+
+    void callback_keyEvent(GLFWwindow* window, int key, int scancode, int action, int mods) {
+        bool flag_is_down;
+
+        switch ( action ) {
+        case GLFW_PRESS:
+        case GLFW_REPEAT:
+            flag_is_down = true;
+            break;
+        case GLFW_RELEASE:
+            flag_is_down = false;
+            break;
+        default:
+            return;
+        }
+
+        switch (key) {
+        case GLFW_KEY_W:
+            g_input_state.m_forward = flag_is_down;
+            break;
+        case GLFW_KEY_A:
+            g_input_state.m_left = flag_is_down;
+            break;
+        case GLFW_KEY_S:
+            g_input_state.m_back = flag_is_down;
+            break;
+        case GLFW_KEY_D:
+            g_input_state.m_right = flag_is_down;
+            break;
+        default:
+            return;
+        }
+    }
 
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
         auto app = reinterpret_cast<dal::VulkanWindowGLFW*>(glfwGetWindowUserPointer(window));
@@ -33,6 +96,7 @@ namespace {
         if ( nullptr == window )
             throw std::runtime_error{ "Failed to create window." };
 
+        glfwSetKeyCallback(window, callback_keyEvent);
         glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
 
         return window;
@@ -222,6 +286,9 @@ namespace dal {
 #endif
         this->m_surface = createSurface(this->m_instance, this->m_window);
         this->m_device.init(this->m_instance, this->m_surface, WIN_WIDTH, WIN_HEIGHT);
+
+        g_timer.check();
+        g_timer_for_delta_time.check();
     }
 
     VulkanWindowGLFW::~VulkanWindowGLFW(void) {
@@ -244,6 +311,8 @@ namespace dal {
     }
 
     void VulkanWindowGLFW::update(void) {
+        const auto delta_time = g_timer_for_delta_time.checkGetElapsed();
+
         // Print FPS
         {
             if ( g_timer.getElapsed() > 1.0 ) {
@@ -256,7 +325,15 @@ namespace dal {
             }
         }
 
-        glfwPollEvents();
+        // Input
+        {
+            glfwPollEvents();
+
+            constexpr float MOVE_SPEED = 2;
+            const auto [move_direc_x, move_direc_z] = g_input_state.make_move_direc();
+            this->m_device.camera().move_horizontal(MOVE_SPEED * move_direc_x * delta_time, MOVE_SPEED * move_direc_z * delta_time);
+        }
+
         this->m_device.render(this->m_surface);
     }
 

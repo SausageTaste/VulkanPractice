@@ -377,11 +377,11 @@ namespace dal {
         this->uniformBuffersMemory.clear();
     }
 
-    void UniformBuffers::update(const uint32_t imageIndex, const VkExtent2D swapchainExtent, const VkDevice logiDevice) {
+    void UniformBuffers::update(const glm::mat4& view_mat, const uint32_t imageIndex, const VkExtent2D swapchainExtent, const VkDevice logiDevice) {
         const float ratio = static_cast<float>(swapchainExtent.width) / static_cast<float>(swapchainExtent.height);
 
         dal::UniformBufferObject ubo;
-        ubo.view = glm::lookAt(glm::vec3(0, 2, 4), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+        ubo.view = view_mat;
         ubo.proj = glm::perspective<float>(glm::radians<float>(45), ratio, 0.1, 10);
         ubo.proj[1][1] *= -1;
 
