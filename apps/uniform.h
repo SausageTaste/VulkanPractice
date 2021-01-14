@@ -60,6 +60,33 @@ namespace dal {
     };
 
 
+    struct U_PerFrame_InComposition {
+        glm::vec3 m_view_pos;
+    };
+
+    class UniformBuffer_PerFrame {
+
+    private:
+        std::vector<VkBuffer> m_buffers;
+        std::vector<VkDeviceMemory> m_memories;
+        VkDeviceSize m_data_size = 0;
+
+    public:
+        void init(const VkDeviceSize data_size, const uint32_t swapchain_count, const VkDevice logi_device, const VkPhysicalDevice phys_device);
+        void destroy(const VkDevice logiDevice);
+
+        void copy_to_memory(const uint32_t index, const void* const data, const VkDeviceSize data_size, const VkDevice logi_device) const;
+
+        auto buffer(const uint32_t index) const {
+            return this->m_buffers.at(index);
+        }
+        auto data_size() const {
+            return this->m_data_size;
+        }
+
+    };
+
+
     class DescriptorSetLayout {
 
     private:
@@ -104,6 +131,7 @@ namespace dal {
         );
         void record_composition(
             const size_t swapchainImagesSize,
+            const UniformBuffer_PerFrame& u_per_frame,
             const VkDescriptorSetLayout descriptorSetLayout,
             const std::vector<VkImageView>& attachment_views,
             const VkDevice logiDevice
@@ -131,6 +159,7 @@ namespace dal {
             const VkDevice logiDevice,
             const size_t swapchainImagesSize,
             const VkDescriptorSetLayout descriptorSetLayout,
+            const UniformBuffer_PerFrame& ubuf_per_frame,
             const std::vector<VkImageView>& attachment_views
         );
         void destroy(VkDevice logiDevice);
@@ -141,7 +170,6 @@ namespace dal {
         std::vector<std::vector<VkDescriptorSet>> descset_composition() const;
 
     };
-
 
 
     class UniformBuffers {

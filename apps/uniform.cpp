@@ -47,6 +47,53 @@ namespace dal {
 }
 
 
+namespace dal {
+
+    void UniformBuffer_PerFrame::init(const VkDeviceSize data_size, const uint32_t swapchain_count, const VkDevice logi_device, const VkPhysicalDevice phys_device) {
+        this->m_buffers.resize(swapchain_count);
+        this->m_memories.resize(swapchain_count);
+
+        for (size_t i = 0; i < swapchain_count; ++i) {
+            dal::createBuffer(
+                data_size,
+                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                this->m_buffers[i],
+                this->m_memories[i],
+                logi_device,
+                phys_device
+            );
+        }
+
+        this->m_data_size = data_size;
+    }
+
+    void UniformBuffer_PerFrame::destroy(const VkDevice logiDevice) {
+        for (size_t i = 0; i < this->m_buffers.size(); ++i) {
+            vkDestroyBuffer(logiDevice, this->m_buffers[i], nullptr);
+            this->m_buffers[i] = VK_NULL_HANDLE;
+        }
+        for (size_t i = 0; i < this->m_memories.size(); ++i) {
+            vkFreeMemory(logiDevice, this->m_memories[i], nullptr);
+            this->m_memories[i] = VK_NULL_HANDLE;
+        }
+
+        this->m_buffers.clear();
+        this->m_memories.clear();
+    }
+
+    void UniformBuffer_PerFrame::copy_to_memory(const uint32_t index, const void* const data, const VkDeviceSize data_size, const VkDevice logi_device) const {
+        assert(data_size == this->m_data_size);
+
+        void* dst_ptr = nullptr;
+        vkMapMemory(logi_device, this->m_memories[index], 0, data_size, 0, &dst_ptr);
+        memcpy(dst_ptr, data, data_size);
+        vkUnmapMemory(logi_device, this->m_memories[index]);
+    }
+
+}
+
+
 namespace {
 
     VkDescriptorSetLayout create_layout_deferred(const VkDevice logiDevice) {
@@ -84,7 +131,7 @@ namespace {
     }
 
     VkDescriptorSetLayout create_layout_composition(const VkDevice logiDevice) {
-        std::array<VkDescriptorSetLayoutBinding, 5> bindings{};
+        std::array<VkDescriptorSetLayoutBinding, 6> bindings{};
 
         bindings[0].binding = 0;
         bindings[0].descriptorCount = 1;
@@ -110,6 +157,12 @@ namespace {
         bindings[4].descriptorCount = 1;
         bindings[4].descriptorType  = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
         bindings[4].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        bindings[5].binding = 5;
+        bindings[5].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        bindings[5].descriptorCount = 1;
+        bindings[5].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        bindings[5].pImmutableSamplers = nullptr;
 
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -247,6 +300,7 @@ namespace dal {
 
     void DescriptorSet::record_composition(
         const size_t swapchainImagesSize,
+        const UniformBuffer_PerFrame& u_per_frame,
         const VkDescriptorSetLayout descriptorSetLayout,
         const std::vector<VkImageView>& attachment_views,
         const VkDevice logiDevice
@@ -272,6 +326,26 @@ namespace dal {
                 x.descriptorCount = 1;
                 x.pImageInfo = &imageInfo[j];
             }
+
+            // Unifrom buffer
+
+            VkDescriptorBufferInfo buffer_per_frame_info{};
+            buffer_per_frame_info.buffer = u_per_frame.buffer(i);
+            buffer_per_frame_info.offset = 0;
+            buffer_per_frame_info.range = u_per_frame.data_size();
+
+            auto& x = descriptorWrites.emplace_back();
+
+            x.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            x.dstSet = this->m_handles.at(i);
+            x.dstBinding = descriptorWrites.size() - 1;
+            x.dstArrayElement = 0;
+            x.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            x.descriptorCount = 1;
+            x.pBufferInfo = &buffer_per_frame_info;
+            x.pImageInfo = nullptr;
+            x.pTexelBufferView = nullptr;
+
 
             vkUpdateDescriptorSets(
                 logiDevice,
@@ -313,11 +387,12 @@ namespace dal {
         const VkDevice logiDevice,
         const size_t swapchainImagesSize,
         const VkDescriptorSetLayout descriptorSetLayout,
+        const UniformBuffer_PerFrame& ubuf_per_frame,
         const std::vector<VkImageView>& attachment_views
     ) {
         auto& new_one = this->m_descset_composition.emplace_back();
         new_one.init(swapchainImagesSize, descriptorSetLayout, this->descriptorPool, logiDevice);
-        new_one.record_composition(swapchainImagesSize, descriptorSetLayout, attachment_views, logiDevice);
+        new_one.record_composition(swapchainImagesSize, ubuf_per_frame, descriptorSetLayout, attachment_views, logiDevice);
     }
 
     void DescriptorPool::destroy(VkDevice logiDevice) {

@@ -39,6 +39,7 @@ namespace dal {
         SyncMaster m_syncMas;
         DescriptorSetLayout m_descSetLayout;
         UniformBuffers m_uniformBufs;
+        UniformBuffer_PerFrame m_ubuf_per_frame_in_composition;
         DescriptorPool m_descPool;
         DepthImage m_depth_image;
         GbufManager m_gbuf;

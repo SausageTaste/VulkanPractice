@@ -45,12 +45,14 @@ namespace dal {
         this->load_textures();
 
         this->m_uniformBufs.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchainImages.size());
+        this->m_ubuf_per_frame_in_composition.init(sizeof(dal::U_PerFrame_InComposition), this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
         this->m_descPool.initPool(this->m_logiDevice.get(), this->m_swapchainImages.size());
         for (size_t i = 0; i < this->m_swapchainImages.size(); ++i) {
             this->m_descPool.addSets_composition(
                 this->m_logiDevice.get(),
                 this->m_swapchainImages.size(),
                 this->m_descSetLayout.layout_composition(),
+                this->m_ubuf_per_frame_in_composition,
                 this->m_gbuf.make_views_vector(this->m_depth_image.image_view())
             );
         }
@@ -89,6 +91,7 @@ namespace dal {
         this->m_syncMas.destroy(this->m_logiDevice.get());
         //this->m_cmdBuffers.destroy(this->m_logiDevice.get(), this->m_cmdPool.pool());
         this->m_descPool.destroy(this->m_logiDevice.get());
+        this->m_ubuf_per_frame_in_composition.destroy(this->m_logiDevice.get());
         this->m_uniformBufs.destroy(this->m_logiDevice.get());
         this->m_tex_man.destroy(this->m_logiDevice.get());
 
@@ -124,7 +127,13 @@ namespace dal {
             imagesInFlight[imageIndex.first] = this->m_syncMas.fenceInFlight(this->m_currentFrame).get();
         }
 
-        this->m_uniformBufs.update(this->m_camera.make_view_mat(), imageIndex.first, this->m_swapchain.extent(), this->m_logiDevice.get());
+        {
+            this->m_uniformBufs.update(this->m_camera.make_view_mat(), imageIndex.first, this->m_swapchain.extent(), this->m_logiDevice.get());
+
+            U_PerFrame_InComposition data;
+            data.m_view_pos = this->m_camera.m_pos;
+            this->m_ubuf_per_frame_in_composition.copy_to_memory(imageIndex.first, &data, sizeof(data), this->m_logiDevice.get());
+        }
 
         VkSubmitInfo submitInfo = {};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -179,6 +188,7 @@ namespace dal {
             this->m_syncMas.destroy(this->m_logiDevice.get());
             this->m_cmdBuffers.destroy(this->m_logiDevice.get(), this->m_cmdPool.pool());
             this->m_descPool.destroy(this->m_logiDevice.get());
+            this->m_ubuf_per_frame_in_composition.destroy(this->m_logiDevice.get());
             this->m_uniformBufs.destroy(this->m_logiDevice.get());
             this->m_fbuf.destroy(this->m_logiDevice.get());
             this->m_pipeline.destroy(this->m_logiDevice.get());
@@ -198,6 +208,7 @@ namespace dal {
             this->m_pipeline.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchain.extent(), this->m_descSetLayout.layout_deferred(), this->m_descSetLayout.layout_composition());
             this->m_fbuf.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchainImages.getViews(), this->m_swapchain.extent(), this->m_depth_image.image_view(), this->m_gbuf);
             this->m_uniformBufs.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchainImages.size());
+            this->m_ubuf_per_frame_in_composition.init(sizeof(dal::U_PerFrame_InComposition), this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
             this->m_descPool.initPool(this->m_logiDevice.get(), this->m_swapchainImages.size());
 
             for (auto& model : this->m_models) {
@@ -219,6 +230,7 @@ namespace dal {
                     this->m_logiDevice.get(),
                     this->m_swapchainImages.size(),
                     this->m_descSetLayout.layout_composition(),
+                    this->m_ubuf_per_frame_in_composition,
                     this->m_gbuf.make_views_vector(this->m_depth_image.image_view())
                 );
             }

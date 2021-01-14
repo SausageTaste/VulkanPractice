@@ -9,6 +9,11 @@ layout (input_attachment_index = 2, binding = 2) uniform subpassInput input_norm
 layout (input_attachment_index = 3, binding = 3) uniform subpassInput input_albedo;
 layout (input_attachment_index = 4, binding = 4) uniform subpassInput input_material;
 
+layout(binding = 5) uniform UniformBufferObject {
+    vec3 m_view_pos;
+} u_per_frame;
+
+
 layout (location = 0) out vec4 out_color;
 
 
@@ -22,9 +27,8 @@ vec3 fix_color(vec3 color) {
 
 
 void main() {
-    const vec3 CAMERA_POS = vec3(0, 2, 4);
-    const vec3 LIGHT_POS = vec3(2, 4, 5);
-    const vec3 LIGHT_COLOR = vec3(10);
+    const vec3 LIGHT_POS = vec3(2, 4, 2);
+    const vec3 LIGHT_COLOR = vec3(100);
 
     float depth = subpassLoad(input_depth).x;
     vec3 frag_world_pos = subpassLoad(input_position).xyz;
@@ -32,13 +36,14 @@ void main() {
     vec3 albedo = subpassLoad(input_albedo).xyz;
     vec2 material = subpassLoad(input_material).xy;
 
-    vec3 view_direc = normalize(CAMERA_POS - frag_world_pos);
+    vec3 view_direc = normalize(u_per_frame.m_view_pos - frag_world_pos);
 
     vec3 F0 = vec3(0.04);
     F0 = mix(F0, albedo, material.y);
     vec3 light = 0.1 * albedo;
 
-    light += calc_pbr_illumination(material.x, material.y, albedo, normal, F0, view_direc, normalize(LIGHT_POS), 1, LIGHT_COLOR);
+    vec3 frag_to_light_vec = LIGHT_POS - frag_world_pos;
+    light += calc_pbr_illumination(material.x, material.y, albedo, normal, F0, view_direc, normalize(frag_to_light_vec), length(frag_to_light_vec), LIGHT_COLOR);
 
     out_color.xyz = light;
     out_color.w = 1;
