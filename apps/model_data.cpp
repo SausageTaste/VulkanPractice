@@ -67,29 +67,29 @@ namespace dal {
         RenderUnit result;
 
         const auto x_length_half = x_length * 0.5f;
-        const auto y_length_half = z_length * 0.5f;
+        const auto z_length_half = z_length * 0.5f;
 
         result.m_vertices = {
-            {{-x_length_half, 0.f, -z_length}, {0.0f, 1.0f, 0.0f}, { 0,  0}},
-            {{-x_length_half, 0.f,  z_length}, {0.0f, 1.0f, 0.0f}, { 0, 10}},
-            {{ x_length_half, 0.f,  z_length}, {0.0f, 1.0f, 0.0f}, {10, 10}},
-            {{ x_length_half, 0.f, -z_length}, {0.0f, 1.0f, 0.0f}, {10,  0}},
+            {{-x_length_half, 0.f, -z_length_half}, {0.0f, 1.0f, 0.0f}, {       0,        0}},
+            {{-x_length_half, 0.f,  z_length_half}, {0.0f, 1.0f, 0.0f}, {       0, z_length}},
+            {{ x_length_half, 0.f,  z_length_half}, {0.0f, 1.0f, 0.0f}, {x_length, z_length}},
+            {{ x_length_half, 0.f, -z_length_half}, {0.0f, 1.0f, 0.0f}, {x_length,        0}},
         };
 
         result.m_indices = {
             0, 1, 2, 0, 2, 3
         };
 
-        result.m_material.m_roughness = 0.1;
+        result.m_material.m_roughness = 0.3;
         result.m_material.m_metallic = 0;
 
         return result;
     }
 
     RenderUnit get_aabb_box() {
-        RenderUnit result;
+        RenderUnit intermediate_data, result;
 
-        result.m_vertices = {
+        intermediate_data.m_vertices = {
             {{-0.5f, 0.f, -0.5f}, glm::normalize(glm::vec3{-1, -1, -1}), {1, 1}}, // 0
             {{-0.5f, 0.f,  0.5f}, glm::normalize(glm::vec3{-1, -1,  1}), {0, 1}}, // 1
             {{ 0.5f, 0.f,  0.5f}, glm::normalize(glm::vec3{ 1, -1,  1}), {1, 1}}, // 2
@@ -100,7 +100,7 @@ namespace dal {
             {{ 0.5f, 1.f, -0.5f}, glm::normalize(glm::vec3{ 1,  1, -1}), {0, 0}}, // 7
         };
 
-        result.m_indices = {
+        intermediate_data.m_indices = {
             0, 2, 1, 0, 3, 2,
             5, 1, 2, 5, 2, 6,
             6, 2, 3, 6, 3, 7,
@@ -109,8 +109,34 @@ namespace dal {
             4, 5, 6, 4, 6, 7
         };
 
-        result.m_material.m_roughness = 0.5;
-        result.m_material.m_metallic = 0.5;
+        for (int i = 0; i < intermediate_data.m_indices.size() / 3; ++i) {
+            const auto i0 = intermediate_data.m_indices.at(3 * i + 0);
+            const auto i1 = intermediate_data.m_indices.at(3 * i + 1);
+            const auto i2 = intermediate_data.m_indices.at(3 * i + 2);
+
+            auto v0 = intermediate_data.m_vertices.at(i0);
+            auto v1 = intermediate_data.m_vertices.at(i1);
+            auto v2 = intermediate_data.m_vertices.at(i2);
+
+            const auto edge1 = v1.pos - v0.pos;
+            const auto edge2 = v2.pos - v0.pos;
+            const auto normal = glm::normalize(glm::cross(edge1, edge2));
+
+            v0.normal = normal;
+            v1.normal = normal;
+            v2.normal = normal;
+
+            result.m_vertices.emplace_back(v0);
+            result.m_vertices.emplace_back(v1);
+            result.m_vertices.emplace_back(v2);
+
+            result.m_indices.emplace_back(result.m_indices.size());
+            result.m_indices.emplace_back(result.m_indices.size());
+            result.m_indices.emplace_back(result.m_indices.size());
+        }
+
+        result.m_material.m_roughness = 0.2;
+        result.m_material.m_metallic = 1;
 
         return result;
     }

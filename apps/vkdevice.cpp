@@ -86,7 +86,7 @@ namespace dal {
         this->m_data_per_frame_in_composition.m_plight_color[1] = glm::vec4{ 0, 100, 0, 1 };
         this->m_data_per_frame_in_composition.m_plight_color[2] = glm::vec4{ 0, 0, 100, 1 };
         this->m_data_per_frame_in_composition.m_plight_color[3] = glm::vec4{ 100 };
-        this->m_data_per_frame_in_composition.m_plight_color[4] = glm::vec4{ 1000 };
+        this->m_data_per_frame_in_composition.m_plight_color[4] = glm::vec4{ 500 };
     }
 
     void VulkanMaster::destroy(void) {
@@ -347,7 +347,7 @@ namespace dal {
     void VulkanMaster::load_models() {
         // Floor
         {
-            const auto mdoel_data = dal::get_horizontal_plane(15, 15);
+            const auto mdoel_data = dal::get_horizontal_plane(500, 500);
             auto& model = this->m_models.emplace_back();
 
             auto& inst = model.add_instance();

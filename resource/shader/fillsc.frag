@@ -42,7 +42,7 @@ void main() {
 
     vec3 F0 = vec3(0.04);
     F0 = mix(F0, albedo, material.y);
-    vec3 light = 0.1 * albedo;
+    vec3 light = 0.02 * albedo;
 
     for (uint i = 0; i < u_per_frame.m_num_of_plight_dlight_slight.x; ++i) {
         vec3 frag_to_light_vec = u_per_frame.m_plight_pos[i].xyz - frag_world_pos;
