@@ -8,12 +8,19 @@
 namespace dal {
 
     glm::mat4 CameraLookAt::make_view_mat() const {
-        return glm::lookAt(this->m_pos, this->m_pos + this->m_view_direc, this->m_up);
+        const auto translate = glm::translate(glm::mat4{1}, -this->m_pos);
+        const auto rotation_x = glm::rotate(glm::mat4{1}, -this->m_rotations.x, glm::vec3{1, 0, 0});
+        const auto rotation_y = glm::rotate(glm::mat4{1}, -this->m_rotations.y, glm::vec3{0, 1, 0});
+
+        return rotation_x * rotation_y * translate;
     }
 
     void CameraLookAt::move_horizontal(const float x, const float z) {
-        this->m_pos.x += x;
-        this->m_pos.z += z;
+        const glm::vec4 move_vec{ x, 0, z, 0 };
+        const auto rotated = glm::rotate(glm::mat4{1}, this->m_rotations.y, glm::vec3{0, 1, 0}) * move_vec;
+
+        this->m_pos.x += rotated.x;
+        this->m_pos.z += rotated.z;
     }
 
 }

@@ -79,7 +79,6 @@ namespace dal {
         this->m_scrHeight = h;
 
         this->m_camera.m_pos = glm::vec3{ 0, 2, 4 };
-        this->m_camera.m_view_direc = -this->m_camera.m_pos;
     }
 
     void VulkanMaster::destroy(void) {

@@ -12,8 +12,7 @@ namespace dal {
 
     public:
         glm::vec3 m_pos{ 0 };
-        glm::vec3 m_up{ 0, 1, 0 };
-        glm::vec3 m_view_direc{ 0, 0, -1 };
+        glm::vec2 m_rotations{ 0 };
 
     public:
         glm::mat4 make_view_mat() const;
