@@ -19,6 +19,11 @@ layout(binding = 5) uniform UniformBufferObject {
 
     vec4 m_dlight_color[3];
     vec4 m_dlight_direc[3];
+
+    vec4 m_slight_pos[5];
+    vec4 m_slight_direc[5];
+    vec4 m_slight_color[5];
+    vec4 m_slight_fade_start_end[5];
 } u_per_frame;
 
 
@@ -54,6 +59,17 @@ void main() {
     for (uint i = 0; i < u_per_frame.m_num_of_plight_dlight_slight.y; ++i) {
         const vec3 frag_to_light_direc = normalize(-u_per_frame.m_dlight_direc[i].xyz);
         light += calc_pbr_illumination(material.x, material.y, albedo, normal, F0, view_direc, frag_to_light_direc, 1, u_per_frame.m_dlight_color[i].xyz);
+    }
+    for (uint i = 0; i < u_per_frame.m_num_of_plight_dlight_slight.z; ++i) {
+        const vec3 frag_to_light_vec = u_per_frame.m_slight_pos[i].xyz - frag_world_pos;
+        const float attenuation = calc_slight_attenuation(
+            frag_world_pos,
+            u_per_frame.m_slight_pos[i].xyz,
+            u_per_frame.m_slight_direc[i].xyz,
+            u_per_frame.m_slight_fade_start_end[i].x,
+            u_per_frame.m_slight_fade_start_end[i].y
+        );
+        light += calc_pbr_illumination(material.x, material.y, albedo, normal, F0, view_direc, normalize(frag_to_light_vec), length(frag_to_light_vec), u_per_frame.m_slight_color[i].xyz) * attenuation;
     }
 
     out_color.xyz = light;

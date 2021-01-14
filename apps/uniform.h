@@ -70,6 +70,11 @@ namespace dal {
 
         glm::vec4 m_dlight_color[3]{};
         glm::vec4 m_dlight_direc[3]{};
+
+        glm::vec4 m_slight_pos[5]{};
+        glm::vec4 m_slight_direc[5]{};
+        glm::vec4 m_slight_color[5]{};
+        glm::vec4 m_slight_fade_start_end[5]{};
     };
 
     class UniformBuffer_PerFrame {

@@ -81,17 +81,24 @@ namespace dal {
 
         this->m_camera.m_pos = glm::vec3{ 0, 2, 4 };
 
-        this->m_data_per_frame_in_composition.m_num_of_plight_dlight_slight = glm::vec4{ 2, 2, 0, 0 };
-        this->m_data_per_frame_in_composition.m_plight_color[0] = glm::vec4{ 10 };
-        this->m_data_per_frame_in_composition.m_plight_color[1] = glm::vec4{ 100 };
-        this->m_data_per_frame_in_composition.m_plight_color[2] = glm::vec4{ 30 };
-        this->m_data_per_frame_in_composition.m_plight_color[3] = glm::vec4{ 40 };
-        this->m_data_per_frame_in_composition.m_plight_color[4] = glm::vec4{ 50 };
+        // Init lights
+        {
+            this->m_data_per_frame_in_composition.m_num_of_plight_dlight_slight = glm::vec4{ 2, 1, 1, 0 };
+            this->m_data_per_frame_in_composition.m_plight_color[0] = glm::vec4{ 10 };
+            this->m_data_per_frame_in_composition.m_plight_color[1] = glm::vec4{ 100 };
+            this->m_data_per_frame_in_composition.m_plight_color[2] = glm::vec4{ 30 };
+            this->m_data_per_frame_in_composition.m_plight_color[3] = glm::vec4{ 40 };
+            this->m_data_per_frame_in_composition.m_plight_color[4] = glm::vec4{ 50 };
 
-        this->m_data_per_frame_in_composition.m_dlight_direc[0] = glm::normalize(glm::vec4{  1, -2, -1, 0 });
-        this->m_data_per_frame_in_composition.m_dlight_direc[1] = glm::normalize(glm::vec4{ -1, -2, -1, 0 });
-        this->m_data_per_frame_in_composition.m_dlight_color[0] = glm::vec4{ 2, 0, 0, 1 };
-        this->m_data_per_frame_in_composition.m_dlight_color[1] = glm::vec4{ 0, 0, 2, 1 };
+            this->m_data_per_frame_in_composition.m_dlight_direc[0] = glm::normalize(glm::vec4{  1, -2, -1, 0 });
+            this->m_data_per_frame_in_composition.m_dlight_direc[1] = glm::normalize(glm::vec4{ -1, -2, -1, 0 });
+            this->m_data_per_frame_in_composition.m_dlight_color[0] = glm::vec4{ 0.5, 0.3, 2, 1 };
+            this->m_data_per_frame_in_composition.m_dlight_color[1] = glm::vec4{ 0, 0, 2, 1 };
+
+            this->m_data_per_frame_in_composition.m_slight_color[0] = glm::vec4{ 2000 };
+            this->m_data_per_frame_in_composition.m_slight_pos[0] = glm::vec4{ 0, 7, -2, 1 };
+            this->m_data_per_frame_in_composition.m_slight_fade_start_end[0] = glm::normalize(glm::vec4{ std::cos(glm::radians<float>(45)), std::cos(glm::radians<float>(55)), 0, 0 });
+        }
     }
 
     void VulkanMaster::destroy(void) {
@@ -157,6 +164,14 @@ namespace dal {
                     1
                 };
             }
+
+
+            this->m_data_per_frame_in_composition.m_slight_direc[0] = glm::normalize(glm::vec4{
+                std::sin(dal::getTimeInSec()),
+                std::cos(dal::getTimeInSec()),
+                -0.4,
+                0
+            });
 
             this->m_ubuf_per_frame_in_composition.copy_to_memory(
                 imageIndex.first,

@@ -2,6 +2,16 @@
 const float PI = 3.14159265359;
 
 
+float calc_slight_attenuation(vec3 frag_pos, vec3 light_pos, vec3 light_direc, float fade_start, float fade_end) {
+    const vec3 fragToLight_n = normalize(light_pos - frag_pos);
+    const float theta        = dot(-fragToLight_n, light_direc);
+    const float epsilon      = fade_start - fade_end;
+    const float attenFactor  = 1;
+
+    return clamp((theta - fade_end) / epsilon * attenFactor, 0.0, 1.0);
+}
+
+
 float _distribution_GGX(vec3 N, vec3 H, float roughness) {
     float a = roughness*roughness;
     float a2 = a*a;
