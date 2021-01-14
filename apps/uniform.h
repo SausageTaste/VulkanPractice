@@ -67,6 +67,9 @@ namespace dal {
 
         glm::vec4 m_plight_color[5]{};
         glm::vec4 m_plight_pos[5]{};
+
+        glm::vec4 m_dlight_color[3]{};
+        glm::vec4 m_dlight_direc[3]{};
     };
 
     class UniformBuffer_PerFrame {
