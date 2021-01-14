@@ -61,7 +61,12 @@ namespace dal {
 
 
     struct U_PerFrame_InComposition {
-        glm::vec3 m_view_pos;
+        glm::vec4 m_view_pos{ 0 };
+
+        glm::vec4 m_num_of_plight_dlight_slight{ 0 };
+
+        glm::vec4 m_plight_color[5]{};
+        glm::vec4 m_plight_pos[5]{};
     };
 
     class UniformBuffer_PerFrame {

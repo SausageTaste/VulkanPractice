@@ -10,7 +10,12 @@ layout (input_attachment_index = 3, binding = 3) uniform subpassInput input_albe
 layout (input_attachment_index = 4, binding = 4) uniform subpassInput input_material;
 
 layout(binding = 5) uniform UniformBufferObject {
-    vec3 m_view_pos;
+    vec4 m_view_pos;
+
+    vec4 m_num_of_plight_dlight_slight;
+
+    vec4 m_plight_color[5];
+    vec4 m_plight_pos[5];
 } u_per_frame;
 
 
@@ -27,23 +32,22 @@ vec3 fix_color(vec3 color) {
 
 
 void main() {
-    const vec3 LIGHT_POS = vec3(2, 4, 2);
-    const vec3 LIGHT_COLOR = vec3(100);
-
     float depth = subpassLoad(input_depth).x;
     vec3 frag_world_pos = subpassLoad(input_position).xyz;
     vec3 normal = subpassLoad(input_normal).xyz;
     vec3 albedo = subpassLoad(input_albedo).xyz;
     vec2 material = subpassLoad(input_material).xy;
 
-    vec3 view_direc = normalize(u_per_frame.m_view_pos - frag_world_pos);
+    vec3 view_direc = normalize(u_per_frame.m_view_pos.xyz - frag_world_pos);
 
     vec3 F0 = vec3(0.04);
     F0 = mix(F0, albedo, material.y);
     vec3 light = 0.1 * albedo;
 
-    vec3 frag_to_light_vec = LIGHT_POS - frag_world_pos;
-    light += calc_pbr_illumination(material.x, material.y, albedo, normal, F0, view_direc, normalize(frag_to_light_vec), length(frag_to_light_vec), LIGHT_COLOR);
+    for (uint i = 0; i < u_per_frame.m_num_of_plight_dlight_slight.x; ++i) {
+        vec3 frag_to_light_vec = u_per_frame.m_plight_pos[i].xyz - frag_world_pos;
+        light += calc_pbr_illumination(material.x, material.y, albedo, normal, F0, view_direc, normalize(frag_to_light_vec), length(frag_to_light_vec), u_per_frame.m_plight_color[i].xyz);
+    }
 
     out_color.xyz = light;
     out_color.w = 1;

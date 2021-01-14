@@ -45,6 +45,7 @@ namespace dal {
         GbufManager m_gbuf;
         TextureManager m_tex_man;
 
+        U_PerFrame_InComposition m_data_per_frame_in_composition;
         CameraLookAt m_camera;
         std::vector<ModelVK> m_models;
         std::shared_ptr<TextureUnit> m_tex_grass, m_tex_tile;

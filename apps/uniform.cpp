@@ -131,7 +131,7 @@ namespace {
     }
 
     VkDescriptorSetLayout create_layout_composition(const VkDevice logiDevice) {
-        std::array<VkDescriptorSetLayoutBinding, 6> bindings{};
+        std::array<VkDescriptorSetLayoutBinding, 7> bindings{};
 
         bindings[0].binding = 0;
         bindings[0].descriptorCount = 1;
@@ -163,6 +163,12 @@ namespace {
         bindings[5].descriptorCount = 1;
         bindings[5].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
         bindings[5].pImmutableSamplers = nullptr;
+
+        bindings[6].binding = 6;
+        bindings[6].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        bindings[6].descriptorCount = 1;
+        bindings[6].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        bindings[6].pImmutableSamplers = nullptr;
 
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -362,7 +368,7 @@ namespace dal {
 namespace dal {
 
     void DescriptorPool::initPool(VkDevice logiDevice, size_t swapchainImagesSize) {
-        constexpr uint32_t POOL_SIZE_MULTIPLIER = 40;
+        constexpr uint32_t POOL_SIZE_MULTIPLIER = 50;
 
         std::array<VkDescriptorPoolSize, 3> poolSizes{};
         poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;

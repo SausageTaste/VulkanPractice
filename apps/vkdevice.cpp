@@ -6,6 +6,7 @@
 
 #include "util_windows.h"
 #include "model_data.h"
+#include "timer.h"
 
 
 namespace {
@@ -79,6 +80,13 @@ namespace dal {
         this->m_scrHeight = h;
 
         this->m_camera.m_pos = glm::vec3{ 0, 2, 4 };
+
+        this->m_data_per_frame_in_composition.m_num_of_plight_dlight_slight = glm::vec4{ 5, 0, 0, 0 };
+        this->m_data_per_frame_in_composition.m_plight_color[0] = glm::vec4{ 100, 0, 0, 1 };
+        this->m_data_per_frame_in_composition.m_plight_color[1] = glm::vec4{ 0, 100, 0, 1 };
+        this->m_data_per_frame_in_composition.m_plight_color[2] = glm::vec4{ 0, 0, 100, 1 };
+        this->m_data_per_frame_in_composition.m_plight_color[3] = glm::vec4{ 100 };
+        this->m_data_per_frame_in_composition.m_plight_color[4] = glm::vec4{ 1000 };
     }
 
     void VulkanMaster::destroy(void) {
@@ -126,12 +134,31 @@ namespace dal {
             imagesInFlight[imageIndex.first] = this->m_syncMas.fenceInFlight(this->m_currentFrame).get();
         }
 
+        // Update uniform buffers
         {
             this->m_uniformBufs.update(this->m_camera.make_view_mat(), imageIndex.first, this->m_swapchain.extent(), this->m_logiDevice.get());
 
-            U_PerFrame_InComposition data;
-            data.m_view_pos = this->m_camera.m_pos;
-            this->m_ubuf_per_frame_in_composition.copy_to_memory(imageIndex.first, &data, sizeof(data), this->m_logiDevice.get());
+            constexpr double RADIUS = 5;
+
+            this->m_data_per_frame_in_composition.m_view_pos = glm::vec4{ this->m_camera.m_pos, 1 };
+
+            const auto plight_count = this->m_data_per_frame_in_composition.m_num_of_plight_dlight_slight[0];
+            for (int i = 0; i < plight_count; ++i) {
+                const auto rotate_phase_diff = 2.0 * M_PI / static_cast<double>(plight_count);
+                this->m_data_per_frame_in_composition.m_plight_pos[i] = glm::vec4{
+                    RADIUS * std::cos(dal::getTimeInSec() + rotate_phase_diff * i),
+                    4,
+                    RADIUS * std::sin(dal::getTimeInSec() + rotate_phase_diff * i),
+                    1
+                };
+            }
+
+            this->m_ubuf_per_frame_in_composition.copy_to_memory(
+                imageIndex.first,
+                &this->m_data_per_frame_in_composition,
+                sizeof(this->m_data_per_frame_in_composition),
+                this->m_logiDevice.get()
+            );
         }
 
         VkSubmitInfo submitInfo = {};
