@@ -1,5 +1,7 @@
 #include "vkdevice.h"
 
+#define _USE_MATH_DEFINES
+#include <math.h>
 #include <array>
 #include <iostream>
 #include <stdexcept>
