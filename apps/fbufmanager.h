@@ -11,13 +11,14 @@ namespace dal {
     class FbufAttachment {
 
     public:
-        enum class Usage{ color, depth_stencil };
+        enum class Usage{ color, depth, depth_stencil };
 
     private:
         VkImage m_image = VK_NULL_HANDLE;
         VkDeviceMemory m_mem = VK_NULL_HANDLE;
         VkImageView m_view = VK_NULL_HANDLE;
         VkFormat m_format;
+        uint32_t m_width = 0, m_height = 0;
 
     public:
         void init(
@@ -33,9 +34,14 @@ namespace dal {
         auto& view() const {
             return this->m_view;
         }
-
         auto& format() const {
             return this->m_format;
+        }
+        auto width() const {
+            return this->m_width;
+        }
+        auto height() const {
+            return this->m_height;
         }
 
     };
@@ -125,6 +131,26 @@ namespace dal {
         auto& getList(void) const {
             return this->m_swapChainFbufs;
         }
+
+    };
+
+
+    class DepthMapManager {
+
+    private:
+        std::vector<VkFramebuffer> m_depth_fbuf;
+        std::vector<FbufAttachment> m_depth_map;
+        VkFormat m_depth_format;
+
+    public:
+        void init(
+            const uint32_t count,
+            const VkFormat depth_format,
+            const VkRenderPass render_pass,
+            const VkDevice logi_device,
+            const VkPhysicalDevice phys_device
+        );
+        void destroy(const VkDevice logi_device);
 
     };
 

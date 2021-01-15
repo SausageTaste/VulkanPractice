@@ -1,6 +1,7 @@
 #include "renderpass.h"
 
 #include <array>
+#include <cassert>
 #include <stdexcept>
 
 
@@ -211,6 +212,9 @@ namespace dal {
 
         this->m_rendering_rp = ::create_renderpass_rendering(logiDevice, attachment_formats);
         this->m_shadow_map_rp = ::create_renderpass_shadow_mapping(attachment_formats.at(1), logiDevice);
+
+        assert(VK_NULL_HANDLE != this->m_rendering_rp);
+        assert(VK_NULL_HANDLE != this->m_shadow_map_rp);
     }
 
     void RenderPass::destroy(VkDevice logiDevice) {

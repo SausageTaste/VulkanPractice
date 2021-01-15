@@ -42,6 +42,7 @@ namespace dal {
         this->m_descSetLayout.init(this->m_logiDevice.get());
         this->m_pipeline.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchain.extent(), this->m_descSetLayout.layout_deferred(), this->m_descSetLayout.layout_composition());
         this->m_fbuf.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchainImages.getViews(), this->m_swapchain.extent(), this->m_depth_image.image_view(), this->m_gbuf);
+        this->m_depth_map_man.init(1, VK_FORMAT_D32_SFLOAT, this->m_renderPass.shadow_mapping(), this->m_logiDevice.get(), this->m_physDevice.get());
         this->m_cmdPool.init(this->m_physDevice.get(), this->m_logiDevice.get(), surface);
         this->m_tex_man.init(this->m_logiDevice.get(), this->m_physDevice.get());
 
@@ -117,6 +118,7 @@ namespace dal {
         this->m_tex_man.destroy(this->m_logiDevice.get());
 
         this->m_cmdPool.destroy(this->m_logiDevice.get());
+        this->m_depth_map_man.destroy(this->m_logiDevice.get());
         this->m_fbuf.destroy(this->m_logiDevice.get());
         this->m_pipeline.destroy(this->m_logiDevice.get());
         this->m_descSetLayout.destroy(this->m_logiDevice.get());

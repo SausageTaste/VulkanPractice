@@ -44,6 +44,7 @@ namespace dal {
         DepthImage m_depth_image;
         GbufManager m_gbuf;
         TextureManager m_tex_man;
+        DepthMapManager m_depth_map_man;
 
         U_PerFrame_InComposition m_data_per_frame_in_composition;
         CameraLookAt m_camera;

@@ -61,6 +61,11 @@ namespace {
             image_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
             flag = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
             break;
+        case dal::FbufAttachment::Usage::depth:
+            aspect_mask = VK_IMAGE_ASPECT_DEPTH_BIT;
+            image_layout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+            flag = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+            break;
         case dal::FbufAttachment::Usage::depth_stencil:
             aspect_mask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
             image_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
@@ -89,6 +94,8 @@ namespace dal {
 
         const auto [usage_flag, aspect_mask, image_layout] = ::interpret_usage(usage);
         this->m_format = format;
+        this->m_width = width;
+        this->m_height = height;
 
         VkImageCreateInfo image{};
         image.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -224,6 +231,60 @@ namespace dal {
 
     void GbufManager::destroy(const VkDevice logiDevice) {
         this->m_gbuf.destroy(logiDevice);
+    }
+
+}
+
+
+namespace dal {
+
+    void DepthMapManager::init(
+        const uint32_t count,
+        const VkFormat depth_format,
+        const VkRenderPass render_pass,
+        const VkDevice logi_device,
+        const VkPhysicalDevice phys_device
+    ) {
+        assert(0 != count);
+        assert(VK_NULL_HANDLE != render_pass);
+        assert(VK_NULL_HANDLE != logi_device);
+        assert(VK_NULL_HANDLE != phys_device);
+
+        this->m_depth_format = depth_format;
+        this->m_depth_map.resize(count);
+        for (auto& x : this->m_depth_map) {
+            x.init(logi_device, phys_device, depth_format, FbufAttachment::Usage::depth, 512, 512);
+        }
+
+        this->m_depth_fbuf.resize(count);
+        for ( size_t i = 0; i < count; i++ ) {
+            const auto view = this->m_depth_map.at(i).view();
+
+            VkFramebufferCreateInfo framebufferInfo = {};
+            framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+            framebufferInfo.renderPass = render_pass;
+            framebufferInfo.attachmentCount = 1;
+            framebufferInfo.pAttachments = &view;
+            framebufferInfo.width = this->m_depth_map.at(i).width();
+            framebufferInfo.height = this->m_depth_map.at(i).height();
+            framebufferInfo.layers = 1;
+
+            if (VK_SUCCESS != vkCreateFramebuffer(logi_device, &framebufferInfo, nullptr, &this->m_depth_fbuf.at(i))) {
+                throw std::runtime_error("failed to create framebuffer for depth map");
+            }
+        }
+    }
+
+    void DepthMapManager::destroy(const VkDevice logi_device) {
+        for (auto& x : this->m_depth_map) {
+            x.destroy(logi_device);
+        }
+        this->m_depth_map.clear();
+
+        for (auto& x : this->m_depth_fbuf) {
+            vkDestroyFramebuffer(logi_device, x, nullptr);
+        }
+        this->m_depth_fbuf.clear();
     }
 
 }
