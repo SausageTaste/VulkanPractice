@@ -69,8 +69,9 @@ namespace dal {
                 this->m_gbuf.make_views_vector(this->m_depth_image.image_view())
             );
         }
+        this->m_descPool.init_descset_shadow(this->m_swapchainImages.size(), this->m_descSetLayout.layout_shadow(), this->m_logiDevice.get());
 
-        this->m_cmdBuffers.init(this->m_logiDevice.get(), this->m_fbuf.getList(), this->m_cmdPool.pool());
+        this->m_cmdBuffers.init(this->m_logiDevice.get(), this->m_fbuf.getList().size(), this->m_cmdPool.pool());
         this->m_syncMas.init(this->m_logiDevice.get(), this->m_swapchainImages.size());
 
         this->load_models();
@@ -84,6 +85,15 @@ namespace dal {
             this->m_swapchain.extent(),
             this->m_fbuf.getList(),
             this->m_descPool.descset_composition(),
+            this->m_models
+        );
+        this->m_cmdBuffers.record_shadow(
+            this->m_renderPass.shadow_mapping(),
+            this->m_pipeline.pipeline_shadow(),
+            this->m_pipeline.layout_shadow(),
+            this->m_depth_map_man.attachment(0).extent(),
+            this->m_depth_map_man.fbuf(0),
+            this->m_descPool.descset_shadow().front(),
             this->m_models
         );
 
@@ -177,7 +187,6 @@ namespace dal {
                     1
                 };
             }
-
 
             this->m_data_per_frame_in_composition.m_slight_direc[0] = glm::normalize(glm::vec4{
                 std::sin(dal::getTimeInSec()),
@@ -303,7 +312,7 @@ namespace dal {
                 );
             }
 
-            this->m_cmdBuffers.init(this->m_logiDevice.get(), this->m_fbuf.getList(), this->m_cmdPool.pool());
+            this->m_cmdBuffers.init(this->m_logiDevice.get(), this->m_fbuf.getList().size(), this->m_cmdPool.pool());
             this->m_syncMas.init(this->m_logiDevice.get(), this->m_swapchainImages.size());
         }
 
@@ -316,6 +325,15 @@ namespace dal {
             this->m_swapchain.extent(),
             this->m_fbuf.getList(),
             this->m_descPool.descset_composition(),
+            this->m_models
+        );
+        this->m_cmdBuffers.record_shadow(
+            this->m_renderPass.shadow_mapping(),
+            this->m_pipeline.pipeline_shadow(),
+            this->m_pipeline.layout_shadow(),
+            this->m_depth_map_man.attachment(0).extent(),
+            this->m_depth_map_man.fbuf(0),
+            this->m_descPool.descset_shadow().front(),
             this->m_models
         );
     }

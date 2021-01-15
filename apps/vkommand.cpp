@@ -6,12 +6,16 @@
 
 namespace dal {
 
-    void CommandBuffers::init(VkDevice logiDevice, const std::vector<VkFramebuffer>& swapChainFbufs, VkCommandPool cmdPool) {
+    void CommandBuffers::init(
+        const VkDevice logiDevice,
+        const size_t swapchain_count,
+        const VkCommandPool cmdPool
+    ) {
         this->destroy(logiDevice, cmdPool);
 
         // Create command buffers
         {
-            this->m_buffers.resize(swapChainFbufs.size());
+            this->m_buffers.resize(swapchain_count);
 
             VkCommandBufferAllocateInfo allocInfo = {};
             allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -20,6 +24,21 @@ namespace dal {
             allocInfo.commandBufferCount = static_cast<uint32_t>(this->m_buffers.size());
 
             if ( vkAllocateCommandBuffers(logiDevice, &allocInfo, this->m_buffers.data()) != VK_SUCCESS ) {
+                throw std::runtime_error("failed to allocate command buffers!");
+            }
+        }
+
+        // Shadow command buffer
+        {
+            this->m_shadow_map_cmd.resize(swapchain_count);
+
+            VkCommandBufferAllocateInfo allocInfo{};
+            allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+            allocInfo.commandPool = cmdPool;
+            allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+            allocInfo.commandBufferCount = this->m_shadow_map_cmd.size();
+
+            if (VK_SUCCESS != vkAllocateCommandBuffers(logiDevice, &allocInfo, this->m_shadow_map_cmd.data())) {
                 throw std::runtime_error("failed to allocate command buffers!");
             }
         }
@@ -111,10 +130,81 @@ namespace dal {
         }
     }
 
+    void CommandBuffers::record_shadow(
+        const VkRenderPass renderpass,
+        const VkPipeline pipeline,
+        const VkPipelineLayout pipelayout,
+        const VkExtent2D& extent,
+        const VkFramebuffer fbuf,
+        const VkDescriptorSet descset_shadow,
+        const std::vector<ModelVK>& models
+    ) {
+        VkCommandBufferBeginInfo beginInfo{};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+        std::array<VkClearValue, 1> clear_values{};
+        clear_values[0].depthStencil = {1.f, 0};
+
+        VkRenderPassBeginInfo renderPassInfo{};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        renderPassInfo.renderPass = renderpass;
+        renderPassInfo.renderArea.offset = { 0, 0 };
+        renderPassInfo.renderArea.extent = extent;
+        renderPassInfo.clearValueCount = clear_values.size();
+        renderPassInfo.pClearValues = clear_values.data();
+
+        for ( size_t i = 0; i < this->m_shadow_map_cmd.size(); i++ ) {
+            if ( VK_SUCCESS != vkBeginCommandBuffer(this->m_shadow_map_cmd[i], &beginInfo) ) {
+                throw std::runtime_error("failed to begin recording command buffer!");
+            }
+            {
+                renderPassInfo.framebuffer = fbuf;
+
+                vkCmdBeginRenderPass(this->m_shadow_map_cmd[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+                {
+                    vkCmdBindPipeline(this->m_shadow_map_cmd[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+
+                    for (const auto& model : models) {
+                        for (const auto& render_unit : model.render_units()) {
+                            VkBuffer vertBuffers[] = {render_unit.m_mesh.vertices.getBuf()};
+                            VkDeviceSize offsets[] = {0};
+                            vkCmdBindVertexBuffers(this->m_shadow_map_cmd[i], 0, 1, vertBuffers, offsets);
+                            vkCmdBindIndexBuffer(this->m_shadow_map_cmd[i], render_unit.m_mesh.indices.getBuf(), 0, VK_INDEX_TYPE_UINT32);
+
+                            vkCmdBindDescriptorSets(
+                                this->m_shadow_map_cmd[i],
+                                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                pipelayout,
+                                0, 1, &descset_shadow, 0, nullptr
+                            );
+
+                            for (const auto& inst : model.instances()) {
+                                PushedConstValues pushed_consts;
+                                pushed_consts.m_model_mat = glm::ortho<float>(10, 10, 10, 10) * inst.transform().make_mat();
+                                vkCmdPushConstants(this->m_shadow_map_cmd[i], pipelayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushedConstValues), &pushed_consts);
+
+                                vkCmdDrawIndexed(this->m_shadow_map_cmd[i], render_unit.m_mesh.indices.size(), 1, 0, 0, 0);
+                            }
+                        }
+                    }
+                }
+                vkCmdEndRenderPass(this->m_shadow_map_cmd[i]);
+            }
+            if ( VK_SUCCESS != vkEndCommandBuffer(this->m_shadow_map_cmd[i]) ) {
+                throw std::runtime_error("failed to record command buffer!");
+            }
+        }
+    }
+
     void CommandBuffers::destroy(const VkDevice logiDevice, const VkCommandPool cmdPool) {
         if (0 != this->m_buffers.size()) {
             vkFreeCommandBuffers(logiDevice, cmdPool, this->m_buffers.size(), this->m_buffers.data());
             this->m_buffers.clear();
+        }
+
+        if (0 != this->m_shadow_map_cmd.size()) {
+            vkFreeCommandBuffers(logiDevice, cmdPool, this->m_shadow_map_cmd.size(), this->m_shadow_map_cmd.data());
+            this->m_shadow_map_cmd.clear();
         }
     }
 

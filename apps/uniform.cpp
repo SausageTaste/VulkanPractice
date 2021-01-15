@@ -184,12 +184,7 @@ namespace {
     }
 
     VkDescriptorSetLayout create_layout_shadow(const VkDevice logiDevice) {
-        std::array<VkDescriptorSetLayoutBinding, 1> bindings{};
-
-        bindings[0].binding = 0;
-        bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        bindings[0].descriptorCount = 1;
-        bindings[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+        std::array<VkDescriptorSetLayoutBinding, 0> bindings{};
 
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -239,8 +234,10 @@ namespace dal {
 namespace dal {
 
     void DescriptorSet::destroy(const VkDescriptorPool pool, const VkDevice logi_device) {
-        vkFreeDescriptorSets(logi_device, pool, this->m_handles.size(), this->m_handles.data());
-        this->m_handles.clear();
+        if (!this->m_handles.empty()) {
+            vkFreeDescriptorSets(logi_device, pool, this->m_handles.size(), this->m_handles.data());
+            this->m_handles.clear();
+        }
     }
 
     void DescriptorSet::init(
@@ -389,6 +386,19 @@ namespace dal {
         }
     }
 
+    void DescriptorSet::record_shadow(const VkDevice logi_device) {
+        for (size_t i = 0; i < this->m_handles.size(); i++) {
+            std::array<VkWriteDescriptorSet, 0> descriptorWrites{};
+
+            vkUpdateDescriptorSets(
+                logi_device,
+                descriptorWrites.size(),
+                descriptorWrites.data(),
+                0, nullptr
+            );
+        }
+    }
+
 }
 
 
@@ -426,6 +436,16 @@ namespace dal {
         auto& new_one = this->m_descset_composition.emplace_back();
         new_one.init(swapchainImagesSize, descriptorSetLayout, this->descriptorPool, logiDevice);
         new_one.record_composition(swapchainImagesSize, ubuf_per_frame, descriptorSetLayout, attachment_views, logiDevice);
+    }
+
+    void DescriptorPool::init_descset_shadow(
+        const uint32_t swapchain_count,
+        const VkDescriptorSetLayout descset_layout,
+        const VkDevice logi_device
+    ) {
+        this->m_descset_shadow.destroy(this->pool(), logi_device);
+        this->m_descset_shadow.init(swapchain_count, descset_layout, this->pool(), logi_device);
+        this->m_descset_shadow.record_shadow(logi_device);
     }
 
     void DescriptorPool::destroy(VkDevice logiDevice) {

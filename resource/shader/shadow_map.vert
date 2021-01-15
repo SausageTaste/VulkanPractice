@@ -7,16 +7,10 @@ layout(location = 2) in vec2 inTexCoord;
 
 
 layout(push_constant) uniform constants {
-    mat4 model_mat;
+    mat4 transform_mat;
 } c_push_consts;
-
-layout(binding = 0) uniform UniformBufferObject {
-    mat4 view;
-    mat4 proj;
-} ubo;
 
 
 void main() {
-    vec4 world_pos = c_push_consts.model_mat * vec4(inPosition, 1.0);
-    gl_Position = ubo.proj * ubo.view * world_pos;
+    gl_Position = c_push_consts.transform_mat * vec4(inPosition, 1.0);
 }

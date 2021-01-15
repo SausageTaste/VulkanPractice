@@ -153,6 +153,7 @@ namespace dal {
             const std::vector<VkImageView>& attachment_views,
             const VkDevice logiDevice
         );
+        void record_shadow(const VkDevice logi_device);
 
         auto& at(const uint32_t swapchain_index) const {
             return this->m_handles.at(swapchain_index);
@@ -169,6 +170,7 @@ namespace dal {
     private:
         VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
         std::vector<DescriptorSet> m_descset_composition;
+        DescriptorSet m_descset_shadow;
 
     public:
         void initPool(VkDevice logiDevice, size_t swapchainImagesSize);
@@ -179,12 +181,20 @@ namespace dal {
             const UniformBuffer_PerFrame& ubuf_per_frame,
             const std::vector<VkImageView>& attachment_views
         );
+        void init_descset_shadow(
+            const uint32_t swapchain_count,
+            const VkDescriptorSetLayout descset_layout,
+            const VkDevice logi_device
+        );
         void destroy(VkDevice logiDevice);
 
         auto& pool() const {
             return this->descriptorPool;
         }
         std::vector<std::vector<VkDescriptorSet>> descset_composition() const;
+        auto& descset_shadow() const {
+            return this->m_descset_shadow.vector();
+        }
 
     };
 

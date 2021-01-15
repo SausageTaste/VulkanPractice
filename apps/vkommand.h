@@ -14,9 +14,14 @@ namespace dal {
 
     private:
         std::vector<VkCommandBuffer> m_buffers;
+        std::vector<VkCommandBuffer> m_shadow_map_cmd;
 
     public:
-        void init(VkDevice logiDevice, const std::vector<VkFramebuffer>& swapChainFbufs, VkCommandPool cmdPool);
+        void init(
+            const VkDevice logiDevice,
+            const size_t swapchain_count,
+            const VkCommandPool cmdPool
+        );
         void destroy(const VkDevice logiDevice, const VkCommandPool cmdPool);
 
         void record(
@@ -28,6 +33,15 @@ namespace dal {
             const VkExtent2D& extent,
             const std::vector<VkFramebuffer>& swapChainFbufs,
             const std::vector<std::vector<VkDescriptorSet>>& descset_composition,
+            const std::vector<ModelVK>& models
+        );
+        void record_shadow(
+            const VkRenderPass renderpass,
+            const VkPipeline pipeline,
+            const VkPipelineLayout pipelayout,
+            const VkExtent2D& extent,
+            const VkFramebuffer fbuf,
+            const VkDescriptorSet descset_shadow,
             const std::vector<ModelVK>& models
         );
 
