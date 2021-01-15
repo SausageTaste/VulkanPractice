@@ -6,7 +6,7 @@
 
 namespace {
 
-    VkRenderPass createRenderpass(const VkDevice logiDevice, const std::array<VkFormat, 6>& attachment_formats) {
+    VkRenderPass create_renderpass_rendering(const VkDevice logiDevice, const std::array<VkFormat, 6>& attachment_formats) {
         std::array<VkAttachmentDescription, 6> attachments{};
         {
             // Presented
@@ -166,19 +166,62 @@ namespace {
         return renderPass;
     }
 
+    VkRenderPass create_renderpass_shadow_mapping(const VkFormat depth_format, const VkDevice logi_device) {
+        std::array<VkAttachmentDescription, 1> attachments{};
+        attachments.at(0).format = depth_format;
+        attachments.at(0).samples = VK_SAMPLE_COUNT_1_BIT;
+        attachments.at(0).loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        attachments.at(0).storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        attachments.at(0).stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        attachments.at(0).stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        attachments.at(0).initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        attachments.at(0).finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+        std::array<VkSubpassDescription, 1> subpasses{};
+        const VkAttachmentReference depth_attachment{ 0, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL };
+        subpasses.at(0).pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        subpasses.at(0).colorAttachmentCount = 0;
+        subpasses.at(0).pColorAttachments = nullptr;
+        subpasses.at(0).pDepthStencilAttachment = &depth_attachment;
+
+        VkRenderPassCreateInfo render_pass_info = {};
+        render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+        render_pass_info.attachmentCount = attachments.size();
+        render_pass_info.pAttachments    = attachments.data();
+        render_pass_info.subpassCount    = subpasses.size();
+        render_pass_info.pSubpasses      = subpasses.data();
+        render_pass_info.dependencyCount = 0;
+        render_pass_info.pDependencies   = nullptr;
+
+        VkRenderPass render_pass = VK_NULL_HANDLE;
+        if ( VK_SUCCESS != vkCreateRenderPass(logi_device, &render_pass_info, nullptr, &render_pass) ) {
+            throw std::runtime_error("failed to create render pass!");
+        }
+
+        return render_pass;
+    }
+
 }
 
 
 namespace dal {
 
     void RenderPass::init(const VkDevice logiDevice, const std::array<VkFormat, 6>& attachment_formats) {
-        this->m_renderPass = createRenderpass(logiDevice, attachment_formats);
+        this->destroy(logiDevice);
+
+        this->m_rendering_rp = ::create_renderpass_rendering(logiDevice, attachment_formats);
+        this->m_shadow_map_rp = ::create_renderpass_shadow_mapping(attachment_formats.at(1), logiDevice);
     }
 
     void RenderPass::destroy(VkDevice logiDevice) {
-        if (VK_NULL_HANDLE != this->m_renderPass) {
-            vkDestroyRenderPass(logiDevice, this->m_renderPass, nullptr);
-            this->m_renderPass = VK_NULL_HANDLE;
+        if (VK_NULL_HANDLE != this->m_rendering_rp) {
+            vkDestroyRenderPass(logiDevice, this->m_rendering_rp, nullptr);
+            this->m_rendering_rp = VK_NULL_HANDLE;
+        }
+
+        if (VK_NULL_HANDLE != this->m_shadow_map_rp) {
+            vkDestroyRenderPass(logiDevice, this->m_shadow_map_rp, nullptr);
+            this->m_shadow_map_rp = VK_NULL_HANDLE;
         }
     }
 
