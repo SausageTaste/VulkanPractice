@@ -70,6 +70,7 @@ namespace dal {
 
         glm::vec4 m_dlight_color[3]{};
         glm::vec4 m_dlight_direc[3]{};
+        glm::mat4 m_dlight_mat[3]{};
 
         glm::vec4 m_slight_pos[5]{};
         glm::vec4 m_slight_direc[5]{};
@@ -151,6 +152,8 @@ namespace dal {
             const UniformBuffer_PerFrame& u_per_frame,
             const VkDescriptorSetLayout descriptorSetLayout,
             const std::vector<VkImageView>& attachment_views,
+            const VkImageView dlight_shadow_map_view,
+            const VkSampler dlight_shadow_map_sampler,
             const VkDevice logiDevice
         );
         void record_shadow(const VkDevice logi_device);
@@ -179,7 +182,9 @@ namespace dal {
             const size_t swapchainImagesSize,
             const VkDescriptorSetLayout descriptorSetLayout,
             const UniformBuffer_PerFrame& ubuf_per_frame,
-            const std::vector<VkImageView>& attachment_views
+            const std::vector<VkImageView>& attachment_views,
+            const VkImageView dlight_shadow_map_view,
+            const VkSampler dlight_shadow_map_sampler
         );
         void init_descset_shadow(
             const uint32_t swapchain_count,

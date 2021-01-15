@@ -83,9 +83,15 @@ namespace dal {
             this->m_data_per_frame_in_composition.m_plight_color[4] = glm::vec4{ 50 };
 
             this->m_data_per_frame_in_composition.m_dlight_direc[0] = glm::normalize(glm::vec4{  1, -2, -1, 0 });
-            this->m_data_per_frame_in_composition.m_dlight_direc[1] = glm::normalize(glm::vec4{ -1, -2, -1, 0 });
-            this->m_data_per_frame_in_composition.m_dlight_color[0] = glm::vec4{ 0.5, 0.3, 2, 1 };
+            this->m_data_per_frame_in_composition.m_dlight_color[0] = glm::vec4{ 10 };
+            this->m_data_per_frame_in_composition.m_dlight_mat[0] = ::make_dlight_mat(
+                ::HALF_PROJ_BOX_LEN_OF_DLIGHT,
+                this->m_data_per_frame_in_composition.m_dlight_direc[0],
+                glm::vec4{ 0 }
+            );
+
             this->m_data_per_frame_in_composition.m_dlight_color[1] = glm::vec4{ 0, 0, 2, 1 };
+            this->m_data_per_frame_in_composition.m_dlight_direc[1] = glm::normalize(glm::vec4{ -1, -2, -1, 0 });
 
             this->m_data_per_frame_in_composition.m_slight_color[0] = glm::vec4{ 2000 };
             this->m_data_per_frame_in_composition.m_slight_pos[0] = glm::vec4{ 0, 7, -2, 1 };
@@ -126,7 +132,9 @@ namespace dal {
                 this->m_swapchainImages.size(),
                 this->m_descSetLayout.layout_composition(),
                 this->m_ubuf_per_frame_in_composition,
-                this->m_gbuf.make_views_vector(this->m_depth_image.image_view())
+                this->m_gbuf.make_views_vector(this->m_depth_image.image_view()),
+                this->m_depth_map_man.attachment(0).view(),
+                this->m_tex_man.sampler_1().get()
             );
         }
         this->m_descPool.init_descset_shadow(this->m_swapchainImages.size(), this->m_descSetLayout.layout_shadow(), this->m_logiDevice.get());
@@ -148,7 +156,7 @@ namespace dal {
             this->m_models
         );
         this->m_cmdBuffers.record_shadow(
-            ::make_dlight_mat(::HALF_PROJ_BOX_LEN_OF_DLIGHT, this->m_data_per_frame_in_composition.m_dlight_direc[0], glm::vec4{ 0 }),
+            this->m_data_per_frame_in_composition.m_dlight_mat[0],
             this->m_renderPass.shadow_mapping(),
             this->m_pipeline.pipeline_shadow(),
             this->m_pipeline.layout_shadow(),
@@ -367,7 +375,9 @@ namespace dal {
                     this->m_swapchainImages.size(),
                     this->m_descSetLayout.layout_composition(),
                     this->m_ubuf_per_frame_in_composition,
-                    this->m_gbuf.make_views_vector(this->m_depth_image.image_view())
+                    this->m_gbuf.make_views_vector(this->m_depth_image.image_view()),
+                    this->m_depth_map_man.attachment(0).view(),
+                    this->m_tex_man.sampler_1().get()
                 );
             }
 
@@ -387,7 +397,7 @@ namespace dal {
             this->m_models
         );
         this->m_cmdBuffers.record_shadow(
-            ::make_dlight_mat(::HALF_PROJ_BOX_LEN_OF_DLIGHT, this->m_data_per_frame_in_composition.m_dlight_direc[0], glm::vec4{ 0 }),
+            this->m_data_per_frame_in_composition.m_dlight_mat[0],
             this->m_renderPass.shadow_mapping(),
             this->m_pipeline.pipeline_shadow(),
             this->m_pipeline.layout_shadow(),

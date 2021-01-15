@@ -140,7 +140,12 @@ namespace {
         return viewportState;
     }
 
-    auto create_info_rasterizer(const VkCullModeFlags cull_mode) {
+    auto create_info_rasterizer(
+        const VkCullModeFlags cull_mode,
+        const bool enable_bias = VK_FALSE,
+        const float bias_constant = 0,
+        const float bias_slope = 0
+    ) {
         VkPipelineRasterizationStateCreateInfo rasterizer = {};
         rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 
@@ -150,10 +155,10 @@ namespace {
         rasterizer.lineWidth = 1;  // GPU feature, wideLines required for lines thicker than 1.
         rasterizer.cullMode = cull_mode;
         rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-        rasterizer.depthBiasEnable = VK_FALSE;  // Maybe this is used to deal with shadow acne?
-        rasterizer.depthBiasConstantFactor = 0;  // Optional
+        rasterizer.depthBiasEnable = enable_bias;  // Maybe this is used to deal with shadow acne?
+        rasterizer.depthBiasConstantFactor = bias_constant;
+        rasterizer.depthBiasSlopeFactor = bias_slope;
         rasterizer.depthBiasClamp = 0;  // Optional
-        rasterizer.depthBiasSlopeFactor = 0;  // Optiona
 
         return rasterizer;
     }
@@ -437,7 +442,7 @@ namespace {
         const auto viewportState = ::create_info_viewport_state(&viewport, 1, &scissor, 1);
 
         // Rasterizer
-        auto rasterizer = ::create_info_rasterizer(VK_CULL_MODE_NONE);
+        auto rasterizer = ::create_info_rasterizer(VK_CULL_MODE_NONE, true, 4, 1.5);
 
         // Multisampling
         const auto multisampling = ::create_info_multisampling();
