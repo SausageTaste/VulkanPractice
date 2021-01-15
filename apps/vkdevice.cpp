@@ -47,7 +47,8 @@ namespace {
     }
 
     glm::mat4 make_dlight_view_mat(const glm::vec3 light_direc, const glm::vec3 light_pos) {
-        return glm::lookAt(-light_direc + light_pos, light_pos, { 0.f, 1.f, 0.f });
+        const auto mat = glm::lookAt(-light_direc + light_pos, light_pos, glm::vec3{0, 1, 0});
+        return mat;
     }
 
     glm::mat4 make_dlight_mat(const float half_proj_box_length, const glm::vec3 light_direc, const glm::vec3 light_pos) {
@@ -65,6 +66,32 @@ namespace {
 namespace dal {
 
     void VulkanMaster::init(const VkInstance instance, const VkSurfaceKHR surface, const unsigned w, const unsigned h) {
+        // Set member variables
+        {
+            this->m_currentFrame = 0;
+            this->m_scrWidth = w;
+            this->m_scrHeight = h;
+
+            this->m_camera.m_pos = glm::vec3{ 0, 2, 4 };
+
+            // Lights
+            this->m_data_per_frame_in_composition.m_num_of_plight_dlight_slight = glm::vec4{ 2, 1, 1, 0 };
+            this->m_data_per_frame_in_composition.m_plight_color[0] = glm::vec4{ 10 };
+            this->m_data_per_frame_in_composition.m_plight_color[1] = glm::vec4{ 100 };
+            this->m_data_per_frame_in_composition.m_plight_color[2] = glm::vec4{ 30 };
+            this->m_data_per_frame_in_composition.m_plight_color[3] = glm::vec4{ 40 };
+            this->m_data_per_frame_in_composition.m_plight_color[4] = glm::vec4{ 50 };
+
+            this->m_data_per_frame_in_composition.m_dlight_direc[0] = glm::normalize(glm::vec4{  1, -2, -1, 0 });
+            this->m_data_per_frame_in_composition.m_dlight_direc[1] = glm::normalize(glm::vec4{ -1, -2, -1, 0 });
+            this->m_data_per_frame_in_composition.m_dlight_color[0] = glm::vec4{ 0.5, 0.3, 2, 1 };
+            this->m_data_per_frame_in_composition.m_dlight_color[1] = glm::vec4{ 0, 0, 2, 1 };
+
+            this->m_data_per_frame_in_composition.m_slight_color[0] = glm::vec4{ 2000 };
+            this->m_data_per_frame_in_composition.m_slight_pos[0] = glm::vec4{ 0, 7, -2, 1 };
+            this->m_data_per_frame_in_composition.m_slight_fade_start_end[0] = glm::normalize(glm::vec4{ std::cos(glm::radians<float>(45)), std::cos(glm::radians<float>(55)), 0, 0 });
+        }
+
         this->m_physDevice.init(instance, surface);
         this->m_logiDevice.init(surface, this->m_physDevice.get());
         this->m_swapchain.init(surface, this->m_physDevice.get(), this->m_logiDevice.get(), this->m_scrWidth, this->m_scrHeight);
@@ -130,31 +157,6 @@ namespace dal {
             this->m_descPool.descset_shadow().front(),
             this->m_models
         );
-
-        this->m_currentFrame = 0;
-        this->m_scrWidth = w;
-        this->m_scrHeight = h;
-
-        this->m_camera.m_pos = glm::vec3{ 0, 2, 4 };
-
-        // Init lights
-        {
-            this->m_data_per_frame_in_composition.m_num_of_plight_dlight_slight = glm::vec4{ 2, 1, 1, 0 };
-            this->m_data_per_frame_in_composition.m_plight_color[0] = glm::vec4{ 10 };
-            this->m_data_per_frame_in_composition.m_plight_color[1] = glm::vec4{ 100 };
-            this->m_data_per_frame_in_composition.m_plight_color[2] = glm::vec4{ 30 };
-            this->m_data_per_frame_in_composition.m_plight_color[3] = glm::vec4{ 40 };
-            this->m_data_per_frame_in_composition.m_plight_color[4] = glm::vec4{ 50 };
-
-            this->m_data_per_frame_in_composition.m_dlight_direc[0] = glm::normalize(glm::vec4{  1, -2, -1, 0 });
-            this->m_data_per_frame_in_composition.m_dlight_direc[1] = glm::normalize(glm::vec4{ -1, -2, -1, 0 });
-            this->m_data_per_frame_in_composition.m_dlight_color[0] = glm::vec4{ 0.5, 0.3, 2, 1 };
-            this->m_data_per_frame_in_composition.m_dlight_color[1] = glm::vec4{ 0, 0, 2, 1 };
-
-            this->m_data_per_frame_in_composition.m_slight_color[0] = glm::vec4{ 2000 };
-            this->m_data_per_frame_in_composition.m_slight_pos[0] = glm::vec4{ 0, 7, -2, 1 };
-            this->m_data_per_frame_in_composition.m_slight_fade_start_end[0] = glm::normalize(glm::vec4{ std::cos(glm::radians<float>(45)), std::cos(glm::radians<float>(55)), 0, 0 });
-        }
     }
 
     void VulkanMaster::destroy(void) {
