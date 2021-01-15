@@ -255,7 +255,7 @@ namespace dal {
 
         this->m_depth_map.resize(count);
         for (auto& x : this->m_depth_map) {
-            x.init(logi_device, phys_device, VK_FORMAT_D32_SFLOAT, FbufAttachment::Usage::depth_map, 512, 512);
+            x.init(logi_device, phys_device, VK_FORMAT_D32_SFLOAT, FbufAttachment::Usage::depth_map, 1024*4, 1024*4);
         }
 
         this->m_depth_fbuf.resize(count);

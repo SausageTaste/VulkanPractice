@@ -478,6 +478,8 @@ namespace dal {
 namespace dal {
 
     void TextureSampler::init(VkDevice logiDevice, VkPhysicalDevice physDevice) {
+        this->destroy(logiDevice);
+
         VkPhysicalDeviceProperties properties{};
         vkGetPhysicalDeviceProperties(physDevice, &properties);
 
@@ -504,6 +506,35 @@ namespace dal {
         }
     }
 
+    void TextureSampler::init_for_shadow_map(const VkDevice logi_device, const VkPhysicalDevice phys_device) {
+        this->destroy(logi_device);
+
+        VkPhysicalDeviceProperties properties{};
+        vkGetPhysicalDeviceProperties(phys_device, &properties);
+
+        VkSamplerCreateInfo samplerInfo{};
+        samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+        samplerInfo.magFilter = VK_FILTER_NEAREST;
+        samplerInfo.minFilter = VK_FILTER_NEAREST;
+        samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        samplerInfo.anisotropyEnable = VK_TRUE;
+        samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+        samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+        samplerInfo.unnormalizedCoordinates = VK_FALSE;
+        samplerInfo.compareEnable = VK_FALSE;
+        samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+        samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+        samplerInfo.mipLodBias = 0;
+        samplerInfo.minLod = 0;
+        samplerInfo.maxLod = 0;
+
+        if (VK_SUCCESS != vkCreateSampler(logi_device, &samplerInfo, nullptr, &this->textureSampler)) {
+            throw std::runtime_error("failed to create texture sampler!");
+        }
+    }
+
     void TextureSampler::destroy(VkDevice logiDevice) {
         if (VK_NULL_HANDLE != this->textureSampler) {
             vkDestroySampler(logiDevice, this->textureSampler, nullptr);
@@ -518,10 +549,12 @@ namespace dal {
 
     void TextureManager::init(const VkDevice logi_device, const VkPhysicalDevice phys_device) {
         this->m_sampler1.init(logi_device, phys_device);
+        this->m_sampler_shadow_map.init_for_shadow_map(logi_device, phys_device);
     }
 
     void TextureManager::destroy(const VkDevice logi_device) {
         this->m_sampler1.destroy(logi_device);
+        this->m_sampler_shadow_map.destroy(logi_device);
 
         for (auto& [name, tex] : this->m_textures) {
             tex->view.destroy(logi_device);

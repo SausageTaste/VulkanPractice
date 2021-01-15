@@ -89,6 +89,7 @@ namespace dal {
 
     public:
         void init(VkDevice logiDevice, VkPhysicalDevice physDevice);
+        void init_for_shadow_map(const VkDevice logi_device, const VkPhysicalDevice phys_device);
         void destroy(VkDevice logiDevice);
 
         auto& get() const {
@@ -102,6 +103,7 @@ namespace dal {
 
     private:
         TextureSampler m_sampler1;
+        TextureSampler m_sampler_shadow_map;
 
         std::unordered_map< std::string, std::shared_ptr<TextureUnit> > m_textures;
 
@@ -111,6 +113,9 @@ namespace dal {
 
         auto& sampler_1() const {
             return this->m_sampler1;
+        }
+        auto& sampler_shadow_map() const {
+            return this->m_sampler_shadow_map;
         }
 
         bool has_texture(const std::string& tex_name) const;

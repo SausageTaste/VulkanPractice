@@ -134,7 +134,7 @@ namespace dal {
                 this->m_ubuf_per_frame_in_composition,
                 this->m_gbuf.make_views_vector(this->m_depth_image.image_view()),
                 this->m_depth_map_man.attachment(0).view(),
-                this->m_tex_man.sampler_1().get()
+                this->m_tex_man.sampler_shadow_map().get()
             );
         }
         this->m_descPool.init_descset_shadow(this->m_swapchainImages.size(), this->m_descSetLayout.layout_shadow(), this->m_logiDevice.get());
@@ -377,7 +377,7 @@ namespace dal {
                     this->m_ubuf_per_frame_in_composition,
                     this->m_gbuf.make_views_vector(this->m_depth_image.image_view()),
                     this->m_depth_map_man.attachment(0).view(),
-                    this->m_tex_man.sampler_1().get()
+                    this->m_tex_man.sampler_shadow_map().get()
                 );
             }
             this->m_descPool.init_descset_shadow(this->m_swapchainImages.size(), this->m_descSetLayout.layout_shadow(), this->m_logiDevice.get());
