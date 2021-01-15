@@ -56,20 +56,20 @@ namespace {
         VkImageUsageFlags flag;
 
         switch (usage) {
-        case dal::FbufAttachment::Usage::color:
+        case dal::FbufAttachment::Usage::color_attachment:
             aspect_mask = VK_IMAGE_ASPECT_COLOR_BIT;
             image_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-            flag = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+            flag = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
             break;
-        case dal::FbufAttachment::Usage::depth:
+        case dal::FbufAttachment::Usage::depth_map:
             aspect_mask = VK_IMAGE_ASPECT_DEPTH_BIT;
             image_layout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
-            flag = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+            flag =  VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
             break;
-        case dal::FbufAttachment::Usage::depth_stencil:
+        case dal::FbufAttachment::Usage::depth_stencil_attachment:
             aspect_mask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
             image_layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-            flag = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+            flag = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
             break;
         default:
             throw std::runtime_error{ "WTF" };
@@ -108,9 +108,9 @@ namespace dal {
 		image.arrayLayers = 1;
 		image.samples = VK_SAMPLE_COUNT_1_BIT;
 		image.tiling = VK_IMAGE_TILING_OPTIMAL;
-		// VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT flag is required for input attachments
-		image.usage = usage_flag | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
+		image.usage = usage_flag;
 		image.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        image.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
         if (VK_SUCCESS != vkCreateImage(logiDevice, &image, nullptr, &this->m_image)) {
             throw std::runtime_error{ "failed to create an image for a fbuf attachment" };
@@ -137,6 +137,10 @@ namespace dal {
         imageView.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		imageView.viewType = VK_IMAGE_VIEW_TYPE_2D;
 		imageView.format = format;
+        imageView.components.r = VK_COMPONENT_SWIZZLE_R;
+        imageView.components.g = VK_COMPONENT_SWIZZLE_G;
+        imageView.components.b = VK_COMPONENT_SWIZZLE_B;
+        imageView.components.a = VK_COMPONENT_SWIZZLE_A;
 		imageView.subresourceRange = {};
 		imageView.subresourceRange.aspectMask = aspect_mask;
 		imageView.subresourceRange.baseMipLevel = 0;
@@ -187,27 +191,27 @@ namespace dal {
         this->m_position.init(
             logiDevice, physDevice,
             VK_FORMAT_R16G16B16A16_SFLOAT,
-            FbufAttachment::Usage::color,
+            FbufAttachment::Usage::color_attachment,
             width, height
         );
         this->m_normal.init(
             logiDevice, physDevice,
             VK_FORMAT_R16G16B16A16_SFLOAT,
-            FbufAttachment::Usage::color,
+            FbufAttachment::Usage::color_attachment,
             width, height
         );
         this->m_albedo.init(
             logiDevice,
             physDevice,
             VK_FORMAT_R8G8B8A8_UNORM,
-            FbufAttachment::Usage::color,
+            FbufAttachment::Usage::color_attachment,
             width, height
         );
         this->m_material.init(
             logiDevice,
             physDevice,
             VK_FORMAT_R16G16B16A16_SFLOAT,
-            FbufAttachment::Usage::color,
+            FbufAttachment::Usage::color_attachment,
             width, height
         );
     }
@@ -240,7 +244,6 @@ namespace dal {
 
     void DepthMapManager::init(
         const uint32_t count,
-        const VkFormat depth_format,
         const VkRenderPass render_pass,
         const VkDevice logi_device,
         const VkPhysicalDevice phys_device
@@ -252,7 +255,7 @@ namespace dal {
 
         this->m_depth_map.resize(count);
         for (auto& x : this->m_depth_map) {
-            x.init(logi_device, phys_device, depth_format, FbufAttachment::Usage::depth, 512, 512);
+            x.init(logi_device, phys_device, VK_FORMAT_D32_SFLOAT, FbufAttachment::Usage::depth_map, 512, 512);
         }
 
         this->m_depth_fbuf.resize(count);

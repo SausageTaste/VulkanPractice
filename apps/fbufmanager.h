@@ -11,7 +11,7 @@ namespace dal {
     class FbufAttachment {
 
     public:
-        enum class Usage{ color, depth, depth_stencil };
+        enum class Usage{ color_attachment, depth_stencil_attachment, depth_map };
 
     private:
         VkImage m_image = VK_NULL_HANDLE;
@@ -147,7 +147,6 @@ namespace dal {
     public:
         void init(
             const uint32_t count,
-            const VkFormat depth_format,
             const VkRenderPass render_pass,
             const VkDevice logi_device,
             const VkPhysicalDevice phys_device

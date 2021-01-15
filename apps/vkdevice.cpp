@@ -41,7 +41,7 @@ namespace dal {
         this->m_renderPass.init(this->m_logiDevice.get(), this->make_attachment_format_array());
         this->m_descSetLayout.init(this->m_logiDevice.get());
         this->m_fbuf.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchainImages.getViews(), this->m_swapchain.extent(), this->m_depth_image.image_view(), this->m_gbuf);
-        this->m_depth_map_man.init(1, VK_FORMAT_D32_SFLOAT, this->m_renderPass.shadow_mapping(), this->m_logiDevice.get(), this->m_physDevice.get());
+        this->m_depth_map_man.init(1, this->m_renderPass.shadow_mapping(), this->m_logiDevice.get(), this->m_physDevice.get());
         this->m_pipeline.init(
             this->m_logiDevice.get(),
             this->m_renderPass.get(),
