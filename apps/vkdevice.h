@@ -19,6 +19,7 @@
 #include "texture.h"
 #include "depth_image.h"
 #include "model_render.h"
+#include "view_camera.h"
 
 
 namespace dal {
@@ -38,11 +39,14 @@ namespace dal {
         SyncMaster m_syncMas;
         DescriptorSetLayout m_descSetLayout;
         UniformBuffers m_uniformBufs;
+        UniformBuffer_PerFrame m_ubuf_per_frame_in_composition;
         DescriptorPool m_descPool;
         DepthImage m_depth_image;
         GbufManager m_gbuf;
         TextureManager m_tex_man;
 
+        U_PerFrame_InComposition m_data_per_frame_in_composition;
+        CameraLookAt m_camera;
         std::vector<ModelVK> m_models;
         std::shared_ptr<TextureUnit> m_tex_grass, m_tex_tile;
 
@@ -58,6 +62,10 @@ namespace dal {
         void init(const VkInstance instance, const VkSurfaceKHR surface, const unsigned w, const unsigned h);
         void destroy(void);
 
+        auto& camera() {
+            return this->m_camera;
+        }
+
         void render(const VkSurfaceKHR surface);
         void waitLogiDeviceIdle(void) const;
         void recreateSwapChain(const VkSurfaceKHR surface);
@@ -70,14 +78,8 @@ namespace dal {
     private:
         void initSwapChain(const VkSurfaceKHR surface);
         void destroySwapChain();
-        auto make_attachment_format_array() {
-            return std::array<VkFormat, 5>{
-                this->m_swapchain.imageFormat(),
-                this->m_depth_image.format(),
-                this->m_gbuf.get().m_position.format(),
-                this->m_gbuf.get().m_normal.format(),
-                this->m_gbuf.get().m_albedo.format(),
-            };
+        auto make_attachment_format_array() const {
+            return this->m_gbuf.make_formats_array(this->m_swapchain.imageFormat(), this->m_depth_image.format());
         }
 
     };

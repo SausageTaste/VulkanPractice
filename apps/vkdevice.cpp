@@ -1,11 +1,14 @@
 #include "vkdevice.h"
 
+#define _USE_MATH_DEFINES
+#include <math.h>
 #include <array>
 #include <iostream>
 #include <stdexcept>
 
 #include "util_windows.h"
 #include "model_data.h"
+#include "timer.h"
 
 
 namespace {
@@ -45,18 +48,15 @@ namespace dal {
         this->load_textures();
 
         this->m_uniformBufs.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchainImages.size());
+        this->m_ubuf_per_frame_in_composition.init(sizeof(dal::U_PerFrame_InComposition), this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
         this->m_descPool.initPool(this->m_logiDevice.get(), this->m_swapchainImages.size());
         for (size_t i = 0; i < this->m_swapchainImages.size(); ++i) {
             this->m_descPool.addSets_composition(
                 this->m_logiDevice.get(),
                 this->m_swapchainImages.size(),
                 this->m_descSetLayout.layout_composition(),
-                {
-                    this->m_depth_image.image_view(),
-                    this->m_gbuf.get().m_position.view(),
-                    this->m_gbuf.get().m_normal.view(),
-                    this->m_gbuf.get().m_albedo.view(),
-                }
+                this->m_ubuf_per_frame_in_composition,
+                this->m_gbuf.make_views_vector(this->m_depth_image.image_view())
             );
         }
 
@@ -80,6 +80,27 @@ namespace dal {
         this->m_currentFrame = 0;
         this->m_scrWidth = w;
         this->m_scrHeight = h;
+
+        this->m_camera.m_pos = glm::vec3{ 0, 2, 4 };
+
+        // Init lights
+        {
+            this->m_data_per_frame_in_composition.m_num_of_plight_dlight_slight = glm::vec4{ 2, 1, 1, 0 };
+            this->m_data_per_frame_in_composition.m_plight_color[0] = glm::vec4{ 10 };
+            this->m_data_per_frame_in_composition.m_plight_color[1] = glm::vec4{ 100 };
+            this->m_data_per_frame_in_composition.m_plight_color[2] = glm::vec4{ 30 };
+            this->m_data_per_frame_in_composition.m_plight_color[3] = glm::vec4{ 40 };
+            this->m_data_per_frame_in_composition.m_plight_color[4] = glm::vec4{ 50 };
+
+            this->m_data_per_frame_in_composition.m_dlight_direc[0] = glm::normalize(glm::vec4{  1, -2, -1, 0 });
+            this->m_data_per_frame_in_composition.m_dlight_direc[1] = glm::normalize(glm::vec4{ -1, -2, -1, 0 });
+            this->m_data_per_frame_in_composition.m_dlight_color[0] = glm::vec4{ 0.5, 0.3, 2, 1 };
+            this->m_data_per_frame_in_composition.m_dlight_color[1] = glm::vec4{ 0, 0, 2, 1 };
+
+            this->m_data_per_frame_in_composition.m_slight_color[0] = glm::vec4{ 2000 };
+            this->m_data_per_frame_in_composition.m_slight_pos[0] = glm::vec4{ 0, 7, -2, 1 };
+            this->m_data_per_frame_in_composition.m_slight_fade_start_end[0] = glm::normalize(glm::vec4{ std::cos(glm::radians<float>(45)), std::cos(glm::radians<float>(55)), 0, 0 });
+        }
     }
 
     void VulkanMaster::destroy(void) {
@@ -91,6 +112,7 @@ namespace dal {
         this->m_syncMas.destroy(this->m_logiDevice.get());
         //this->m_cmdBuffers.destroy(this->m_logiDevice.get(), this->m_cmdPool.pool());
         this->m_descPool.destroy(this->m_logiDevice.get());
+        this->m_ubuf_per_frame_in_composition.destroy(this->m_logiDevice.get());
         this->m_uniformBufs.destroy(this->m_logiDevice.get());
         this->m_tex_man.destroy(this->m_logiDevice.get());
 
@@ -126,7 +148,40 @@ namespace dal {
             imagesInFlight[imageIndex.first] = this->m_syncMas.fenceInFlight(this->m_currentFrame).get();
         }
 
-        this->m_uniformBufs.update(imageIndex.first, this->m_swapchain.extent(), this->m_logiDevice.get());
+        // Update uniform buffers
+        {
+            this->m_uniformBufs.update(this->m_camera.make_view_mat(), imageIndex.first, this->m_swapchain.extent(), this->m_logiDevice.get());
+
+            constexpr double RADIUS = 5;
+
+            this->m_data_per_frame_in_composition.m_view_pos = glm::vec4{ this->m_camera.m_pos, 1 };
+
+            const auto plight_count = this->m_data_per_frame_in_composition.m_num_of_plight_dlight_slight[0];
+            for (int i = 0; i < plight_count; ++i) {
+                const auto rotate_phase_diff = 2.0 * M_PI / static_cast<double>(plight_count);
+                this->m_data_per_frame_in_composition.m_plight_pos[i] = glm::vec4{
+                    RADIUS * std::cos(dal::getTimeInSec() + rotate_phase_diff * i),
+                    4,
+                    RADIUS * std::sin(dal::getTimeInSec() + rotate_phase_diff * i),
+                    1
+                };
+            }
+
+
+            this->m_data_per_frame_in_composition.m_slight_direc[0] = glm::normalize(glm::vec4{
+                std::sin(dal::getTimeInSec()),
+                std::cos(dal::getTimeInSec()),
+                -0.4,
+                0
+            });
+
+            this->m_ubuf_per_frame_in_composition.copy_to_memory(
+                imageIndex.first,
+                &this->m_data_per_frame_in_composition,
+                sizeof(this->m_data_per_frame_in_composition),
+                this->m_logiDevice.get()
+            );
+        }
 
         VkSubmitInfo submitInfo = {};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -181,6 +236,7 @@ namespace dal {
             this->m_syncMas.destroy(this->m_logiDevice.get());
             this->m_cmdBuffers.destroy(this->m_logiDevice.get(), this->m_cmdPool.pool());
             this->m_descPool.destroy(this->m_logiDevice.get());
+            this->m_ubuf_per_frame_in_composition.destroy(this->m_logiDevice.get());
             this->m_uniformBufs.destroy(this->m_logiDevice.get());
             this->m_fbuf.destroy(this->m_logiDevice.get());
             this->m_pipeline.destroy(this->m_logiDevice.get());
@@ -200,6 +256,7 @@ namespace dal {
             this->m_pipeline.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchain.extent(), this->m_descSetLayout.layout_deferred(), this->m_descSetLayout.layout_composition());
             this->m_fbuf.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchainImages.getViews(), this->m_swapchain.extent(), this->m_depth_image.image_view(), this->m_gbuf);
             this->m_uniformBufs.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchainImages.size());
+            this->m_ubuf_per_frame_in_composition.init(sizeof(dal::U_PerFrame_InComposition), this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
             this->m_descPool.initPool(this->m_logiDevice.get(), this->m_swapchainImages.size());
 
             for (auto& model : this->m_models) {
@@ -210,7 +267,8 @@ namespace dal {
                         this->m_descSetLayout.layout_deferred(),
                         this->m_uniformBufs.buffers(),
                         this->m_tex_man.sampler_1().get(),
-                        this->m_logiDevice.get()
+                        this->m_logiDevice.get(),
+                        this->m_physDevice.get()
                     );
                 }
             }
@@ -220,12 +278,8 @@ namespace dal {
                     this->m_logiDevice.get(),
                     this->m_swapchainImages.size(),
                     this->m_descSetLayout.layout_composition(),
-                    {
-                        this->m_depth_image.image_view(),
-                        this->m_gbuf.get().m_position.view(),
-                        this->m_gbuf.get().m_normal.view(),
-                        this->m_gbuf.get().m_albedo.view(),
-                    }
+                    this->m_ubuf_per_frame_in_composition,
+                    this->m_gbuf.make_views_vector(this->m_depth_image.image_view())
                 );
             }
 
@@ -315,7 +369,7 @@ namespace dal {
     void VulkanMaster::load_models() {
         // Floor
         {
-            const auto mdoel_data = dal::get_horizontal_plane(15, 15);
+            const auto mdoel_data = dal::get_horizontal_plane(500, 500);
             auto& model = this->m_models.emplace_back();
 
             auto& inst = model.add_instance();
@@ -330,6 +384,9 @@ namespace dal {
                 this->m_logiDevice.graphicsQ()
             );
 
+            unit.m_material.m_material_data.m_roughness = mdoel_data.m_material.m_roughness;
+            unit.m_material.m_material_data.m_metallic = mdoel_data.m_material.m_metallic;
+
             unit.m_material.set_material(
                 this->m_descPool.pool(),
                 this->m_swapchainImages.size(),
@@ -337,7 +394,8 @@ namespace dal {
                 this->m_uniformBufs.buffers(),
                 this->m_tex_grass->view.get(),
                 this->m_tex_man.sampler_1().get(),
-                this->m_logiDevice.get()
+                this->m_logiDevice.get(),
+                this->m_physDevice.get()
             );
         }
 
@@ -360,6 +418,9 @@ namespace dal {
                 this->m_logiDevice.graphicsQ()
             );
 
+            unit.m_material.m_material_data.m_roughness = model_data.m_material.m_roughness;
+            unit.m_material.m_material_data.m_metallic = model_data.m_material.m_metallic;
+
             unit.m_material.set_material(
                 this->m_descPool.pool(),
                 this->m_swapchainImages.size(),
@@ -367,7 +428,8 @@ namespace dal {
                 this->m_uniformBufs.buffers(),
                 this->m_tex_tile->view.get(),
                 this->m_tex_man.sampler_1().get(),
-                this->m_logiDevice.get()
+                this->m_logiDevice.get(),
+                this->m_physDevice.get()
             );
         }
 
@@ -402,6 +464,9 @@ namespace dal {
                     this->m_logiDevice.graphicsQ()
                 );
 
+                unit.m_material.m_material_data.m_roughness = model_data.m_material.m_roughness;
+                unit.m_material.m_material_data.m_metallic = model_data.m_material.m_metallic;
+
                 unit.m_material.set_material(
                     this->m_descPool.pool(),
                     this->m_swapchainImages.size(),
@@ -409,7 +474,8 @@ namespace dal {
                     this->m_uniformBufs.buffers(),
                     tex->view.get(),
                     this->m_tex_man.sampler_1().get(),
-                    this->m_logiDevice.get()
+                    this->m_logiDevice.get(),
+                    this->m_physDevice.get()
                 );
             }
         }
@@ -442,6 +508,9 @@ namespace dal {
                     this->m_logiDevice.graphicsQ()
                 );
 
+                unit.m_material.m_material_data.m_roughness = model_data.m_material.m_roughness;
+                unit.m_material.m_material_data.m_metallic = model_data.m_material.m_metallic;
+
                 unit.m_material.set_material(
                     this->m_descPool.pool(),
                     this->m_swapchainImages.size(),
@@ -449,7 +518,8 @@ namespace dal {
                     this->m_uniformBufs.buffers(),
                     tex->view.get(),
                     this->m_tex_man.sampler_1().get(),
-                    this->m_logiDevice.get()
+                    this->m_logiDevice.get(),
+                    this->m_physDevice.get()
                 );
             }
         }

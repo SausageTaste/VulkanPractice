@@ -6,8 +6,8 @@
 
 namespace {
 
-    VkRenderPass createRenderpass(const VkDevice logiDevice, const std::array<VkFormat, 5>& attachment_formats) {
-        std::array<VkAttachmentDescription, 5> attachments{};
+    VkRenderPass createRenderpass(const VkDevice logiDevice, const std::array<VkFormat, 6>& attachment_formats) {
+        std::array<VkAttachmentDescription, 6> attachments{};
         {
             // Presented
             attachments[0].format = attachment_formats[0];
@@ -58,6 +58,16 @@ namespace {
             attachments[4].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
             attachments[4].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
             attachments[4].finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+            // Material
+            attachments[5].format = attachment_formats.at(5);
+            attachments[5].samples = VK_SAMPLE_COUNT_1_BIT;
+            attachments[5].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+            attachments[5].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            attachments[5].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+            attachments[5].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+            attachments[5].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            attachments[5].finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         }
 
         std::array<VkSubpassDescription, 2> subpasses{};
@@ -65,10 +75,11 @@ namespace {
         // First subpass: fill G-Buffers
         // ---------------------------------------------------------------------------------
 
-        std::array<VkAttachmentReference, 3> colorAttachmentRef{};
+        std::array<VkAttachmentReference, 4> colorAttachmentRef{};
         colorAttachmentRef[0] = { 2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
         colorAttachmentRef[1] = { 3, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
         colorAttachmentRef[2] = { 4, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
+        colorAttachmentRef[3] = { 5, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
         VkAttachmentReference depthReference{ 1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL };
 
         subpasses[0].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
@@ -83,11 +94,12 @@ namespace {
 
         VkAttachmentReference colorReference{ 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
 
-        std::array<VkAttachmentReference, 4> inputReferences;
+        std::array<VkAttachmentReference, 5> inputReferences;
         inputReferences[0] = { 1, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
         inputReferences[1] = { 2, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
         inputReferences[2] = { 3, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
         inputReferences[3] = { 4, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+        inputReferences[4] = { 5, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
 
         subpasses[1].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
         subpasses[1].colorAttachmentCount = 1;
@@ -159,7 +171,7 @@ namespace {
 
 namespace dal {
 
-    void RenderPass::init(const VkDevice logiDevice, const std::array<VkFormat, 5>& attachment_formats) {
+    void RenderPass::init(const VkDevice logiDevice, const std::array<VkFormat, 6>& attachment_formats) {
         this->m_renderPass = createRenderpass(logiDevice, attachment_formats);
     }
 
