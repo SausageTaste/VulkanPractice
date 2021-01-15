@@ -473,8 +473,8 @@ namespace dal {
             vkDestroyDescriptorPool(logiDevice, this->descriptorPool, nullptr);
             this->descriptorPool = VK_NULL_HANDLE;
         }
-
         this->m_descset_composition.clear();
+        this->m_descset_shadow.vector().clear();
     }
 
     std::vector<std::vector<VkDescriptorSet>> DescriptorPool::descset_composition() const {

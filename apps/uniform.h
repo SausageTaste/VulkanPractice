@@ -161,6 +161,9 @@ namespace dal {
         auto& at(const uint32_t swapchain_index) const {
             return this->m_handles.at(swapchain_index);
         }
+        auto& vector() {
+            return this->m_handles;
+        }
         auto& vector() const {
             return this->m_handles;
         }
