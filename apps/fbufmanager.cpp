@@ -289,4 +289,14 @@ namespace dal {
         this->m_depth_fbuf.clear();
     }
 
+    std::vector<VkImageView> DepthMapManager::views() const {
+        std::vector<VkImageView> result;
+
+        for (const auto& x : this->m_depth_map) {
+            result.push_back(x.view());
+        }
+
+        return result;
+    }
+
 }

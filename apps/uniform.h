@@ -152,7 +152,7 @@ namespace dal {
             const UniformBuffer_PerFrame& u_per_frame,
             const VkDescriptorSetLayout descriptorSetLayout,
             const std::vector<VkImageView>& attachment_views,
-            const VkImageView dlight_shadow_map_view,
+            const std::vector<VkImageView>& dlight_shadow_map_view,
             const VkSampler dlight_shadow_map_sampler,
             const VkDevice logiDevice
         );
@@ -186,7 +186,7 @@ namespace dal {
             const VkDescriptorSetLayout descriptorSetLayout,
             const UniformBuffer_PerFrame& ubuf_per_frame,
             const std::vector<VkImageView>& attachment_views,
-            const VkImageView dlight_shadow_map_view,
+            const std::vector<VkImageView>& dlight_shadow_map_view,
             const VkSampler dlight_shadow_map_sampler
         );
         void init_descset_shadow(

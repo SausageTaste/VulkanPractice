@@ -159,6 +159,10 @@ namespace dal {
         auto& fbuf(const size_t index) const {
             return this->m_depth_fbuf.at(index);
         }
+        auto& fbufs() const {
+            return this->m_depth_fbuf;
+        }
+        std::vector<VkImageView> views() const;
 
     };
 

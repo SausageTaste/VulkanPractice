@@ -166,7 +166,7 @@ namespace {
 
         bindings[6].binding = 6;
         bindings[6].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        bindings[6].descriptorCount = 1;
+        bindings[6].descriptorCount = 3;
         bindings[6].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
@@ -332,7 +332,7 @@ namespace dal {
         const UniformBuffer_PerFrame& u_per_frame,
         const VkDescriptorSetLayout descriptorSetLayout,
         const std::vector<VkImageView>& attachment_views,
-        const VkImageView dlight_shadow_map_view,
+        const std::vector<VkImageView>& dlight_shadow_map_view,
         const VkSampler dlight_shadow_map_sampler,
         const VkDevice logiDevice
     ) {
@@ -364,7 +364,6 @@ namespace dal {
             buffer_per_frame_info.buffer = u_per_frame.buffer(i);
             buffer_per_frame_info.offset = 0;
             buffer_per_frame_info.range = u_per_frame.data_size();
-
             {
                 auto& x = descriptorWrites.emplace_back();
                 x.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -378,11 +377,12 @@ namespace dal {
                 x.pTexelBufferView = nullptr;
             }
 
-            VkDescriptorImageInfo dlight_shadow_map_info{};
-            dlight_shadow_map_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            dlight_shadow_map_info.imageView = dlight_shadow_map_view;
-            dlight_shadow_map_info.sampler = dlight_shadow_map_sampler;
-
+            std::array<VkDescriptorImageInfo, 3> dlight_shadow_map_info{};
+            for (uint32_t i = 0; i < dlight_shadow_map_info.size(); ++i) {
+                dlight_shadow_map_info.at(i).imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                dlight_shadow_map_info.at(i).imageView = dlight_shadow_map_view.at(i);
+                dlight_shadow_map_info.at(i).sampler = dlight_shadow_map_sampler;
+            }
             {
                 auto& x = descriptorWrites.emplace_back();
                 x.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -390,10 +390,11 @@ namespace dal {
                 x.dstBinding = descriptorWrites.size() - 1;
                 x.dstArrayElement = 0;
                 x.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-                x.descriptorCount = 1;
-                x.pImageInfo = &dlight_shadow_map_info;
+                x.descriptorCount = dlight_shadow_map_info.size();
+                x.pImageInfo = dlight_shadow_map_info.data();
             }
 
+            // Create
 
             vkUpdateDescriptorSets(
                 logiDevice,
@@ -450,7 +451,7 @@ namespace dal {
         const VkDescriptorSetLayout descriptorSetLayout,
         const UniformBuffer_PerFrame& ubuf_per_frame,
         const std::vector<VkImageView>& attachment_views,
-        const VkImageView dlight_shadow_map_view,
+        const std::vector<VkImageView>& dlight_shadow_map_view,
         const VkSampler dlight_shadow_map_sampler
     ) {
         auto& new_one = this->m_descset_composition.emplace_back();

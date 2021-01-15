@@ -75,7 +75,7 @@ namespace dal {
             this->m_camera.m_pos = glm::vec3{ 0, 2, 4 };
 
             // Lights
-            this->m_data_per_frame_in_composition.m_num_of_plight_dlight_slight = glm::vec4{ 2, 1, 1, 0 };
+            this->m_data_per_frame_in_composition.m_num_of_plight_dlight_slight = glm::vec4{ 0, 3, 0, 0 };
             this->m_data_per_frame_in_composition.m_plight_color[0] = glm::vec4{ 10 };
             this->m_data_per_frame_in_composition.m_plight_color[1] = glm::vec4{ 100 };
             this->m_data_per_frame_in_composition.m_plight_color[2] = glm::vec4{ 30 };
@@ -83,15 +83,28 @@ namespace dal {
             this->m_data_per_frame_in_composition.m_plight_color[4] = glm::vec4{ 50 };
 
             this->m_data_per_frame_in_composition.m_dlight_direc[0] = glm::normalize(glm::vec4{  1, -2, -1, 0 });
-            this->m_data_per_frame_in_composition.m_dlight_color[0] = glm::vec4{ 10 };
+            this->m_data_per_frame_in_composition.m_dlight_color[0] = glm::vec4{ 5 };
             this->m_data_per_frame_in_composition.m_dlight_mat[0] = ::make_dlight_mat(
                 ::HALF_PROJ_BOX_LEN_OF_DLIGHT,
                 this->m_data_per_frame_in_composition.m_dlight_direc[0],
                 glm::vec4{ 0 }
             );
 
-            this->m_data_per_frame_in_composition.m_dlight_color[1] = glm::vec4{ 0, 0, 2, 1 };
-            this->m_data_per_frame_in_composition.m_dlight_direc[1] = glm::normalize(glm::vec4{ -1, -2, -1, 0 });
+            this->m_data_per_frame_in_composition.m_dlight_direc[1] = glm::normalize(glm::vec4{ -2, -2, -1, 0 });
+            this->m_data_per_frame_in_composition.m_dlight_color[1] = glm::vec4{ 3 };
+            this->m_data_per_frame_in_composition.m_dlight_mat[1] = ::make_dlight_mat(
+                ::HALF_PROJ_BOX_LEN_OF_DLIGHT,
+                this->m_data_per_frame_in_composition.m_dlight_direc[1],
+                glm::vec4{ 0 }
+            );
+
+            this->m_data_per_frame_in_composition.m_dlight_direc[2] = glm::normalize(glm::vec4{ -1, -2, 4, 0 });
+            this->m_data_per_frame_in_composition.m_dlight_color[2] = glm::vec4{ 2 };
+            this->m_data_per_frame_in_composition.m_dlight_mat[2] = ::make_dlight_mat(
+                ::HALF_PROJ_BOX_LEN_OF_DLIGHT,
+                this->m_data_per_frame_in_composition.m_dlight_direc[2],
+                glm::vec4{ 0 }
+            );
 
             this->m_data_per_frame_in_composition.m_slight_color[0] = glm::vec4{ 2000 };
             this->m_data_per_frame_in_composition.m_slight_pos[0] = glm::vec4{ 0, 7, -2, 1 };
@@ -107,7 +120,7 @@ namespace dal {
         this->m_renderPass.init(this->m_logiDevice.get(), this->make_attachment_format_array());
         this->m_descSetLayout.init(this->m_logiDevice.get());
         this->m_fbuf.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchainImages.getViews(), this->m_swapchain.extent(), this->m_depth_image.image_view(), this->m_gbuf);
-        this->m_depth_map_man.init(1, this->m_renderPass.shadow_mapping(), this->m_logiDevice.get(), this->m_physDevice.get());
+        this->m_depth_map_man.init(3, this->m_renderPass.shadow_mapping(), this->m_logiDevice.get(), this->m_physDevice.get());
         this->m_pipeline.init(
             this->m_logiDevice.get(),
             this->m_renderPass.get(),
@@ -133,7 +146,7 @@ namespace dal {
                 this->m_descSetLayout.layout_composition(),
                 this->m_ubuf_per_frame_in_composition,
                 this->m_gbuf.make_views_vector(this->m_depth_image.image_view()),
-                this->m_depth_map_man.attachment(0).view(),
+                this->m_depth_map_man.views(),
                 this->m_tex_man.sampler_shadow_map().get()
             );
         }
@@ -156,12 +169,16 @@ namespace dal {
             this->m_models
         );
         this->m_cmdBuffers.record_shadow(
-            this->m_data_per_frame_in_composition.m_dlight_mat[0],
+            {
+                this->m_data_per_frame_in_composition.m_dlight_mat[0],
+                this->m_data_per_frame_in_composition.m_dlight_mat[1],
+                this->m_data_per_frame_in_composition.m_dlight_mat[2],
+            },
             this->m_renderPass.shadow_mapping(),
             this->m_pipeline.pipeline_shadow(),
             this->m_pipeline.layout_shadow(),
             this->m_depth_map_man.attachment(0).extent(),
-            this->m_depth_map_man.fbuf(0),
+            this->m_depth_map_man.fbufs(),
             this->m_descPool.descset_shadow().front(),
             this->m_models
         );
@@ -262,13 +279,18 @@ namespace dal {
             submit_info.pSignalSemaphores = nullptr;
             submit_info.pWaitDstStageMask = 0;
             submit_info.commandBufferCount = 1;
-            submit_info.pCommandBuffers = &this->m_cmdBuffers.shadow_map_cmd_bufs().at(imageIndex.first);
 
-            const auto submit_result = vkQueueSubmit(this->m_logiDevice.graphicsQ(), 1, &submit_info, nullptr);
-            if ( submit_result != VK_SUCCESS ) {
-                throw std::runtime_error("failed to submit draw command buffer!");
+            for (int i = 0; i < this->m_cmdBuffers.shadow_map_cmd_bufs().size(); ++i) {
+                submit_info.pCommandBuffers = &this->m_cmdBuffers.shadow_map_cmd_bufs().at(i);
+
+                const auto submit_result = vkQueueSubmit(this->m_logiDevice.graphicsQ(), 1, &submit_info, nullptr);
+                if ( submit_result != VK_SUCCESS ) {
+                    throw std::runtime_error("failed to submit draw command buffer!");
+                }
             }
         }
+
+        this->waitLogiDeviceIdle();
 
         VkSubmitInfo submitInfo = {};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -376,7 +398,7 @@ namespace dal {
                     this->m_descSetLayout.layout_composition(),
                     this->m_ubuf_per_frame_in_composition,
                     this->m_gbuf.make_views_vector(this->m_depth_image.image_view()),
-                    this->m_depth_map_man.attachment(0).view(),
+                    this->m_depth_map_man.views(),
                     this->m_tex_man.sampler_shadow_map().get()
                 );
             }
@@ -398,12 +420,16 @@ namespace dal {
             this->m_models
         );
         this->m_cmdBuffers.record_shadow(
-            this->m_data_per_frame_in_composition.m_dlight_mat[0],
+            {
+                this->m_data_per_frame_in_composition.m_dlight_mat[0],
+                this->m_data_per_frame_in_composition.m_dlight_mat[1],
+                this->m_data_per_frame_in_composition.m_dlight_mat[2],
+            },
             this->m_renderPass.shadow_mapping(),
             this->m_pipeline.pipeline_shadow(),
             this->m_pipeline.layout_shadow(),
             this->m_depth_map_man.attachment(0).extent(),
-            this->m_depth_map_man.fbuf(0),
+            this->m_depth_map_man.fbufs(),
             this->m_descPool.descset_shadow().front(),
             this->m_models
         );

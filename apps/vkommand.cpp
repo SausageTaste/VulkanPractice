@@ -131,12 +131,12 @@ namespace dal {
     }
 
     void CommandBuffers::record_shadow(
-        const glm::mat4& light_mat,
+        const std::vector<glm::mat4>& light_mat,
         const VkRenderPass renderpass,
         const VkPipeline pipeline,
         const VkPipelineLayout pipelayout,
         const VkExtent2D& extent,
-        const VkFramebuffer fbuf,
+        const std::vector<VkFramebuffer> fbuf,
         const VkDescriptorSet descset_shadow,
         const std::vector<ModelVK>& models
     ) {
@@ -159,7 +159,7 @@ namespace dal {
                 throw std::runtime_error("failed to begin recording command buffer!");
             }
             {
-                renderPassInfo.framebuffer = fbuf;
+                renderPassInfo.framebuffer = fbuf.at(i);
 
                 vkCmdBeginRenderPass(this->m_shadow_map_cmd[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
                 {
@@ -181,7 +181,7 @@ namespace dal {
 
                             for (const auto& inst : model.instances()) {
                                 PushedConstValues pushed_consts;
-                                pushed_consts.m_model_mat = light_mat * inst.transform().make_mat();
+                                pushed_consts.m_model_mat = light_mat.at(i) * inst.transform().make_mat();
                                 vkCmdPushConstants(this->m_shadow_map_cmd[i], pipelayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushedConstValues), &pushed_consts);
 
                                 vkCmdDrawIndexed(this->m_shadow_map_cmd[i], render_unit.m_mesh.indices.size(), 1, 0, 0, 0);

@@ -36,12 +36,12 @@ namespace dal {
             const std::vector<ModelVK>& models
         );
         void record_shadow(
-            const glm::mat4& light_mat,
+            const std::vector<glm::mat4>& light_mat,
             const VkRenderPass renderpass,
             const VkPipeline pipeline,
             const VkPipelineLayout pipelayout,
             const VkExtent2D& extent,
-            const VkFramebuffer fbuf,
+            const std::vector<VkFramebuffer> fbuf,
             const VkDescriptorSet descset_shadow,
             const std::vector<ModelVK>& models
         );

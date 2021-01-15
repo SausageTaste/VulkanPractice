@@ -85,7 +85,7 @@ namespace dal {
     class TextureSampler {
 
     private:
-        VkSampler textureSampler;
+        VkSampler textureSampler = VK_NULL_HANDLE;
 
     public:
         void init(VkDevice logiDevice, VkPhysicalDevice physDevice);
