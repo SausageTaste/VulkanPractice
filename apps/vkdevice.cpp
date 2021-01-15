@@ -75,7 +75,7 @@ namespace dal {
             this->m_camera.m_pos = glm::vec3{ 0, 2, 4 };
 
             // Lights
-            this->m_data_per_frame_in_composition.m_num_of_plight_dlight_slight = glm::vec4{ 0, 3, 0, 0 };
+            this->m_data_per_frame_in_composition.m_num_of_plight_dlight_slight = glm::vec4{ 0, 2, 0, 0 };
             this->m_data_per_frame_in_composition.m_plight_color[0] = glm::vec4{ 10 };
             this->m_data_per_frame_in_composition.m_plight_color[1] = glm::vec4{ 100 };
             this->m_data_per_frame_in_composition.m_plight_color[2] = glm::vec4{ 30 };
@@ -182,6 +182,10 @@ namespace dal {
             this->m_descPool.descset_shadow().front(),
             this->m_models
         );
+
+        // For shadow maps transition
+        this->submit_render_to_shadow_maps(this->m_cmdBuffers.shadow_map_cmd_bufs().size());
+        this->waitLogiDeviceIdle();
     }
 
     void VulkanMaster::destroy(void) {
@@ -268,28 +272,7 @@ namespace dal {
         }
 
         // Draw shadow map
-        {
-            VkPipelineStageFlags shadow_map_wait_stages = 0;
-            VkSubmitInfo submit_info{ };
-            submit_info.pNext = NULL;
-            submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-            submit_info.waitSemaphoreCount = 0;
-            submit_info.pWaitSemaphores = NULL;
-            submit_info.signalSemaphoreCount = 0;
-            submit_info.pSignalSemaphores = nullptr;
-            submit_info.pWaitDstStageMask = 0;
-            submit_info.commandBufferCount = 1;
-
-            for (int i = 0; i < this->m_cmdBuffers.shadow_map_cmd_bufs().size(); ++i) {
-                submit_info.pCommandBuffers = &this->m_cmdBuffers.shadow_map_cmd_bufs().at(i);
-
-                const auto submit_result = vkQueueSubmit(this->m_logiDevice.graphicsQ(), 1, &submit_info, nullptr);
-                if ( submit_result != VK_SUCCESS ) {
-                    throw std::runtime_error("failed to submit draw command buffer!");
-                }
-            }
-        }
-
+        this->submit_render_to_shadow_maps(this->m_data_per_frame_in_composition.m_num_of_plight_dlight_slight[1]);
         this->waitLogiDeviceIdle();
 
         VkSubmitInfo submitInfo = {};
@@ -664,6 +647,28 @@ namespace dal {
         this->m_needResize = true;
         this->m_scrWidth = w;
         this->m_scrHeight = h;
+    }
+
+    void VulkanMaster::submit_render_to_shadow_maps(const int work_count) {
+        VkPipelineStageFlags shadow_map_wait_stages = 0;
+        VkSubmitInfo submit_info{ };
+        submit_info.pNext = NULL;
+        submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submit_info.waitSemaphoreCount = 0;
+        submit_info.pWaitSemaphores = NULL;
+        submit_info.signalSemaphoreCount = 0;
+        submit_info.pSignalSemaphores = nullptr;
+        submit_info.pWaitDstStageMask = 0;
+        submit_info.commandBufferCount = 1;
+
+        for (int i = 0; i < work_count; ++i) {
+            submit_info.pCommandBuffers = &this->m_cmdBuffers.shadow_map_cmd_bufs().at(i);
+
+            const auto submit_result = vkQueueSubmit(this->m_logiDevice.graphicsQ(), 1, &submit_info, nullptr);
+            if ( submit_result != VK_SUCCESS ) {
+                throw std::runtime_error("failed to submit draw command buffer!");
+            }
+        }
     }
 
 }

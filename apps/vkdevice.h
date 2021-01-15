@@ -79,6 +79,8 @@ namespace dal {
     private:
         void initSwapChain(const VkSurfaceKHR surface);
         void destroySwapChain();
+        void submit_render_to_shadow_maps(const int work_count);
+
         auto make_attachment_format_array() const {
             return this->m_gbuf.make_formats_array(this->m_swapchain.imageFormat(), this->m_depth_image.format());
         }
