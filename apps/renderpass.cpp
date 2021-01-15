@@ -172,17 +172,15 @@ namespace {
         attachments.at(0).format = depth_format;
         attachments.at(0).samples = VK_SAMPLE_COUNT_1_BIT;
         attachments.at(0).loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        attachments.at(0).storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        attachments.at(0).storeOp = VK_ATTACHMENT_STORE_OP_STORE;
         attachments.at(0).stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         attachments.at(0).stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
         attachments.at(0).initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        attachments.at(0).finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        attachments.at(0).finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
         std::array<VkSubpassDescription, 1> subpasses{};
         const VkAttachmentReference depth_attachment{ 0, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL };
         subpasses.at(0).pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        subpasses.at(0).colorAttachmentCount = 0;
-        subpasses.at(0).pColorAttachments = nullptr;
         subpasses.at(0).pDepthStencilAttachment = &depth_attachment;
 
         VkRenderPassCreateInfo render_pass_info = {};
@@ -191,8 +189,6 @@ namespace {
         render_pass_info.pAttachments    = attachments.data();
         render_pass_info.subpassCount    = subpasses.size();
         render_pass_info.pSubpasses      = subpasses.data();
-        render_pass_info.dependencyCount = 0;
-        render_pass_info.pDependencies   = nullptr;
 
         VkRenderPass render_pass = VK_NULL_HANDLE;
         if ( VK_SUCCESS != vkCreateRenderPass(logi_device, &render_pass_info, nullptr, &render_pass) ) {

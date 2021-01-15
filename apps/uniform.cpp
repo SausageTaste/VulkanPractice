@@ -183,6 +183,27 @@ namespace {
         return result;
     }
 
+    VkDescriptorSetLayout create_layout_shadow(const VkDevice logiDevice) {
+        std::array<VkDescriptorSetLayoutBinding, 1> bindings{};
+
+        bindings[0].binding = 0;
+        bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        bindings[0].descriptorCount = 1;
+        bindings[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+        VkDescriptorSetLayoutCreateInfo layoutInfo{};
+        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layoutInfo.bindingCount = bindings.size();
+        layoutInfo.pBindings = bindings.data();
+
+        VkDescriptorSetLayout result = VK_NULL_HANDLE;
+        if (VK_SUCCESS != vkCreateDescriptorSetLayout(logiDevice, &layoutInfo, nullptr, &result)) {
+            throw std::runtime_error("failed to create descriptor set layout!");
+        }
+
+        return result;
+    }
+
 }
 
 namespace dal {
@@ -192,6 +213,7 @@ namespace dal {
 
         this->m_layout_deferred = ::create_layout_deferred(logiDevice);
         this->m_layout_composition = ::create_layout_composition(logiDevice);
+        this->m_layout_shadow = ::create_layout_shadow(logiDevice);
     }
 
     void DescriptorSetLayout::destroy(const VkDevice logiDevice) {
@@ -203,6 +225,11 @@ namespace dal {
         if (VK_NULL_HANDLE != this->m_layout_composition) {
             vkDestroyDescriptorSetLayout(logiDevice, this->m_layout_composition, nullptr);
             this->m_layout_composition = VK_NULL_HANDLE;
+        }
+
+        if (VK_NULL_HANDLE != this->m_layout_shadow) {
+            vkDestroyDescriptorSetLayout(logiDevice, this->m_layout_shadow, nullptr);
+            this->m_layout_shadow = VK_NULL_HANDLE;
         }
     }
 

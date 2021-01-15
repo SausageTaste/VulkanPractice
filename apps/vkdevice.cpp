@@ -40,9 +40,18 @@ namespace dal {
         this->m_gbuf.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchain.extent().width, this->m_swapchain.extent().height);
         this->m_renderPass.init(this->m_logiDevice.get(), this->make_attachment_format_array());
         this->m_descSetLayout.init(this->m_logiDevice.get());
-        this->m_pipeline.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchain.extent(), this->m_descSetLayout.layout_deferred(), this->m_descSetLayout.layout_composition());
         this->m_fbuf.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchainImages.getViews(), this->m_swapchain.extent(), this->m_depth_image.image_view(), this->m_gbuf);
         this->m_depth_map_man.init(1, VK_FORMAT_D32_SFLOAT, this->m_renderPass.shadow_mapping(), this->m_logiDevice.get(), this->m_physDevice.get());
+        this->m_pipeline.init(
+            this->m_logiDevice.get(),
+            this->m_renderPass.get(),
+            this->m_renderPass.shadow_mapping(),
+            this->m_swapchain.extent(),
+            this->m_depth_map_man.attachment(0).extent(),
+            this->m_descSetLayout.layout_deferred(),
+            this->m_descSetLayout.layout_composition(),
+            this->m_descSetLayout.layout_shadow()
+        );
         this->m_cmdPool.init(this->m_physDevice.get(), this->m_logiDevice.get(), surface);
         this->m_tex_man.init(this->m_logiDevice.get(), this->m_physDevice.get());
 
@@ -118,9 +127,9 @@ namespace dal {
         this->m_tex_man.destroy(this->m_logiDevice.get());
 
         this->m_cmdPool.destroy(this->m_logiDevice.get());
+        this->m_pipeline.destroy(this->m_logiDevice.get());
         this->m_depth_map_man.destroy(this->m_logiDevice.get());
         this->m_fbuf.destroy(this->m_logiDevice.get());
-        this->m_pipeline.destroy(this->m_logiDevice.get());
         this->m_descSetLayout.destroy(this->m_logiDevice.get());
         this->m_renderPass.destroy(this->m_logiDevice.get());
         this->m_gbuf.destroy(this->m_logiDevice.get());
@@ -240,8 +249,8 @@ namespace dal {
             this->m_descPool.destroy(this->m_logiDevice.get());
             this->m_ubuf_per_frame_in_composition.destroy(this->m_logiDevice.get());
             this->m_uniformBufs.destroy(this->m_logiDevice.get());
-            this->m_fbuf.destroy(this->m_logiDevice.get());
             this->m_pipeline.destroy(this->m_logiDevice.get());
+            this->m_fbuf.destroy(this->m_logiDevice.get());
             this->m_renderPass.destroy(this->m_logiDevice.get());
             this->m_gbuf.destroy(this->m_logiDevice.get());
             this->m_depth_image.destroy(this->m_logiDevice.get());
@@ -255,8 +264,17 @@ namespace dal {
             this->m_depth_image.init(this->m_swapchain.extent(), this->m_logiDevice.get(), this->m_physDevice.get());
             this->m_gbuf.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchain.extent().width, this->m_swapchain.extent().height);
             this->m_renderPass.init(this->m_logiDevice.get(), this->make_attachment_format_array());
-            this->m_pipeline.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchain.extent(), this->m_descSetLayout.layout_deferred(), this->m_descSetLayout.layout_composition());
             this->m_fbuf.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchainImages.getViews(), this->m_swapchain.extent(), this->m_depth_image.image_view(), this->m_gbuf);
+            this->m_pipeline.init(
+                this->m_logiDevice.get(),
+                this->m_renderPass.get(),
+                this->m_renderPass.shadow_mapping(),
+                this->m_swapchain.extent(),
+                this->m_depth_map_man.attachment(0).extent(),
+                this->m_descSetLayout.layout_deferred(),
+                this->m_descSetLayout.layout_composition(),
+                this->m_descSetLayout.layout_shadow()
+            );
             this->m_uniformBufs.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchainImages.size());
             this->m_ubuf_per_frame_in_composition.init(sizeof(dal::U_PerFrame_InComposition), this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
             this->m_descPool.initPool(this->m_logiDevice.get(), this->m_swapchainImages.size());

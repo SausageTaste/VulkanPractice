@@ -250,7 +250,6 @@ namespace dal {
         assert(VK_NULL_HANDLE != logi_device);
         assert(VK_NULL_HANDLE != phys_device);
 
-        this->m_depth_format = depth_format;
         this->m_depth_map.resize(count);
         for (auto& x : this->m_depth_map) {
             x.init(logi_device, phys_device, depth_format, FbufAttachment::Usage::depth, 512, 512);

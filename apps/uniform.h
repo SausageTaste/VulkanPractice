@@ -105,6 +105,7 @@ namespace dal {
     private:
         VkDescriptorSetLayout m_layout_deferred = VK_NULL_HANDLE;
         VkDescriptorSetLayout m_layout_composition = VK_NULL_HANDLE;
+        VkDescriptorSetLayout m_layout_shadow = VK_NULL_HANDLE;
 
     public:
         void init(const VkDevice logiDevice);
@@ -115,6 +116,9 @@ namespace dal {
         }
         auto& layout_composition() const {
             return this->m_layout_composition;
+        }
+        auto& layout_shadow() const {
+            return this->m_layout_shadow;
         }
 
     };

@@ -43,6 +43,9 @@ namespace dal {
         auto height() const {
             return this->m_height;
         }
+        VkExtent2D extent() const {
+            return { this->width(), this->height() };
+        }
 
     };
 
@@ -140,7 +143,6 @@ namespace dal {
     private:
         std::vector<VkFramebuffer> m_depth_fbuf;
         std::vector<FbufAttachment> m_depth_map;
-        VkFormat m_depth_format;
 
     public:
         void init(
@@ -151,6 +153,13 @@ namespace dal {
             const VkPhysicalDevice phys_device
         );
         void destroy(const VkDevice logi_device);
+
+        auto& attachment(const size_t index) const {
+            return this->m_depth_map.at(index);
+        }
+        auto& fbuf(const size_t index) const {
+            return this->m_depth_fbuf.at(index);
+        }
 
     };
 
