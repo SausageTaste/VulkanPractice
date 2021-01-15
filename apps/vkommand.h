@@ -36,6 +36,7 @@ namespace dal {
             const std::vector<ModelVK>& models
         );
         void record_shadow(
+            const glm::mat4& light_mat,
             const VkRenderPass renderpass,
             const VkPipeline pipeline,
             const VkPipelineLayout pipelayout,
@@ -48,6 +49,9 @@ namespace dal {
         auto& buffers(void) const {
             assert(0 != this->m_buffers.size());
             return this->m_buffers;
+        }
+        auto& shadow_map_cmd_bufs() const {
+            return this->m_shadow_map_cmd;
         }
 
     };

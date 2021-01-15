@@ -209,7 +209,7 @@ namespace dal {
         void init(VkDevice logiDevice, VkPhysicalDevice physDevice, size_t swapchainImagesSize);
         void destroy(const VkDevice logiDevice);
 
-        void update(const glm::mat4& view_mat, const uint32_t imageIndex, const VkExtent2D swapchainExtent, const VkDevice logiDevice);
+        void update(const glm::mat4& proj_mat, const glm::mat4& view_mat, const uint32_t imageIndex, const VkDevice logiDevice);
         void copy_to_memory(const VkDevice logiDevice, const UniformBufferObject& ubo, const uint32_t index) const;
 
         auto& buffers() const {

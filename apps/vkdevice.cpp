@@ -13,6 +13,9 @@
 
 namespace {
 
+    constexpr int HALF_PROJ_BOX_LEN_OF_DLIGHT = 5;
+
+
     bool isResizeNeeded(const VkResult res) {
         if (VK_ERROR_OUT_OF_DATE_KHR  == res) {
             return true;
@@ -23,6 +26,36 @@ namespace {
         else {
             return false;
         }
+    }
+
+    glm::mat4 make_perspective_proj_mat(const VkExtent2D extent) {
+        const float ratio = static_cast<double>(extent.width) / static_cast<double>(extent.height);
+
+        auto mat = glm::perspective<float>(glm::radians<float>(45), ratio, 0.1, 100);
+        mat[1][1] *= -1;
+        return mat;
+    }
+
+    glm::mat4 make_dlight_proj_mat(const float m_halfProjBoxEdgeLen) {
+        auto mat = glm::ortho<float>(
+            -m_halfProjBoxEdgeLen, m_halfProjBoxEdgeLen,
+            -m_halfProjBoxEdgeLen, m_halfProjBoxEdgeLen,
+            -m_halfProjBoxEdgeLen, m_halfProjBoxEdgeLen
+        );
+        mat[1][1] *= -1;
+        return mat;
+    }
+
+    glm::mat4 make_dlight_view_mat(const glm::vec3 light_direc, const glm::vec3 light_pos) {
+        return glm::lookAt(-light_direc + light_pos, light_pos, { 0.f, 1.f, 0.f });
+    }
+
+    glm::mat4 make_dlight_mat(const float half_proj_box_length, const glm::vec3 light_direc, const glm::vec3 light_pos) {
+        return ::make_dlight_proj_mat(half_proj_box_length) * ::make_dlight_view_mat(light_direc, light_pos);
+    }
+
+    glm::mat4 make_dlight_mat(const float half_proj_box_length, const glm::vec4 light_direc, const glm::vec4 light_pos) {
+        return ::make_dlight_mat(half_proj_box_length, glm::vec3{ light_direc }, glm::vec3{ light_pos });
     }
 
 }
@@ -88,6 +121,7 @@ namespace dal {
             this->m_models
         );
         this->m_cmdBuffers.record_shadow(
+            ::make_dlight_mat(::HALF_PROJ_BOX_LEN_OF_DLIGHT, this->m_data_per_frame_in_composition.m_dlight_direc[0], glm::vec4{ 0 }),
             this->m_renderPass.shadow_mapping(),
             this->m_pipeline.pipeline_shadow(),
             this->m_pipeline.layout_shadow(),
@@ -171,12 +205,15 @@ namespace dal {
 
         // Update uniform buffers
         {
-            this->m_uniformBufs.update(this->m_camera.make_view_mat(), imageIndex.first, this->m_swapchain.extent(), this->m_logiDevice.get());
+            this->m_uniformBufs.update(
+                ::make_perspective_proj_mat(this->m_swapchain.extent()),
+                this->m_camera.make_view_mat(),
+                imageIndex.first,
+                this->m_logiDevice.get()
+            );
 
             constexpr double RADIUS = 5;
-
             this->m_data_per_frame_in_composition.m_view_pos = glm::vec4{ this->m_camera.m_pos, 1 };
-
             const auto plight_count = this->m_data_per_frame_in_composition.m_num_of_plight_dlight_slight[0];
             for (int i = 0; i < plight_count; ++i) {
                 const auto rotate_phase_diff = 2.0 * M_PI / static_cast<double>(plight_count);
@@ -201,6 +238,26 @@ namespace dal {
                 sizeof(this->m_data_per_frame_in_composition),
                 this->m_logiDevice.get()
             );
+        }
+
+        // Draw shadow map
+        {
+            VkPipelineStageFlags shadow_map_wait_stages = 0;
+            VkSubmitInfo submit_info{ };
+            submit_info.pNext = NULL;
+            submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+            submit_info.waitSemaphoreCount = 0;
+            submit_info.pWaitSemaphores = NULL;
+            submit_info.signalSemaphoreCount = 0;
+            submit_info.pSignalSemaphores = nullptr;
+            submit_info.pWaitDstStageMask = 0;
+            submit_info.commandBufferCount = 1;
+            submit_info.pCommandBuffers = &this->m_cmdBuffers.shadow_map_cmd_bufs().at(imageIndex.first);
+
+            const auto submit_result = vkQueueSubmit(this->m_logiDevice.graphicsQ(), 1, &submit_info, nullptr);
+            if ( submit_result != VK_SUCCESS ) {
+                throw std::runtime_error("failed to submit draw command buffer!");
+            }
         }
 
         VkSubmitInfo submitInfo = {};
@@ -328,6 +385,7 @@ namespace dal {
             this->m_models
         );
         this->m_cmdBuffers.record_shadow(
+            ::make_dlight_mat(::HALF_PROJ_BOX_LEN_OF_DLIGHT, this->m_data_per_frame_in_composition.m_dlight_direc[0], glm::vec4{ 0 }),
             this->m_renderPass.shadow_mapping(),
             this->m_pipeline.pipeline_shadow(),
             this->m_pipeline.layout_shadow(),

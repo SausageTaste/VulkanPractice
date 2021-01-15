@@ -505,13 +505,10 @@ namespace dal {
         this->uniformBuffersMemory.clear();
     }
 
-    void UniformBuffers::update(const glm::mat4& view_mat, const uint32_t imageIndex, const VkExtent2D swapchainExtent, const VkDevice logiDevice) {
-        const float ratio = static_cast<float>(swapchainExtent.width) / static_cast<float>(swapchainExtent.height);
-
+    void UniformBuffers::update(const glm::mat4& proj_mat, const glm::mat4& view_mat, const uint32_t imageIndex, const VkDevice logiDevice) {
         dal::UniformBufferObject ubo;
         ubo.view = view_mat;
-        ubo.proj = glm::perspective<float>(glm::radians<float>(45), ratio, 0.1, 100);
-        ubo.proj[1][1] *= -1;
+        ubo.proj = proj_mat;
 
         this->copy_to_memory(logiDevice, ubo, imageIndex);
     }

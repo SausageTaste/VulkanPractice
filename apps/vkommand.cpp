@@ -131,6 +131,7 @@ namespace dal {
     }
 
     void CommandBuffers::record_shadow(
+        const glm::mat4& light_mat,
         const VkRenderPass renderpass,
         const VkPipeline pipeline,
         const VkPipelineLayout pipelayout,
@@ -180,7 +181,7 @@ namespace dal {
 
                             for (const auto& inst : model.instances()) {
                                 PushedConstValues pushed_consts;
-                                pushed_consts.m_model_mat = glm::ortho<float>(10, 10, 10, 10) * inst.transform().make_mat();
+                                pushed_consts.m_model_mat = light_mat * inst.transform().make_mat();
                                 vkCmdPushConstants(this->m_shadow_map_cmd[i], pipelayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushedConstValues), &pushed_consts);
 
                                 vkCmdDrawIndexed(this->m_shadow_map_cmd[i], render_unit.m_mesh.indices.size(), 1, 0, 0, 0);
