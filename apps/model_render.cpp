@@ -80,6 +80,54 @@ namespace dal {
 
 namespace dal {
 
+    DescSet& ModelVK::DescSet2D::at(const uint32_t swapchain_index, const uint32_t inst_index, const uint32_t unit_index) {
+        return this->m_sets.at(this->calc_index(swapchain_index, inst_index, unit_index));
+    }
+    const DescSet& ModelVK::DescSet2D::at(const uint32_t swapchain_index, const uint32_t inst_index, const uint32_t unit_index) const {
+        return this->m_sets.at(this->calc_index(swapchain_index, inst_index, unit_index));
+    }
+
+    void ModelVK::DescSet2D::reset(
+        const std::vector<ModelInstance>& insts,
+        const std::vector<RenderUnitVK>& units,
+        const UniformBuffer<U_PerFrame_InDeferred>& ubuf_per_frame_in_deferred,
+        const uint32_t swapchain_count,
+        const VkSampler texture_sampler,
+        const VkDescriptorSetLayout desc_layout_deferred,
+        const VkDevice logi_device
+    ) {
+        this->m_render_unit_count = units.size();
+        this->m_swapchain_count = swapchain_count;
+
+        this->m_pool.reset(logi_device);
+        this->m_sets.resize(swapchain_count * insts.size() * units.size());
+
+        for (uint32_t inst_index = 0; inst_index < insts.size(); ++inst_index) {
+            for (uint32_t unit_index = 0; unit_index < units.size(); ++unit_index) {
+                for (uint32_t swapchain_index = 0; swapchain_index < swapchain_count; ++swapchain_index) {
+                    auto& one = this->at(swapchain_index, inst_index, unit_index);
+                    one = this->m_pool.allocate(desc_layout_deferred, logi_device);
+                    one.record_deferred(
+                        ubuf_per_frame_in_deferred,
+                        units.at(unit_index).m_material.m_material_buffer.buffer_at(swapchain_index),
+                        units.at(unit_index).m_material.m_albedo_map,
+                        texture_sampler,
+                        logi_device
+                    );
+                }
+            }
+        }
+    }
+
+    uint32_t ModelVK::DescSet2D::calc_index(const uint32_t swapchain_index, const uint32_t inst_index, const uint32_t unit_index) const {
+        return (this->m_render_unit_count * this->m_swapchain_count * swapchain_index) + (this->m_render_unit_count * inst_index) + unit_index;
+    }
+
+}
+
+
+namespace dal {
+
     void ModelVK::destroy(const VkDevice logi_device) {
         for (auto& unit : this->m_render_units) {
             unit.m_mesh.vertices.destroy(logi_device);

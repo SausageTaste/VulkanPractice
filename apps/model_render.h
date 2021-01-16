@@ -82,6 +82,35 @@ namespace dal {
     class ModelVK {
 
     private:
+        class DescSet2D {
+
+        private:
+            DescPool m_pool;
+            std::vector<DescSet> m_sets;
+
+            uint32_t m_render_unit_count = 0;
+            uint32_t m_swapchain_count = 0;
+
+        public:
+            DescSet& at(const uint32_t swapchain_index, const uint32_t inst_index, const uint32_t unit_index);
+            const DescSet& at(const uint32_t swapchain_index, const uint32_t inst_index, const uint32_t unit_index) const;
+
+            void reset(
+                const std::vector<ModelInstance>& insts,
+                const std::vector<RenderUnitVK>& units,
+                const UniformBuffer<U_PerFrame_InDeferred>& ubuf_per_frame_in_deferred,
+                const uint32_t swapchain_count,
+                const VkSampler texture_sampler,
+                const VkDescriptorSetLayout desc_layout_deferred,
+                const VkDevice logi_device
+            );
+
+        private:
+            uint32_t calc_index(const uint32_t swapchain_index, const uint32_t inst_index, const uint32_t unit_index) const;
+
+        };
+
+    private:
        std::vector<RenderUnitVK> m_render_units;
        std::vector<ModelInstance> m_instances;
 
