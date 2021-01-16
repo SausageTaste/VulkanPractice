@@ -11,7 +11,7 @@ namespace dal {
         const VkDescriptorPool pool,
         const size_t swapchain_count,
         const VkDescriptorSetLayout descriptor_set_layout,
-        const std::vector<VkBuffer>& uniform_buffers,
+        const UniformBufferArray<U_PerFrame_InDeferred>& uniform_buffers,
         const VkImageView texture_image_view,
         const VkSampler texture_sampler,
         const VkDevice logi_device,
@@ -19,7 +19,8 @@ namespace dal {
     ) {
         this->m_albedo_map = texture_image_view;
 
-        this->m_material_buffer.init(this->m_material_data, logi_device, phys_device);
+        this->m_material_buffer.init(1, logi_device, phys_device);
+        this->m_material_buffer.copy_to_buffer(0, this->m_material_data, logi_device);
 
         this->m_desc_set.init(swapchain_count, descriptor_set_layout, pool, logi_device);
         this->m_desc_set.record_deferred(uniform_buffers, this->m_material_buffer, this->m_albedo_map, texture_sampler, logi_device);
@@ -29,12 +30,13 @@ namespace dal {
         const VkDescriptorPool pool,
         const size_t swapchain_count,
         const VkDescriptorSetLayout descriptor_set_layout,
-        const std::vector<VkBuffer>& uniform_buffers,
+        const UniformBufferArray<U_PerFrame_InDeferred>& uniform_buffers,
         const VkSampler texture_sampler,
         const VkDevice logi_device,
         const VkPhysicalDevice phys_device
     ) {
-        this->m_material_buffer.init(this->m_material_data, logi_device, phys_device);
+        this->m_material_buffer.init(1, logi_device, phys_device);
+        this->m_material_buffer.copy_to_buffer(0, this->m_material_data, logi_device);
 
         this->m_desc_set.init(swapchain_count, descriptor_set_layout, pool, logi_device);
         this->m_desc_set.record_deferred(uniform_buffers, this->m_material_buffer, this->m_albedo_map, texture_sampler, logi_device);

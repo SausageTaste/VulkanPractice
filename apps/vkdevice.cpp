@@ -136,8 +136,8 @@ namespace dal {
 
         this->load_textures();
 
-        this->m_uniformBufs.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchainImages.size());
-        this->m_ubuf_per_frame_in_composition.init(sizeof(dal::U_PerFrame_InComposition), this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
+        this->m_ubuf_per_frame_in_deferred.init(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
+        this->m_ubuf_per_frame_in_composition.init(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
         this->m_descPool.initPool(this->m_logiDevice.get(), this->m_swapchainImages.size());
         for (size_t i = 0; i < this->m_swapchainImages.size(); ++i) {
             this->m_descPool.addSets_composition(
@@ -198,7 +198,7 @@ namespace dal {
         //this->m_cmdBuffers.destroy(this->m_logiDevice.get(), this->m_cmdPool.pool());
         this->m_descPool.destroy(this->m_logiDevice.get());
         this->m_ubuf_per_frame_in_composition.destroy(this->m_logiDevice.get());
-        this->m_uniformBufs.destroy(this->m_logiDevice.get());
+        this->m_ubuf_per_frame_in_deferred.destroy(this->m_logiDevice.get());
         this->m_tex_man.destroy(this->m_logiDevice.get());
 
         this->m_cmdPool.destroy(this->m_logiDevice.get());
@@ -236,10 +236,13 @@ namespace dal {
 
         // Update uniform buffers
         {
-            this->m_uniformBufs.update(
-                ::make_perspective_proj_mat(this->m_swapchain.extent()),
-                this->m_camera.make_view_mat(),
+            U_PerFrame_InDeferred data_per_frame_in_deferred;
+            data_per_frame_in_deferred.proj = ::make_perspective_proj_mat(this->m_swapchain.extent());
+            data_per_frame_in_deferred.view = this->m_camera.make_view_mat();
+
+            this->m_ubuf_per_frame_in_deferred.copy_to_buffer(
                 imageIndex.first,
+                data_per_frame_in_deferred,
                 this->m_logiDevice.get()
             );
 
@@ -263,10 +266,9 @@ namespace dal {
                 0
             });
 
-            this->m_ubuf_per_frame_in_composition.copy_to_memory(
+            this->m_ubuf_per_frame_in_composition.copy_to_buffer(
                 imageIndex.first,
-                &this->m_data_per_frame_in_composition,
-                sizeof(this->m_data_per_frame_in_composition),
+                this->m_data_per_frame_in_composition,
                 this->m_logiDevice.get()
             );
         }
@@ -329,7 +331,7 @@ namespace dal {
             this->m_cmdBuffers.destroy(this->m_logiDevice.get(), this->m_cmdPool.pool());
             this->m_descPool.destroy(this->m_logiDevice.get());
             this->m_ubuf_per_frame_in_composition.destroy(this->m_logiDevice.get());
-            this->m_uniformBufs.destroy(this->m_logiDevice.get());
+            this->m_ubuf_per_frame_in_deferred.destroy(this->m_logiDevice.get());
             this->m_pipeline.destroy(this->m_logiDevice.get());
             this->m_fbuf.destroy(this->m_logiDevice.get());
             this->m_renderPass.destroy(this->m_logiDevice.get());
@@ -356,8 +358,8 @@ namespace dal {
                 this->m_descSetLayout.layout_composition(),
                 this->m_descSetLayout.layout_shadow()
             );
-            this->m_uniformBufs.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchainImages.size());
-            this->m_ubuf_per_frame_in_composition.init(sizeof(dal::U_PerFrame_InComposition), this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
+            this->m_ubuf_per_frame_in_deferred.init(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
+            this->m_ubuf_per_frame_in_composition.init(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
             this->m_descPool.initPool(this->m_logiDevice.get(), this->m_swapchainImages.size());
 
             for (auto& model : this->m_models) {
@@ -366,7 +368,7 @@ namespace dal {
                         this->m_descPool.pool(),
                         this->m_swapchainImages.size(),
                         this->m_descSetLayout.layout_deferred(),
-                        this->m_uniformBufs.buffers(),
+                        this->m_ubuf_per_frame_in_deferred,
                         this->m_tex_man.sampler_1().get(),
                         this->m_logiDevice.get(),
                         this->m_physDevice.get()
@@ -509,7 +511,7 @@ namespace dal {
                 this->m_descPool.pool(),
                 this->m_swapchainImages.size(),
                 this->m_descSetLayout.layout_deferred(),
-                this->m_uniformBufs.buffers(),
+                this->m_ubuf_per_frame_in_deferred,
                 this->m_tex_grass->view.get(),
                 this->m_tex_man.sampler_1().get(),
                 this->m_logiDevice.get(),
@@ -543,7 +545,7 @@ namespace dal {
                 this->m_descPool.pool(),
                 this->m_swapchainImages.size(),
                 this->m_descSetLayout.layout_deferred(),
-                this->m_uniformBufs.buffers(),
+                this->m_ubuf_per_frame_in_deferred,
                 this->m_tex_tile->view.get(),
                 this->m_tex_man.sampler_1().get(),
                 this->m_logiDevice.get(),
@@ -589,7 +591,7 @@ namespace dal {
                     this->m_descPool.pool(),
                     this->m_swapchainImages.size(),
                     this->m_descSetLayout.layout_deferred(),
-                    this->m_uniformBufs.buffers(),
+                    this->m_ubuf_per_frame_in_deferred,
                     tex->view.get(),
                     this->m_tex_man.sampler_1().get(),
                     this->m_logiDevice.get(),
@@ -633,7 +635,7 @@ namespace dal {
                     this->m_descPool.pool(),
                     this->m_swapchainImages.size(),
                     this->m_descSetLayout.layout_deferred(),
-                    this->m_uniformBufs.buffers(),
+                    this->m_ubuf_per_frame_in_deferred,
                     tex->view.get(),
                     this->m_tex_man.sampler_1().get(),
                     this->m_logiDevice.get(),

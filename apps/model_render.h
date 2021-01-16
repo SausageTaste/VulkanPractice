@@ -14,7 +14,7 @@ namespace dal {
 
     public:
         U_Material m_material_data;
-        UniformBufferConst<U_Material> m_material_buffer;
+        UniformBufferArray<U_Material> m_material_buffer;
 
         DescriptorSet m_desc_set;
         VkImageView m_albedo_map = VK_NULL_HANDLE;
@@ -26,7 +26,7 @@ namespace dal {
             const VkDescriptorPool pool,
             const size_t swapchain_count,
             const VkDescriptorSetLayout descriptor_set_layout,
-            const std::vector<VkBuffer>& uniform_buffers,
+            const UniformBufferArray<U_PerFrame_InDeferred>& uniform_buffers,
             const VkImageView texture_image_view,
             const VkSampler texture_sampler,
             const VkDevice logi_device,
@@ -36,7 +36,7 @@ namespace dal {
             const VkDescriptorPool pool,
             const size_t swapchain_count,
             const VkDescriptorSetLayout descriptor_set_layout,
-            const std::vector<VkBuffer>& uniform_buffers,
+            const UniformBufferArray<U_PerFrame_InDeferred>& uniform_buffers,
             const VkSampler texture_sampler,
             const VkDevice logi_device,
             const VkPhysicalDevice phys_device

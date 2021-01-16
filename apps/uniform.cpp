@@ -8,91 +8,6 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "util_vulkan.h"
-
-
-namespace dal {
-
-    std::pair<VkBuffer, VkDeviceMemory> _init_uniform_buffer(const void* const data, const VkDeviceSize data_size, const VkDevice logi_device, const VkPhysicalDevice phys_device) {
-        std::pair<VkBuffer, VkDeviceMemory> result;
-
-        dal::createBuffer(
-            data_size,
-            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            result.first,
-            result.second,
-            logi_device,
-            phys_device
-        );
-
-        void* dst_ptr = nullptr;
-        vkMapMemory(logi_device, result.second, 0, data_size, 0, &dst_ptr);
-        memcpy(dst_ptr, data, data_size);
-        vkUnmapMemory(logi_device, result.second);
-
-        return result;
-    }
-
-    void _destroy_buffer_memory(const VkBuffer buffer, const VkDeviceMemory memory, const VkDevice logi_device) {
-        if (VK_NULL_HANDLE != memory) {
-            vkFreeMemory(logi_device, memory, nullptr);
-        }
-
-        if (VK_NULL_HANDLE != buffer) {
-            vkDestroyBuffer(logi_device, buffer, nullptr);
-        }
-    }
-
-}
-
-
-namespace dal {
-
-    void UniformBuffer_PerFrame::init(const VkDeviceSize data_size, const uint32_t swapchain_count, const VkDevice logi_device, const VkPhysicalDevice phys_device) {
-        this->m_buffers.resize(swapchain_count);
-        this->m_memories.resize(swapchain_count);
-
-        for (size_t i = 0; i < swapchain_count; ++i) {
-            dal::createBuffer(
-                data_size,
-                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                this->m_buffers[i],
-                this->m_memories[i],
-                logi_device,
-                phys_device
-            );
-        }
-
-        this->m_data_size = data_size;
-    }
-
-    void UniformBuffer_PerFrame::destroy(const VkDevice logiDevice) {
-        for (size_t i = 0; i < this->m_buffers.size(); ++i) {
-            vkDestroyBuffer(logiDevice, this->m_buffers[i], nullptr);
-            this->m_buffers[i] = VK_NULL_HANDLE;
-        }
-        for (size_t i = 0; i < this->m_memories.size(); ++i) {
-            vkFreeMemory(logiDevice, this->m_memories[i], nullptr);
-            this->m_memories[i] = VK_NULL_HANDLE;
-        }
-
-        this->m_buffers.clear();
-        this->m_memories.clear();
-    }
-
-    void UniformBuffer_PerFrame::copy_to_memory(const uint32_t index, const void* const data, const VkDeviceSize data_size, const VkDevice logi_device) const {
-        assert(data_size == this->m_data_size);
-
-        void* dst_ptr = nullptr;
-        vkMapMemory(logi_device, this->m_memories[index], 0, data_size, 0, &dst_ptr);
-        memcpy(dst_ptr, data, data_size);
-        vkUnmapMemory(logi_device, this->m_memories[index]);
-    }
-
-}
-
 
 namespace {
 
@@ -262,17 +177,17 @@ namespace dal {
     }
 
     void DescriptorSet::record_deferred(
-        const std::vector<VkBuffer>& uniformBuffers,
-        const UniformBufferConst<U_Material>& m_material_buffer,
+        const UniformBufferArray<U_PerFrame_InDeferred>& per_frame_in_deferred,
+        const UniformBufferArray<U_Material>& material_buffer,
         const VkImageView textureImageView,
         const VkSampler textureSampler,
         const VkDevice logi_device
     ) {
         for (size_t i = 0; i < this->m_handles.size(); i++) {
             VkDescriptorBufferInfo bufferInfo{};
-            bufferInfo.buffer = uniformBuffers[i];
+            bufferInfo.buffer = per_frame_in_deferred.buffer_at(i);
             bufferInfo.offset = 0;
-            bufferInfo.range = sizeof(UniformBufferObject);
+            bufferInfo.range = per_frame_in_deferred.data_size();
 
             VkDescriptorImageInfo imageInfo{};
             imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -280,9 +195,9 @@ namespace dal {
             imageInfo.sampler = textureSampler;
 
             VkDescriptorBufferInfo buffer_material_info{};
-            buffer_material_info.buffer = m_material_buffer.buffer();
+            buffer_material_info.buffer = material_buffer.buffer_at(0);
             buffer_material_info.offset = 0;
-            buffer_material_info.range = m_material_buffer.data_size();
+            buffer_material_info.range = material_buffer.data_size();
 
 
             std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
@@ -329,7 +244,7 @@ namespace dal {
 
     void DescriptorSet::record_composition(
         const size_t swapchainImagesSize,
-        const UniformBuffer_PerFrame& u_per_frame,
+        const UniformBufferArray<U_PerFrame_InComposition>& u_per_frame,
         const VkDescriptorSetLayout descriptorSetLayout,
         const std::vector<VkImageView>& attachment_views,
         const std::vector<VkImageView>& dlight_shadow_map_view,
@@ -361,7 +276,7 @@ namespace dal {
             // Unifrom buffer
 
             VkDescriptorBufferInfo buffer_per_frame_info{};
-            buffer_per_frame_info.buffer = u_per_frame.buffer(i);
+            buffer_per_frame_info.buffer = u_per_frame.buffer_at(i);
             buffer_per_frame_info.offset = 0;
             buffer_per_frame_info.range = u_per_frame.data_size();
             {
@@ -449,7 +364,7 @@ namespace dal {
         const VkDevice logiDevice,
         const size_t swapchainImagesSize,
         const VkDescriptorSetLayout descriptorSetLayout,
-        const UniformBuffer_PerFrame& ubuf_per_frame,
+        const UniformBufferArray<U_PerFrame_InComposition>& ubuf_per_frame,
         const std::vector<VkImageView>& attachment_views,
         const std::vector<VkImageView>& dlight_shadow_map_view,
         const VkSampler dlight_shadow_map_sampler
@@ -486,59 +401,6 @@ namespace dal {
         }
 
         return result;
-    }
-
-}
-
-
-namespace dal {
-
-    void UniformBuffers::init(VkDevice logiDevice, VkPhysicalDevice physDevice, size_t swapchainImagesSize) {
-        VkDeviceSize bufferSize = sizeof(dal::UniformBufferObject);
-
-        this->uniformBuffers.resize(swapchainImagesSize);
-        this->uniformBuffersMemory.resize(swapchainImagesSize);
-
-        for (size_t i = 0; i < swapchainImagesSize; ++i) {
-            dal::createBuffer(
-                bufferSize,
-                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                this->uniformBuffers[i],
-                this->uniformBuffersMemory[i],
-                logiDevice,
-                physDevice
-            );
-        }
-    }
-
-    void UniformBuffers::destroy(const VkDevice logiDevice) {
-        for (size_t i = 0; i < this->uniformBuffers.size(); ++i) {
-            vkDestroyBuffer(logiDevice, this->uniformBuffers[i], nullptr);
-            this->uniformBuffers[i] = VK_NULL_HANDLE;
-        }
-        for (size_t i = 0; i < this->uniformBuffersMemory.size(); ++i) {
-            vkFreeMemory(logiDevice, this->uniformBuffersMemory[i], nullptr);
-            this->uniformBuffersMemory[i] = VK_NULL_HANDLE;
-        }
-
-        this->uniformBuffers.clear();
-        this->uniformBuffersMemory.clear();
-    }
-
-    void UniformBuffers::update(const glm::mat4& proj_mat, const glm::mat4& view_mat, const uint32_t imageIndex, const VkDevice logiDevice) {
-        dal::UniformBufferObject ubo;
-        ubo.view = view_mat;
-        ubo.proj = proj_mat;
-
-        this->copy_to_memory(logiDevice, ubo, imageIndex);
-    }
-
-    void UniformBuffers::copy_to_memory(const VkDevice logiDevice, const UniformBufferObject& ubo, const uint32_t index) const {
-        void* data = nullptr;
-        vkMapMemory(logiDevice, uniformBuffersMemory[index], 0, sizeof(ubo), 0, &data);
-        memcpy(data, &ubo, sizeof(ubo));
-        vkUnmapMemory(logiDevice, uniformBuffersMemory[index]);
     }
 
 }

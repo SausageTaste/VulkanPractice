@@ -2,6 +2,7 @@
 
 #include <tuple>
 #include <vector>
+#include <cassert>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -9,11 +10,12 @@
 #include <vulkan/vulkan.h>
 
 #include "fbufmanager.h"
+#include "util_vulkan.h"
 
 
 namespace dal {
 
-    struct UniformBufferObject {
+    struct U_PerFrame_InDeferred {
         glm::mat4 view, proj;
     };
 
@@ -21,44 +23,6 @@ namespace dal {
         float m_roughness = 0.5;
         float m_metallic = 0;
     };
-
-
-    std::pair<VkBuffer, VkDeviceMemory> _init_uniform_buffer(const void* const data, const VkDeviceSize data_size, const VkDevice logi_device, const VkPhysicalDevice phys_device);
-    void _destroy_buffer_memory(const VkBuffer buffer, const VkDeviceMemory memory, const VkDevice logi_device);
-
-    template <typename _UniformStruct>
-    class UniformBufferConst {
-
-    private:
-        VkBuffer m_buffer = VK_NULL_HANDLE;
-        VkDeviceMemory m_memory = VK_NULL_HANDLE;
-
-    public:
-        void init(const _UniformStruct& data, const VkDevice logi_device, const VkPhysicalDevice phys_device) {
-            this->destroy(logi_device);
-            std::tie(this->m_buffer, this->m_memory) = dal::_init_uniform_buffer(
-                reinterpret_cast<const void*>(&data),
-                this->data_size(),
-                logi_device,
-                phys_device
-            );
-        }
-        void destroy(const VkDevice logi_device) {
-            _destroy_buffer_memory(this->m_buffer, this->m_memory, logi_device);
-            this->m_buffer = VK_NULL_HANDLE;
-            this->m_memory = VK_NULL_HANDLE;
-        }
-
-        auto& buffer() const {
-            assert(VK_NULL_HANDLE != this->m_buffer);
-            return this->m_buffer;
-        }
-        auto data_size() const {
-            return sizeof(_UniformStruct);
-        }
-
-    };
-
 
     struct U_PerFrame_InComposition {
         glm::vec4 m_view_pos{ 0 };
@@ -78,24 +42,71 @@ namespace dal {
         glm::vec4 m_slight_fade_start_end[5]{};
     };
 
-    class UniformBuffer_PerFrame {
+}
+
+
+namespace dal {
+
+    template <typename _DataStruct>
+    class UniformBufferArray {
 
     private:
         std::vector<VkBuffer> m_buffers;
         std::vector<VkDeviceMemory> m_memories;
-        VkDeviceSize m_data_size = 0;
 
     public:
-        void init(const VkDeviceSize data_size, const uint32_t swapchain_count, const VkDevice logi_device, const VkPhysicalDevice phys_device);
-        void destroy(const VkDevice logiDevice);
+        void init(const uint32_t array_size, const VkDevice logi_device, const VkPhysicalDevice phys_device) {
+            this->destroy(logi_device);
 
-        void copy_to_memory(const uint32_t index, const void* const data, const VkDeviceSize data_size, const VkDevice logi_device) const;
+            for (uint32_t i = 0; i < array_size; ++i) {
+                this->m_buffers.emplace_back();
+                this->m_memories.emplace_back();
 
-        auto buffer(const uint32_t index) const {
+                dal::createBuffer(
+                    this->data_size(),
+                    VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                    this->m_buffers.back(), this->m_memories.back(),
+                    logi_device, phys_device
+                );
+            }
+        }
+
+        void destroy(const VkDevice logi_device) {
+            for (auto& x : this->m_buffers) {
+                if (VK_NULL_HANDLE != x) {
+                    vkDestroyBuffer(logi_device, x, nullptr);
+                    x = VK_NULL_HANDLE;
+                }
+            }
+            this->m_buffers.clear();
+
+            for (auto& x : this->m_memories) {
+                if (VK_NULL_HANDLE != x) {
+                    vkFreeMemory(logi_device, x, nullptr);
+                    x = VK_NULL_HANDLE;
+                }
+            }
+            this->m_memories.clear();
+        }
+
+        constexpr uint32_t data_size() const {
+            return sizeof(_DataStruct);
+        }
+        uint32_t array_size() const {
+            assert(this->m_buffers.size() == this->m_memories.size());
+            return this->m_buffers.size();
+        }
+        auto buffer_at(const uint32_t index) const {
             return this->m_buffers.at(index);
         }
-        auto data_size() const {
-            return this->m_data_size;
+
+        void copy_to_buffer(const size_t index, const _DataStruct& data, const VkDevice logi_device) {
+            const auto memory = this->m_memories.at(index);
+            void* dst_ptr = nullptr;
+            vkMapMemory(logi_device, memory, 0, this->data_size(), 0, &dst_ptr);
+            memcpy(dst_ptr, &data, this->data_size());
+            vkUnmapMemory(logi_device, memory);
         }
 
     };
@@ -141,15 +152,15 @@ namespace dal {
         );
 
         void record_deferred(
-            const std::vector<VkBuffer>& uniformBuffers,
-            const UniformBufferConst<U_Material>& m_material_buffer,
+            const UniformBufferArray<U_PerFrame_InDeferred>& per_frame_in_deferred,
+            const UniformBufferArray<U_Material>& material_buffer,
             const VkImageView textureImageView,
             const VkSampler textureSampler,
             const VkDevice logi_device
         );
         void record_composition(
             const size_t swapchainImagesSize,
-            const UniformBuffer_PerFrame& u_per_frame,
+            const UniformBufferArray<U_PerFrame_InComposition>& u_per_frame,
             const VkDescriptorSetLayout descriptorSetLayout,
             const std::vector<VkImageView>& attachment_views,
             const std::vector<VkImageView>& dlight_shadow_map_view,
@@ -184,7 +195,7 @@ namespace dal {
             const VkDevice logiDevice,
             const size_t swapchainImagesSize,
             const VkDescriptorSetLayout descriptorSetLayout,
-            const UniformBuffer_PerFrame& ubuf_per_frame,
+            const UniformBufferArray<U_PerFrame_InComposition>& ubuf_per_frame,
             const std::vector<VkImageView>& attachment_views,
             const std::vector<VkImageView>& dlight_shadow_map_view,
             const VkSampler dlight_shadow_map_sampler
@@ -202,27 +213,6 @@ namespace dal {
         std::vector<std::vector<VkDescriptorSet>> descset_composition() const;
         auto& descset_shadow() const {
             return this->m_descset_shadow.vector();
-        }
-
-    };
-
-
-    class UniformBuffers {
-
-    private:
-        std::vector<VkBuffer> uniformBuffers;
-        std::vector<VkDeviceMemory> uniformBuffersMemory;
-
-    public:
-        void init(VkDevice logiDevice, VkPhysicalDevice physDevice, size_t swapchainImagesSize);
-        void destroy(const VkDevice logiDevice);
-
-        void update(const glm::mat4& proj_mat, const glm::mat4& view_mat, const uint32_t imageIndex, const VkDevice logiDevice);
-        void copy_to_memory(const VkDevice logiDevice, const UniformBufferObject& ubo, const uint32_t index) const;
-
-        auto& buffers() const {
-            assert(0 != this->uniformBuffers.size());
-            return this->uniformBuffers;
         }
 
     };

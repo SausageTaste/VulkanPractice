@@ -38,8 +38,6 @@ namespace dal {
         CommandBuffers m_cmdBuffers;
         SyncMaster m_syncMas;
         DescriptorSetLayout m_descSetLayout;
-        UniformBuffers m_uniformBufs;
-        UniformBuffer_PerFrame m_ubuf_per_frame_in_composition;
         DescriptorPool m_descPool;
         DepthImage m_depth_image;
         GbufManager m_gbuf;
@@ -47,6 +45,9 @@ namespace dal {
         DepthMapManager m_depth_map_man;
 
         U_PerFrame_InComposition m_data_per_frame_in_composition;
+        UniformBufferArray<U_PerFrame_InDeferred> m_ubuf_per_frame_in_deferred;
+        UniformBufferArray<U_PerFrame_InComposition> m_ubuf_per_frame_in_composition;
+
         CameraLookAt m_camera;
         std::vector<ModelVK> m_models;
         std::shared_ptr<TextureUnit> m_tex_grass, m_tex_tile;
