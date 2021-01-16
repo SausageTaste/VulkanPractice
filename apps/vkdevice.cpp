@@ -235,43 +235,7 @@ namespace dal {
         }
 
         // Update uniform buffers
-        {
-            U_PerFrame_InDeferred data_per_frame_in_deferred;
-            data_per_frame_in_deferred.proj = ::make_perspective_proj_mat(this->m_swapchain.extent());
-            data_per_frame_in_deferred.view = this->m_camera.make_view_mat();
-
-            this->m_ubuf_per_frame_in_deferred.copy_to_buffer(
-                imageIndex.first,
-                data_per_frame_in_deferred,
-                this->m_logiDevice.get()
-            );
-
-            constexpr double RADIUS = 5;
-            this->m_data_per_frame_in_composition.m_view_pos = glm::vec4{ this->m_camera.m_pos, 1 };
-            const auto plight_count = this->m_data_per_frame_in_composition.m_num_of_plight_dlight_slight[0];
-            for (int i = 0; i < plight_count; ++i) {
-                const auto rotate_phase_diff = 2.0 * M_PI / static_cast<double>(plight_count);
-                this->m_data_per_frame_in_composition.m_plight_pos[i] = glm::vec4{
-                    RADIUS * std::cos(dal::getTimeInSec() + rotate_phase_diff * i),
-                    4,
-                    RADIUS * std::sin(dal::getTimeInSec() + rotate_phase_diff * i),
-                    1
-                };
-            }
-
-            this->m_data_per_frame_in_composition.m_slight_direc[0] = glm::normalize(glm::vec4{
-                std::sin(dal::getTimeInSec()),
-                std::cos(dal::getTimeInSec()),
-                -0.4,
-                0
-            });
-
-            this->m_ubuf_per_frame_in_composition.copy_to_buffer(
-                imageIndex.first,
-                this->m_data_per_frame_in_composition,
-                this->m_logiDevice.get()
-            );
-        }
+        this->udpate_uniform_buffers(imageIndex.first);
 
         // Draw shadow map
         this->submit_render_to_shadow_maps(this->m_data_per_frame_in_composition.m_num_of_plight_dlight_slight[1]);
@@ -363,6 +327,10 @@ namespace dal {
             this->m_desc_man.init(this->m_swapchainImages.size(), this->m_logiDevice.get());
 
             for (auto& model : this->m_models) {
+                for (auto& inst : model.instances()) {
+                    inst.init(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
+                }
+
                 model.reset_desc_sets(
                     this->m_ubuf_per_frame_in_deferred,
                     this->m_swapchainImages.size(),
@@ -489,7 +457,7 @@ namespace dal {
             auto& model = this->m_models.emplace_back();
             model.init(this->m_logiDevice.get());
 
-            auto& inst = model.add_instance();
+            auto& inst = model.add_instance(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
 
             auto& unit = model.add_unit();
             unit.set_mesh(
@@ -526,8 +494,9 @@ namespace dal {
             auto& model = this->m_models.emplace_back();
             model.init(this->m_logiDevice.get());
 
-            auto& inst = model.add_instance();
+            auto& inst = model.add_instance(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
             inst.transform().m_pos.x = 2;
+            inst.update_ubuf(this->m_logiDevice.get());
 
             auto& unit = model.add_unit();
             unit.set_mesh(
@@ -562,12 +531,14 @@ namespace dal {
             auto& model = this->m_models.emplace_back();
             model.init(this->m_logiDevice.get());
 
-            auto& inst1 = model.add_instance();
+            auto& inst1 = model.add_instance(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
             inst1.transform().m_scale = 0.02;
+            inst1.update_ubuf(this->m_logiDevice.get());
 
-            auto& inst2 = model.add_instance();
+            auto& inst2 = model.add_instance(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
             inst2.transform().m_scale = 0.02;
             inst2.transform().m_pos.x = -1;
+            inst2.update_ubuf(this->m_logiDevice.get());
 
             for (const auto& model_data : get_test_model()) {
                 auto& unit = model.add_unit();
@@ -613,9 +584,10 @@ namespace dal {
             auto& model = this->m_models.emplace_back();
             model.init(this->m_logiDevice.get());
 
-            auto& inst2 = model.add_instance();
-            inst2.transform().m_scale = 0.8;
-            inst2.transform().m_pos.x = -2;
+            auto& inst = model.add_instance(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
+            inst.transform().m_scale = 0.8;
+            inst.transform().m_pos.x = -2;
+            inst.update_ubuf(this->m_logiDevice.get());
 
             for (const auto& model_data : load_dmd_model("irin.dmd")) {
                 auto& unit = model.add_unit();
@@ -683,6 +655,61 @@ namespace dal {
                 throw std::runtime_error("failed to submit draw command buffer!");
             }
         }
+    }
+
+    void VulkanMaster::udpate_uniform_buffers(const uint32_t swapchain_index) {
+        {
+            U_PerFrame_InDeferred data_per_frame_in_deferred;
+            data_per_frame_in_deferred.proj = ::make_perspective_proj_mat(this->m_swapchain.extent());
+            data_per_frame_in_deferred.view = this->m_camera.make_view_mat();
+
+            this->m_ubuf_per_frame_in_deferred.copy_to_buffer(
+                swapchain_index,
+                data_per_frame_in_deferred,
+                this->m_logiDevice.get()
+            );
+        }
+
+        {
+            constexpr double RADIUS = 5;
+
+            this->m_data_per_frame_in_composition.m_view_pos = glm::vec4{ this->m_camera.m_pos, 1 };
+            const auto plight_count = this->m_data_per_frame_in_composition.m_num_of_plight_dlight_slight[0];
+            for (int i = 0; i < plight_count; ++i) {
+                const auto rotate_phase_diff = 2.0 * M_PI / static_cast<double>(plight_count);
+                this->m_data_per_frame_in_composition.m_plight_pos[i] = glm::vec4{
+                    RADIUS * std::cos(dal::getTimeInSec() + rotate_phase_diff * i),
+                    4,
+                    RADIUS * std::sin(dal::getTimeInSec() + rotate_phase_diff * i),
+                    1
+                };
+            }
+        }
+
+        {
+            auto& yuri_model = this->m_models.at(2);
+            auto& yuri_inst = yuri_model.instances().at(0);
+
+            yuri_inst.transform().m_pos = glm::vec3{
+                std::cos(dal::getTimeInSec()),
+                0,
+                std::sin(dal::getTimeInSec()) - 3
+            };
+            yuri_inst.update_ubuf(swapchain_index, this->m_logiDevice.get());
+        }
+
+        this->m_data_per_frame_in_composition.m_slight_direc[0] = glm::normalize(glm::vec4{
+            std::sin(dal::getTimeInSec()),
+            std::cos(dal::getTimeInSec()),
+            -0.4,
+            0
+        });
+
+        this->m_ubuf_per_frame_in_composition.copy_to_buffer(
+            swapchain_index,
+            this->m_data_per_frame_in_composition,
+            this->m_logiDevice.get()
+        );
     }
 
 }

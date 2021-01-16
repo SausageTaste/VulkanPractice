@@ -52,13 +52,23 @@ namespace dal {
 
     private:
         Transform m_transform;
+        UniformBufferArray<U_PerInst_PerFrame_InDeferred> m_ubuf;
 
     public:
+        void init(const uint32_t swapchain_count, const VkDevice logi_device, const VkPhysicalDevice phys_device);
+        void destroy(const VkDevice logi_device);
+
+        void update_ubuf(const VkDevice logi_device);
+        void update_ubuf(const uint32_t index, const VkDevice logi_device);
+
         auto& transform() {
             return this->m_transform;
         }
         auto& transform() const {
             return this->m_transform;
+        }
+        auto& uniform_buffers() const {
+            return this->m_ubuf;
         }
 
     };
@@ -117,7 +127,7 @@ namespace dal {
         );
 
         RenderUnitVK& add_unit();
-        ModelInstance& add_instance();
+        ModelInstance& add_instance(const uint32_t swapchain_count, const VkDevice logi_device, const VkPhysicalDevice phys_device);
 
         auto& render_units() {
             return this->m_render_units;

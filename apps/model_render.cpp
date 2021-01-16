@@ -39,6 +39,35 @@ namespace dal {
 
 namespace dal {
 
+    void ModelInstance::init(const uint32_t swapchain_count, const VkDevice logi_device, const VkPhysicalDevice phys_device) {
+        this->m_ubuf.init(swapchain_count, logi_device, phys_device);
+        this->update_ubuf(logi_device);
+    }
+
+    void ModelInstance::destroy(const VkDevice logi_device) {
+        this->m_ubuf.destroy(logi_device);
+    }
+
+    void ModelInstance::update_ubuf(const VkDevice logi_device) {
+        U_PerInst_PerFrame_InDeferred data;
+        data.m_model_mat = this->m_transform.make_mat();
+
+        for (int i = 0; i < this->m_ubuf.array_size(); ++i) {
+            this->m_ubuf.copy_to_buffer(i, data, logi_device);
+        }
+    }
+
+    void ModelInstance::update_ubuf(const uint32_t index, const VkDevice logi_device) {
+        U_PerInst_PerFrame_InDeferred data;
+        data.m_model_mat = this->m_transform.make_mat();
+        this->m_ubuf.copy_to_buffer(index, data, logi_device);
+    }
+
+}
+
+
+namespace dal {
+
     void ModelVK::DescSet2D::init(const VkDevice logi_device) {
         this->m_pool.init(128, 128, 128, 128, logi_device);
     }
@@ -81,6 +110,7 @@ namespace dal {
                     one.record_deferred(
                         ubuf_per_frame_in_deferred.buffer_at(swapchain_index),
                         units.at(unit_index).m_material.m_material_buffer,
+                        insts.at(inst_index).uniform_buffers().buffer_at(swapchain_index),
                         units.at(unit_index).m_material.m_albedo_map,
                         texture_sampler,
                         logi_device
@@ -107,6 +137,12 @@ namespace dal {
             unit.m_mesh.indices.destroy(logi_device);
             unit.m_material.destroy(logi_device);
         }
+        this->m_render_units.clear();
+
+        for (auto& inst : this->m_instances) {
+            inst.destroy(logi_device);
+        }
+        this->m_instances.clear();
     }
 
     void ModelVK::reset_desc_sets(
@@ -131,8 +167,10 @@ namespace dal {
         return this->m_render_units.emplace_back();
     }
 
-    ModelInstance& ModelVK::add_instance() {
-        return this->m_instances.emplace_back();
+    ModelInstance& ModelVK::add_instance(const uint32_t swapchain_count, const VkDevice logi_device, const VkPhysicalDevice phys_device) {
+        auto& inst = this->m_instances.emplace_back();
+        inst.init(swapchain_count, logi_device, phys_device);
+        return inst;
     }
 
 }

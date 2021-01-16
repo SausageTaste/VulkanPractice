@@ -23,6 +23,10 @@ namespace dal {
         float m_metallic = 0;
     };
 
+    struct U_PerInst_PerFrame_InDeferred {
+        glm::mat4 m_model_mat;
+    };
+
     struct U_PerFrame_InComposition {
         glm::vec4 m_view_pos{ 0 };
 
@@ -99,6 +103,8 @@ namespace dal {
 
     public:
         void init(const uint32_t array_size, const VkDevice logi_device, const VkPhysicalDevice phys_device) {
+            this->destroy(logi_device);
+
             for (uint32_t i = 0; i < array_size; ++i) {
                 this->m_buffers.emplace_back().init(logi_device, phys_device);
             }
@@ -169,6 +175,7 @@ namespace dal {
         void record_deferred(
             const UniformBuffer<U_PerFrame_InDeferred>& ubuf_per_frame_in_deferred,
             const UniformBuffer<U_Material_InDeferred>& ubuf_material,
+            const UniformBuffer<U_PerInst_PerFrame_InDeferred>& ubuf_per_inst_per_frame,
             const VkImageView textureImageView,
             const VkSampler textureSampler,
             const VkDevice logi_device

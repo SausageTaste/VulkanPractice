@@ -10,14 +10,14 @@ layout(location = 1) out vec2 fragTexCoord;
 layout(location = 2) out vec3 v_frag_pos;
 
 
-layout(push_constant) uniform constants {
-    mat4 model_mat;
-} c_push_consts;
-
 layout(binding = 0) uniform UniformBufferObject {
     mat4 view;
     mat4 proj;
 } ubo;
+
+layout(binding = 3) uniform U_PerInst_PerFrame {
+    mat4 m_model_mat;
+} u_obj_dynamic_data;
 
 
 vec2 positions[3] = vec2[](
@@ -34,9 +34,9 @@ vec3 colors[3] = vec3[](
 
 
 void main() {
-    vec4 world_pos = c_push_consts.model_mat * vec4(inPosition, 1.0);
+    vec4 world_pos = u_obj_dynamic_data.m_model_mat * vec4(inPosition, 1.0);
     v_frag_pos = world_pos.xyz;
     gl_Position = ubo.proj * ubo.view * world_pos;
-    v_normal = normalize((c_push_consts.model_mat * vec4(inNormal, 0)).xyz);
+    v_normal = normalize((u_obj_dynamic_data.m_model_mat * vec4(inNormal, 0)).xyz);
     fragTexCoord = inTexCoord;
 }

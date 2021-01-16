@@ -324,8 +324,7 @@ namespace {
         const auto dynamicState = ::create_info_dynamic_state(dynamicStates.data(), dynamicStates.size());
 
         // Pipeline layout
-        const auto push_consts = ::create_info_push_constant<dal::PushedConstValues>();
-        const auto pipelineLayout = ::create_pipeline_layout(&descriptorSetLayout, 1, push_consts.data(), push_consts.size(), device);
+        const auto pipelineLayout = ::create_pipeline_layout(&descriptorSetLayout, 1, nullptr, 0, device);
 
         // Pipeline, finally
         VkGraphicsPipelineCreateInfo pipelineInfo{};

@@ -34,7 +34,7 @@ namespace dal {
 namespace {
 
     VkDescriptorSetLayout create_layout_deferred(const VkDevice logiDevice) {
-        std::array<VkDescriptorSetLayoutBinding, 3> bindings{};
+        std::array<VkDescriptorSetLayoutBinding, 4> bindings{};
 
         bindings[0].binding = 0;
         bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -53,6 +53,11 @@ namespace {
         bindings[2].descriptorCount = 1;
         bindings[2].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
         bindings[2].pImmutableSamplers = nullptr;
+
+        bindings.at(3).binding = 3;
+        bindings.at(3).descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        bindings.at(3).descriptorCount = 1;
+        bindings.at(3).stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -172,6 +177,7 @@ namespace dal {
     void DescSet::record_deferred(
         const UniformBuffer<U_PerFrame_InDeferred>& ubuf_per_frame_in_deferred,
         const UniformBuffer<U_Material_InDeferred>& ubuf_material,
+        const UniformBuffer<U_PerInst_PerFrame_InDeferred>& ubuf_per_inst_per_frame,
         const VkImageView textureImageView,
         const VkSampler textureSampler,
         const VkDevice logi_device
@@ -191,8 +197,13 @@ namespace dal {
         buffer_material_info.offset = 0;
         buffer_material_info.range = ubuf_material.data_size();
 
+        VkDescriptorBufferInfo ubuf_info_per_inst_per_frame{};
+        ubuf_info_per_inst_per_frame.buffer = ubuf_per_inst_per_frame.buffer();
+        ubuf_info_per_inst_per_frame.offset = 0;
+        ubuf_info_per_inst_per_frame.range = ubuf_per_inst_per_frame.data_size();
 
-        std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
+
+        std::array<VkWriteDescriptorSet, 4> descriptorWrites{};
 
         descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[0].dstSet = this->m_handle;
@@ -223,6 +234,14 @@ namespace dal {
         descriptorWrites[2].pBufferInfo = &buffer_material_info;
         descriptorWrites[2].pImageInfo = nullptr;
         descriptorWrites[2].pTexelBufferView = nullptr;
+
+        descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[3].dstSet = this->m_handle;
+        descriptorWrites[3].dstBinding = 3;
+        descriptorWrites[3].dstArrayElement = 0;
+        descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrites[3].descriptorCount = 1;
+        descriptorWrites[3].pBufferInfo = &ubuf_info_per_inst_per_frame;
 
 
         vkUpdateDescriptorSets(
