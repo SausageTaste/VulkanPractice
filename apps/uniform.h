@@ -10,7 +10,6 @@
 #include <vulkan/vulkan.h>
 
 #include "fbufmanager.h"
-#include "util_vulkan.h"
 
 
 namespace dal {
@@ -47,6 +46,9 @@ namespace dal {
 
 namespace dal {
 
+    std::pair<VkBuffer, VkDeviceMemory> _create_uniform_buffer_memory(const uint32_t data_size, const VkDevice logi_device, const VkPhysicalDevice phys_device);
+
+
     template <typename _DataStruct>
     class UniformBuffer {
 
@@ -57,14 +59,7 @@ namespace dal {
     public:
         void init(const VkDevice logi_device, const VkPhysicalDevice phys_device) {
             this->destroy(logi_device);
-
-            dal::createBuffer(
-                this->data_size(),
-                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                this->m_buffer, this->m_memory,
-                logi_device, phys_device
-            );
+            std::tie(this->m_buffer, this->m_memory) = dal::_create_uniform_buffer_memory(this->data_size(), logi_device, phys_device);
         }
 
         void destroy(const VkDevice logi_device) {
