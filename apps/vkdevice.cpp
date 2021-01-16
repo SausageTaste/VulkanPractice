@@ -138,9 +138,9 @@ namespace dal {
 
         this->m_ubuf_per_frame_in_deferred.init(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
         this->m_ubuf_per_frame_in_composition.init(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
-        this->m_descPool.initPool(this->m_logiDevice.get(), this->m_swapchainImages.size());
+        this->m_desc_man.init(this->m_swapchainImages.size(), this->m_logiDevice.get());
         for (size_t i = 0; i < this->m_swapchainImages.size(); ++i) {
-            this->m_descPool.addSets_composition(
+            this->m_desc_man.addSets_composition(
                 this->m_logiDevice.get(),
                 this->m_swapchainImages.size(),
                 this->m_descSetLayout.layout_composition(),
@@ -150,7 +150,7 @@ namespace dal {
                 this->m_tex_man.sampler_shadow_map().get()
             );
         }
-        this->m_descPool.init_descset_shadow(this->m_swapchainImages.size(), this->m_descSetLayout.layout_shadow(), this->m_logiDevice.get());
+        this->m_desc_man.init_descset_shadow(this->m_swapchainImages.size(), this->m_descSetLayout.layout_shadow(), this->m_logiDevice.get());
 
         this->m_cmdBuffers.init(this->m_logiDevice.get(), this->m_fbuf.getList().size(), this->m_cmdPool.pool());
         this->m_syncMas.init(this->m_logiDevice.get(), this->m_swapchainImages.size());
@@ -165,7 +165,7 @@ namespace dal {
             this->m_pipeline.layout_composition(),
             this->m_swapchain.extent(),
             this->m_fbuf.getList(),
-            this->m_descPool.descset_composition(),
+            this->m_desc_man.descset_composition(),
             this->m_models
         );
         this->m_cmdBuffers.record_shadow(
@@ -179,7 +179,7 @@ namespace dal {
             this->m_pipeline.layout_shadow(),
             this->m_depth_map_man.attachment(0).extent(),
             this->m_depth_map_man.fbufs(),
-            this->m_descPool.descset_shadow().front(),
+            this->m_desc_man.descset_shadow().front(),
             this->m_models
         );
 
@@ -190,13 +190,13 @@ namespace dal {
 
     void VulkanMaster::destroy(void) {
         for (auto& model : this->m_models) {
-            model.destroy(this->m_logiDevice.get(), this->m_descPool.pool());
+            model.destroy(this->m_logiDevice.get());
         }
         this->m_models.clear();
 
         this->m_syncMas.destroy(this->m_logiDevice.get());
         //this->m_cmdBuffers.destroy(this->m_logiDevice.get(), this->m_cmdPool.pool());
-        this->m_descPool.destroy(this->m_logiDevice.get());
+        this->m_desc_man.destroy(this->m_logiDevice.get());
         this->m_ubuf_per_frame_in_composition.destroy(this->m_logiDevice.get());
         this->m_ubuf_per_frame_in_deferred.destroy(this->m_logiDevice.get());
         this->m_tex_man.destroy(this->m_logiDevice.get());
@@ -329,7 +329,7 @@ namespace dal {
         {
             this->m_syncMas.destroy(this->m_logiDevice.get());
             this->m_cmdBuffers.destroy(this->m_logiDevice.get(), this->m_cmdPool.pool());
-            this->m_descPool.destroy(this->m_logiDevice.get());
+            this->m_desc_man.destroy(this->m_logiDevice.get());
             this->m_ubuf_per_frame_in_composition.destroy(this->m_logiDevice.get());
             this->m_ubuf_per_frame_in_deferred.destroy(this->m_logiDevice.get());
             this->m_pipeline.destroy(this->m_logiDevice.get());
@@ -360,12 +360,12 @@ namespace dal {
             );
             this->m_ubuf_per_frame_in_deferred.init(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
             this->m_ubuf_per_frame_in_composition.init(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
-            this->m_descPool.initPool(this->m_logiDevice.get(), this->m_swapchainImages.size());
+            this->m_desc_man.init(this->m_swapchainImages.size(), this->m_logiDevice.get());
 
             for (auto& model : this->m_models) {
                 for (auto& unit : model.render_units()) {
                     unit.m_material.set_material(
-                        this->m_descPool.pool(),
+                        this->m_desc_man.pool(),
                         this->m_swapchainImages.size(),
                         this->m_descSetLayout.layout_deferred(),
                         this->m_ubuf_per_frame_in_deferred,
@@ -377,7 +377,7 @@ namespace dal {
             }
 
             for (size_t i = 0; i < this->m_swapchainImages.size(); ++i) {
-                this->m_descPool.addSets_composition(
+                this->m_desc_man.addSets_composition(
                     this->m_logiDevice.get(),
                     this->m_swapchainImages.size(),
                     this->m_descSetLayout.layout_composition(),
@@ -387,7 +387,7 @@ namespace dal {
                     this->m_tex_man.sampler_shadow_map().get()
                 );
             }
-            this->m_descPool.init_descset_shadow(this->m_swapchainImages.size(), this->m_descSetLayout.layout_shadow(), this->m_logiDevice.get());
+            this->m_desc_man.init_descset_shadow(this->m_swapchainImages.size(), this->m_descSetLayout.layout_shadow(), this->m_logiDevice.get());
 
             this->m_cmdBuffers.init(this->m_logiDevice.get(), this->m_fbuf.getList().size(), this->m_cmdPool.pool());
             this->m_syncMas.init(this->m_logiDevice.get(), this->m_swapchainImages.size());
@@ -401,7 +401,7 @@ namespace dal {
             this->m_pipeline.layout_composition(),
             this->m_swapchain.extent(),
             this->m_fbuf.getList(),
-            this->m_descPool.descset_composition(),
+            this->m_desc_man.descset_composition(),
             this->m_models
         );
         this->m_cmdBuffers.record_shadow(
@@ -415,7 +415,7 @@ namespace dal {
             this->m_pipeline.layout_shadow(),
             this->m_depth_map_man.attachment(0).extent(),
             this->m_depth_map_man.fbufs(),
-            this->m_descPool.descset_shadow().front(),
+            this->m_desc_man.descset_shadow().front(),
             this->m_models
         );
     }
@@ -508,7 +508,7 @@ namespace dal {
             unit.m_material.m_material_data.m_metallic = mdoel_data.m_material.m_metallic;
 
             unit.m_material.set_material(
-                this->m_descPool.pool(),
+                this->m_desc_man.pool(),
                 this->m_swapchainImages.size(),
                 this->m_descSetLayout.layout_deferred(),
                 this->m_ubuf_per_frame_in_deferred,
@@ -542,7 +542,7 @@ namespace dal {
             unit.m_material.m_material_data.m_metallic = model_data.m_material.m_metallic;
 
             unit.m_material.set_material(
-                this->m_descPool.pool(),
+                this->m_desc_man.pool(),
                 this->m_swapchainImages.size(),
                 this->m_descSetLayout.layout_deferred(),
                 this->m_ubuf_per_frame_in_deferred,
@@ -588,7 +588,7 @@ namespace dal {
                 unit.m_material.m_material_data.m_metallic = model_data.m_material.m_metallic;
 
                 unit.m_material.set_material(
-                    this->m_descPool.pool(),
+                    this->m_desc_man.pool(),
                     this->m_swapchainImages.size(),
                     this->m_descSetLayout.layout_deferred(),
                     this->m_ubuf_per_frame_in_deferred,
@@ -632,7 +632,7 @@ namespace dal {
                 unit.m_material.m_material_data.m_metallic = model_data.m_material.m_metallic;
 
                 unit.m_material.set_material(
-                    this->m_descPool.pool(),
+                    this->m_desc_man.pool(),
                     this->m_swapchainImages.size(),
                     this->m_descSetLayout.layout_deferred(),
                     this->m_ubuf_per_frame_in_deferred,

@@ -8,7 +8,7 @@ namespace dal {
     }
 
     void MaterialVK::set_material(
-        const VkDescriptorPool pool,
+        DescPool& pool,
         const size_t swapchain_count,
         const VkDescriptorSetLayout descriptor_set_layout,
         const UniformBufferArray<U_PerFrame_InDeferred>& uniform_buffers,
@@ -22,12 +22,20 @@ namespace dal {
         this->m_material_buffer.init(1, logi_device, phys_device);
         this->m_material_buffer.copy_to_buffer(0, this->m_material_data, logi_device);
 
-        this->m_desc_set.init(swapchain_count, descriptor_set_layout, pool, logi_device);
-        this->m_desc_set.record_deferred(uniform_buffers, this->m_material_buffer, this->m_albedo_map, texture_sampler, logi_device);
+        this->m_desc_set = pool.allocate(swapchain_count, descriptor_set_layout, logi_device);
+        for (uint32_t i = 0; i < this->m_desc_set.size(); ++i) {
+            this->m_desc_set.at(i).record_deferred(
+                uniform_buffers.buffer_at(i),
+                this->m_material_buffer.buffer_at(0),
+                this->m_albedo_map,
+                texture_sampler,
+                logi_device
+            );
+        }
     }
 
     void MaterialVK::set_material(
-        const VkDescriptorPool pool,
+        DescPool& pool,
         const size_t swapchain_count,
         const VkDescriptorSetLayout descriptor_set_layout,
         const UniformBufferArray<U_PerFrame_InDeferred>& uniform_buffers,
@@ -38,8 +46,16 @@ namespace dal {
         this->m_material_buffer.init(1, logi_device, phys_device);
         this->m_material_buffer.copy_to_buffer(0, this->m_material_data, logi_device);
 
-        this->m_desc_set.init(swapchain_count, descriptor_set_layout, pool, logi_device);
-        this->m_desc_set.record_deferred(uniform_buffers, this->m_material_buffer, this->m_albedo_map, texture_sampler, logi_device);
+        this->m_desc_set = pool.allocate(swapchain_count, descriptor_set_layout, logi_device);
+        for (uint32_t i = 0; i < this->m_desc_set.size(); ++i) {
+            this->m_desc_set.at(i).record_deferred(
+                uniform_buffers.buffer_at(i),
+                this->m_material_buffer.buffer_at(0),
+                this->m_albedo_map,
+                texture_sampler,
+                logi_device
+            );
+        }
     }
 
 }
@@ -64,7 +80,7 @@ namespace dal {
 
 namespace dal {
 
-    void ModelVK::destroy(const VkDevice logi_device, const VkDescriptorPool pool) {
+    void ModelVK::destroy(const VkDevice logi_device) {
         for (auto& unit : this->m_render_units) {
             unit.m_mesh.vertices.destroy(logi_device);
             unit.m_mesh.indices.destroy(logi_device);

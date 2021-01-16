@@ -38,7 +38,7 @@ namespace dal {
         CommandBuffers m_cmdBuffers;
         SyncMaster m_syncMas;
         DescriptorSetLayout m_descSetLayout;
-        DescriptorPool m_descPool;
+        DescriptorSetManager m_desc_man;
         DepthImage m_depth_image;
         GbufManager m_gbuf;
         TextureManager m_tex_man;

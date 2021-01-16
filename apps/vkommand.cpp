@@ -98,7 +98,7 @@ namespace dal {
                                 this->m_buffers[i],
                                 VK_PIPELINE_BIND_POINT_GRAPHICS,
                                 pipelayout_deferred,
-                                0, 1, &render_unit.m_material.m_desc_set.at(i), 0, nullptr
+                                0, 1, &render_unit.m_material.m_desc_set.at(i).get(), 0, nullptr
                             );
 
                             for (const auto& inst : model.instances()) {

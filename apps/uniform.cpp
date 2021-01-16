@@ -147,190 +147,155 @@ namespace dal {
 
 namespace dal {
 
-    void DescriptorSet::destroy(const VkDescriptorPool pool, const VkDevice logi_device) {
-        if (!this->m_handles.empty()) {
-            vkFreeDescriptorSets(logi_device, pool, this->m_handles.size(), this->m_handles.data());
-            this->m_handles.clear();
-        }
-    }
-
-    void DescriptorSet::init(
-        const uint32_t swapchain_count,
-        const VkDescriptorSetLayout descriptor_set_layout,
-        const VkDescriptorPool pool,
-        const VkDevice logi_device
-    ) {
-        std::vector<VkDescriptorSetLayout> layouts(swapchain_count, descriptor_set_layout);
-
-        VkDescriptorSetAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        allocInfo.descriptorPool = pool;
-        allocInfo.descriptorSetCount = swapchain_count;
-        allocInfo.pSetLayouts = layouts.data();
-
-        this->m_handles.resize(swapchain_count);
-
-        if (vkAllocateDescriptorSets(logi_device, &allocInfo, this->m_handles.data()) != VK_SUCCESS) {
-            throw std::runtime_error("failed to allocate descriptor sets!");
-        }
-
-    }
-
-    void DescriptorSet::record_deferred(
-        const UniformBufferArray<U_PerFrame_InDeferred>& per_frame_in_deferred,
-        const UniformBufferArray<U_Material_InDeferred>& material_buffer,
+    void DescSet::record_deferred(
+        const VkBuffer ubuf_per_frame_in_deferred,
+        const VkBuffer ubuf_material,
         const VkImageView textureImageView,
         const VkSampler textureSampler,
         const VkDevice logi_device
     ) {
-        for (size_t i = 0; i < this->m_handles.size(); i++) {
-            VkDescriptorBufferInfo bufferInfo{};
-            bufferInfo.buffer = per_frame_in_deferred.buffer_at(i);
-            bufferInfo.offset = 0;
-            bufferInfo.range = per_frame_in_deferred.data_size();
+        VkDescriptorBufferInfo bufferInfo{};
+        bufferInfo.buffer = ubuf_per_frame_in_deferred;
+        bufferInfo.offset = 0;
+        bufferInfo.range = sizeof(U_PerFrame_InDeferred);
 
-            VkDescriptorImageInfo imageInfo{};
-            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            imageInfo.imageView = textureImageView;
-            imageInfo.sampler = textureSampler;
+        VkDescriptorImageInfo imageInfo{};
+        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfo.imageView = textureImageView;
+        imageInfo.sampler = textureSampler;
 
-            VkDescriptorBufferInfo buffer_material_info{};
-            buffer_material_info.buffer = material_buffer.buffer_at(0);
-            buffer_material_info.offset = 0;
-            buffer_material_info.range = material_buffer.data_size();
-
-
-            std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
-
-            descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[0].dstSet = this->m_handles.at(i);
-            descriptorWrites[0].dstBinding = 0;  // specified in shader code
-            descriptorWrites[0].dstArrayElement = 0;
-            descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            descriptorWrites[0].descriptorCount = 1;
-            descriptorWrites[0].pBufferInfo = &bufferInfo;
-            descriptorWrites[0].pImageInfo = nullptr; // Optional
-            descriptorWrites[0].pTexelBufferView = nullptr; // Optional
-
-            descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[1].dstSet = this->m_handles.at(i);
-            descriptorWrites[1].dstBinding = 1;
-            descriptorWrites[1].dstArrayElement = 0;
-            descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            descriptorWrites[1].descriptorCount = 1;
-            descriptorWrites[1].pBufferInfo = nullptr; // Optional
-            descriptorWrites[1].pImageInfo = &imageInfo;
-            descriptorWrites[1].pTexelBufferView = nullptr; // Optional
-
-            descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[2].dstSet = this->m_handles.at(i);
-            descriptorWrites[2].dstBinding = 2;
-            descriptorWrites[2].dstArrayElement = 0;
-            descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            descriptorWrites[2].descriptorCount = 1;
-            descriptorWrites[2].pBufferInfo = &buffer_material_info;
-            descriptorWrites[2].pImageInfo = nullptr;
-            descriptorWrites[2].pTexelBufferView = nullptr;
+        VkDescriptorBufferInfo buffer_material_info{};
+        buffer_material_info.buffer = ubuf_material;
+        buffer_material_info.offset = 0;
+        buffer_material_info.range = sizeof(U_Material_InDeferred);
 
 
-            vkUpdateDescriptorSets(
-                logi_device,
-                static_cast<uint32_t>(descriptorWrites.size()),
-                descriptorWrites.data(),
-                0, nullptr
-            );
-        }
+        std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
+
+        descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[0].dstSet = this->m_handle;
+        descriptorWrites[0].dstBinding = 0;  // specified in shader code
+        descriptorWrites[0].dstArrayElement = 0;
+        descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrites[0].descriptorCount = 1;
+        descriptorWrites[0].pBufferInfo = &bufferInfo;
+        descriptorWrites[0].pImageInfo = nullptr; // Optional
+        descriptorWrites[0].pTexelBufferView = nullptr; // Optional
+
+        descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[1].dstSet = this->m_handle;
+        descriptorWrites[1].dstBinding = 1;
+        descriptorWrites[1].dstArrayElement = 0;
+        descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrites[1].descriptorCount = 1;
+        descriptorWrites[1].pBufferInfo = nullptr; // Optional
+        descriptorWrites[1].pImageInfo = &imageInfo;
+        descriptorWrites[1].pTexelBufferView = nullptr; // Optional
+
+        descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[2].dstSet = this->m_handle;
+        descriptorWrites[2].dstBinding = 2;
+        descriptorWrites[2].dstArrayElement = 0;
+        descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrites[2].descriptorCount = 1;
+        descriptorWrites[2].pBufferInfo = &buffer_material_info;
+        descriptorWrites[2].pImageInfo = nullptr;
+        descriptorWrites[2].pTexelBufferView = nullptr;
+
+
+        vkUpdateDescriptorSets(
+            logi_device,
+            static_cast<uint32_t>(descriptorWrites.size()),
+            descriptorWrites.data(),
+            0, nullptr
+        );
     }
 
-    void DescriptorSet::record_composition(
+    void DescSet::record_composition(
         const size_t swapchainImagesSize,
-        const UniformBufferArray<U_PerFrame_InComposition>& u_per_frame,
+        const VkBuffer ubuf_per_frame,
         const VkDescriptorSetLayout descriptorSetLayout,
         const std::vector<VkImageView>& attachment_views,
         const std::vector<VkImageView>& dlight_shadow_map_view,
         const VkSampler dlight_shadow_map_sampler,
         const VkDevice logiDevice
     ) {
-        for (size_t i = 0; i < swapchainImagesSize; i++) {
-            std::vector<VkDescriptorImageInfo> imageInfo(attachment_views.size());
-            for (size_t j = 0; j < attachment_views.size(); ++j) {
-                auto& x = imageInfo.at(j);
-                x.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                x.imageView = attachment_views[j];
-                x.sampler = VK_NULL_HANDLE;
-            }
-
-            std::vector<VkWriteDescriptorSet> descriptorWrites(imageInfo.size());
-            for (size_t j = 0; j < imageInfo.size(); ++j) {
-                auto& x = descriptorWrites.at(j);
-
-                x.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                x.dstSet = this->m_handles.at(i);
-                x.dstBinding = j;  // specified in shader code
-                x.dstArrayElement = 0;
-                x.descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
-                x.descriptorCount = 1;
-                x.pImageInfo = &imageInfo[j];
-            }
-
-            // Unifrom buffer
-
-            VkDescriptorBufferInfo buffer_per_frame_info{};
-            buffer_per_frame_info.buffer = u_per_frame.buffer_at(i);
-            buffer_per_frame_info.offset = 0;
-            buffer_per_frame_info.range = u_per_frame.data_size();
-            {
-                auto& x = descriptorWrites.emplace_back();
-                x.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                x.dstSet = this->m_handles.at(i);
-                x.dstBinding = descriptorWrites.size() - 1;
-                x.dstArrayElement = 0;
-                x.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-                x.descriptorCount = 1;
-                x.pBufferInfo = &buffer_per_frame_info;
-                x.pImageInfo = nullptr;
-                x.pTexelBufferView = nullptr;
-            }
-
-            std::array<VkDescriptorImageInfo, 3> dlight_shadow_map_info{};
-            for (uint32_t i = 0; i < dlight_shadow_map_info.size(); ++i) {
-                dlight_shadow_map_info.at(i).imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                dlight_shadow_map_info.at(i).imageView = dlight_shadow_map_view.at(i);
-                dlight_shadow_map_info.at(i).sampler = dlight_shadow_map_sampler;
-            }
-            {
-                auto& x = descriptorWrites.emplace_back();
-                x.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                x.dstSet = this->m_handles.at(i);
-                x.dstBinding = descriptorWrites.size() - 1;
-                x.dstArrayElement = 0;
-                x.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-                x.descriptorCount = dlight_shadow_map_info.size();
-                x.pImageInfo = dlight_shadow_map_info.data();
-            }
-
-            // Create
-
-            vkUpdateDescriptorSets(
-                logiDevice,
-                descriptorWrites.size(),
-                descriptorWrites.data(),
-                0, nullptr
-            );
+        std::vector<VkDescriptorImageInfo> imageInfo(attachment_views.size());
+        for (size_t i = 0; i < attachment_views.size(); ++i) {
+            auto& x = imageInfo.at(i);
+            x.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            x.imageView = attachment_views[i];
+            x.sampler = VK_NULL_HANDLE;
         }
+
+        std::vector<VkWriteDescriptorSet> descriptorWrites(imageInfo.size());
+        for (size_t i = 0; i < imageInfo.size(); ++i) {
+            auto& x = descriptorWrites.at(i);
+
+            x.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            x.dstSet = this->m_handle;
+            x.dstBinding = i;  // specified in shader code
+            x.dstArrayElement = 0;
+            x.descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+            x.descriptorCount = 1;
+            x.pImageInfo = &imageInfo[i];
+        }
+
+        // Unifrom buffer
+
+        VkDescriptorBufferInfo buffer_per_frame_info{};
+        buffer_per_frame_info.buffer = ubuf_per_frame;
+        buffer_per_frame_info.offset = 0;
+        buffer_per_frame_info.range = sizeof(U_PerFrame_InComposition);
+        {
+            auto& x = descriptorWrites.emplace_back();
+            x.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            x.dstSet = this->m_handle;
+            x.dstBinding = descriptorWrites.size() - 1;
+            x.dstArrayElement = 0;
+            x.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            x.descriptorCount = 1;
+            x.pBufferInfo = &buffer_per_frame_info;
+            x.pImageInfo = nullptr;
+            x.pTexelBufferView = nullptr;
+        }
+
+        std::array<VkDescriptorImageInfo, 3> dlight_shadow_map_info{};
+        for (uint32_t i = 0; i < dlight_shadow_map_info.size(); ++i) {
+            dlight_shadow_map_info.at(i).imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            dlight_shadow_map_info.at(i).imageView = dlight_shadow_map_view.at(i);
+            dlight_shadow_map_info.at(i).sampler = dlight_shadow_map_sampler;
+        }
+        {
+            auto& x = descriptorWrites.emplace_back();
+            x.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            x.dstSet = this->m_handle;
+            x.dstBinding = descriptorWrites.size() - 1;
+            x.dstArrayElement = 0;
+            x.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            x.descriptorCount = dlight_shadow_map_info.size();
+            x.pImageInfo = dlight_shadow_map_info.data();
+        }
+
+        // Create
+
+        vkUpdateDescriptorSets(
+            logiDevice,
+            descriptorWrites.size(),
+            descriptorWrites.data(),
+            0, nullptr
+        );
     }
 
-    void DescriptorSet::record_shadow(const VkDevice logi_device) {
-        for (size_t i = 0; i < this->m_handles.size(); i++) {
-            std::array<VkWriteDescriptorSet, 0> descriptorWrites{};
+    void DescSet::record_shadow(const VkDevice logi_device) {
+        std::array<VkWriteDescriptorSet, 0> descriptorWrites{};
 
-            vkUpdateDescriptorSets(
-                logi_device,
-                descriptorWrites.size(),
-                descriptorWrites.data(),
-                0, nullptr
-            );
-        }
+        vkUpdateDescriptorSets(
+            logi_device,
+            descriptorWrites.size(),
+            descriptorWrites.data(),
+            0, nullptr
+        );
     }
 
 }
@@ -338,29 +303,93 @@ namespace dal {
 
 namespace dal {
 
-    void DescriptorPool::initPool(VkDevice logiDevice, size_t swapchainImagesSize) {
-        constexpr uint32_t POOL_SIZE_MULTIPLIER = 50;
+    void DescPool::init(
+        const uint32_t uniform_buf_count,
+        const uint32_t image_sampler_count,
+        const uint32_t input_attachment_count,
+        const uint32_t desc_set_count,
+        const VkDevice logi_device
+    ) {
+        this->destroy(logi_device);
 
         std::array<VkDescriptorPoolSize, 3> poolSizes{};
         poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        poolSizes[0].descriptorCount = static_cast<uint32_t>(swapchainImagesSize) * POOL_SIZE_MULTIPLIER;
+        poolSizes[0].descriptorCount = uniform_buf_count;
         poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        poolSizes[1].descriptorCount = static_cast<uint32_t>(swapchainImagesSize) * POOL_SIZE_MULTIPLIER;
+        poolSizes[1].descriptorCount = image_sampler_count;
         poolSizes[2].type = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
-        poolSizes[2].descriptorCount = static_cast<uint32_t>(swapchainImagesSize) * POOL_SIZE_MULTIPLIER;
+        poolSizes[2].descriptorCount = input_attachment_count;
 
         VkDescriptorPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+        poolInfo.poolSizeCount = poolSizes.size();
         poolInfo.pPoolSizes = poolSizes.data();
-        poolInfo.maxSets = static_cast<uint32_t>(swapchainImagesSize) * POOL_SIZE_MULTIPLIER;
+        poolInfo.maxSets = desc_set_count;
 
-        if (VK_SUCCESS != vkCreateDescriptorPool(logiDevice, &poolInfo, nullptr, &this->descriptorPool)) {
+        if (VK_SUCCESS != vkCreateDescriptorPool(logi_device, &poolInfo, nullptr, &this->m_pool)) {
             throw std::runtime_error("failed to create descriptor pool!");
         }
     }
 
-    void DescriptorPool::addSets_composition(
+    void DescPool::destroy(const VkDevice logi_device) {
+        if (VK_NULL_HANDLE != this->m_pool) {
+            vkDestroyDescriptorPool(logi_device, this->m_pool, nullptr);
+            this->m_pool = VK_NULL_HANDLE;
+        }
+    }
+
+    void DescPool::reset(const VkDevice logi_device) {
+        if (VK_SUCCESS != vkResetDescriptorPool(logi_device, this->m_pool, 0)) {
+            throw std::runtime_error{ "failed to reset descriptor pool" };
+        }
+    }
+
+    DescSet DescPool::allocate(const VkDescriptorSetLayout layout, const VkDevice logi_device) {
+        return this->allocate(1, layout, logi_device).at(0);
+    }
+
+    std::vector<DescSet> DescPool::allocate(const uint32_t count, const VkDescriptorSetLayout layout, const VkDevice logi_device) {
+        std::vector<DescSet> result;
+
+        const std::vector<VkDescriptorSetLayout> layouts(count, layout);
+
+        VkDescriptorSetAllocateInfo alloc_info{};
+        alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        alloc_info.descriptorPool = this->get();
+        alloc_info.descriptorSetCount = count;
+        alloc_info.pSetLayouts = layouts.data();
+
+        std::vector<VkDescriptorSet> desc_sets(count);
+        if (VK_SUCCESS != vkAllocateDescriptorSets(logi_device, &alloc_info, desc_sets.data())) {
+            throw std::runtime_error("failed to allocate descriptor sets!");
+        }
+
+        result.reserve(count);
+        for (const auto x : desc_sets) {
+            result.emplace_back().set(x);
+        }
+
+        return result;
+    }
+
+}
+
+
+namespace dal {
+
+    void DescriptorSetManager::init(const uint32_t swapchain_count, const VkDevice logi_device) {
+        constexpr uint32_t POOL_SIZE_MULTIPLIER = 50;
+
+        this->m_pool.init(
+            swapchain_count * POOL_SIZE_MULTIPLIER,
+            swapchain_count * POOL_SIZE_MULTIPLIER,
+            swapchain_count * POOL_SIZE_MULTIPLIER,
+            swapchain_count * POOL_SIZE_MULTIPLIER,
+            logi_device
+        );
+    }
+
+    void DescriptorSetManager::addSets_composition(
         const VkDevice logiDevice,
         const size_t swapchainImagesSize,
         const VkDescriptorSetLayout descriptorSetLayout,
@@ -369,35 +398,60 @@ namespace dal {
         const std::vector<VkImageView>& dlight_shadow_map_view,
         const VkSampler dlight_shadow_map_sampler
     ) {
-        auto& new_one = this->m_descset_composition.emplace_back();
-        new_one.init(swapchainImagesSize, descriptorSetLayout, this->descriptorPool, logiDevice);
-        new_one.record_composition(swapchainImagesSize, ubuf_per_frame, descriptorSetLayout, attachment_views, dlight_shadow_map_view, dlight_shadow_map_sampler, logiDevice);
+        auto desc_sets = this->m_pool.allocate(swapchainImagesSize, descriptorSetLayout, logiDevice);
+
+        for (uint32_t i = 0; i < desc_sets.size(); ++i) {
+            desc_sets.at(i).record_composition(
+                swapchainImagesSize,
+                ubuf_per_frame.buffer_at(i),
+                descriptorSetLayout,
+                attachment_views,
+                dlight_shadow_map_view,
+                dlight_shadow_map_sampler,
+                logiDevice
+            );
+        }
+
+        this->m_descset_composition.emplace_back(desc_sets);
     }
 
-    void DescriptorPool::init_descset_shadow(
+    void DescriptorSetManager::init_descset_shadow(
         const uint32_t swapchain_count,
         const VkDescriptorSetLayout descset_layout,
         const VkDevice logi_device
     ) {
-        this->m_descset_shadow.destroy(this->pool(), logi_device);
-        this->m_descset_shadow.init(swapchain_count, descset_layout, this->pool(), logi_device);
-        this->m_descset_shadow.record_shadow(logi_device);
-    }
+        this->m_descset_shadow = this->m_pool.allocate(swapchain_count, descset_layout, logi_device);
 
-    void DescriptorPool::destroy(VkDevice logiDevice) {
-        if (VK_NULL_HANDLE != this->descriptorPool) {
-            vkDestroyDescriptorPool(logiDevice, this->descriptorPool, nullptr);
-            this->descriptorPool = VK_NULL_HANDLE;
+        for (uint32_t i = 0; i < this->m_descset_shadow.size(); ++i) {
+            this->m_descset_shadow.at(i).record_shadow(logi_device);
         }
-        this->m_descset_composition.clear();
-        this->m_descset_shadow.vector().clear();
     }
 
-    std::vector<std::vector<VkDescriptorSet>> DescriptorPool::descset_composition() const {
+    void DescriptorSetManager::destroy(VkDevice logiDevice) {
+        this->m_pool.destroy(logiDevice);
+        this->m_descset_composition.clear();
+        this->m_descset_shadow.clear();
+    }
+
+    std::vector<std::vector<VkDescriptorSet>> DescriptorSetManager::descset_composition() const {
         std::vector<std::vector<VkDescriptorSet>> result;
 
         for (auto& x : this->m_descset_composition) {
-            result.emplace_back(x.vector());
+            auto& one = result.emplace_back();
+
+            for (auto& y : x) {
+                one.emplace_back(y.get());
+            }
+        }
+
+        return result;
+    }
+
+    std::vector<VkDescriptorSet> DescriptorSetManager::descset_shadow() const {
+        std::vector<VkDescriptorSet> result;
+
+        for (auto& x : this->m_descset_shadow) {
+            result.emplace_back(x.get());
         }
 
         return result;

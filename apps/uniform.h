@@ -136,61 +136,79 @@ namespace dal {
     };
 
 
-    class DescriptorSet {
+    class DescSet {
 
     private:
-        std::vector<VkDescriptorSet> m_handles;
+        VkDescriptorSet m_handle = VK_NULL_HANDLE;
 
     public:
-        void destroy(const VkDescriptorPool pool, const VkDevice logi_device);
+        void set(const VkDescriptorSet desc_set) {
+            this->m_handle = desc_set;
+        }
 
-        void init(
-            const uint32_t swapchain_count,
-            const VkDescriptorSetLayout descriptor_set_layout,
-            const VkDescriptorPool pool,
-            const VkDevice logi_device
-        );
+        auto& get() const {
+            return this->m_handle;
+        }
 
         void record_deferred(
-            const UniformBufferArray<U_PerFrame_InDeferred>& per_frame_in_deferred,
-            const UniformBufferArray<U_Material_InDeferred>& material_buffer,
+            const VkBuffer ubuf_per_frame_in_deferred,
+            const VkBuffer ubuf_material,
             const VkImageView textureImageView,
             const VkSampler textureSampler,
             const VkDevice logi_device
         );
         void record_composition(
             const size_t swapchainImagesSize,
-            const UniformBufferArray<U_PerFrame_InComposition>& u_per_frame,
+            const VkBuffer ubuf_per_frame,
             const VkDescriptorSetLayout descriptorSetLayout,
             const std::vector<VkImageView>& attachment_views,
             const std::vector<VkImageView>& dlight_shadow_map_view,
             const VkSampler dlight_shadow_map_sampler,
             const VkDevice logiDevice
         );
-        void record_shadow(const VkDevice logi_device);
+        void record_shadow(
+            const VkDevice logi_device
+        );
 
-        auto& at(const uint32_t swapchain_index) const {
-            return this->m_handles.at(swapchain_index);
-        }
-        auto& vector() {
-            return this->m_handles;
-        }
-        auto& vector() const {
-            return this->m_handles;
+    };
+
+
+    class DescPool {
+
+    private:
+        VkDescriptorPool m_pool = VK_NULL_HANDLE;
+
+    public:
+        void init(
+            const uint32_t uniform_buf_count,
+            const uint32_t image_sampler_count,
+            const uint32_t input_attachment_count,
+            const uint32_t desc_set_count,
+            const VkDevice logi_device
+        );
+        void destroy(const VkDevice logi_device);
+        void reset(const VkDevice logi_device);
+
+        DescSet allocate(const VkDescriptorSetLayout layout, const VkDevice logi_device);
+        std::vector<DescSet> allocate(const uint32_t count, const VkDescriptorSetLayout layout, const VkDevice logi_device);
+
+        auto get() const {
+            return this->m_pool;
         }
 
     };
 
 
-    class DescriptorPool {
+    class DescriptorSetManager {
 
     private:
-        VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
-        std::vector<DescriptorSet> m_descset_composition;
-        DescriptorSet m_descset_shadow;
+        DescPool m_pool;
+
+        std::vector<std::vector<DescSet>> m_descset_composition;
+        std::vector<DescSet> m_descset_shadow;
 
     public:
-        void initPool(VkDevice logiDevice, size_t swapchainImagesSize);
+        void init(const uint32_t swapchain_count, const VkDevice logi_device);
         void addSets_composition(
             const VkDevice logiDevice,
             const size_t swapchainImagesSize,
@@ -207,13 +225,12 @@ namespace dal {
         );
         void destroy(VkDevice logiDevice);
 
-        auto& pool() const {
-            return this->descriptorPool;
+        auto& pool() {
+            return this->m_pool;
         }
+
         std::vector<std::vector<VkDescriptorSet>> descset_composition() const;
-        auto& descset_shadow() const {
-            return this->m_descset_shadow.vector();
-        }
+        std::vector<VkDescriptorSet> descset_shadow() const;
 
     };
 

@@ -16,14 +16,14 @@ namespace dal {
         U_Material_InDeferred m_material_data;
         UniformBufferArray<U_Material_InDeferred> m_material_buffer;
 
-        DescriptorSet m_desc_set;
+        std::vector<DescSet> m_desc_set;
         VkImageView m_albedo_map = VK_NULL_HANDLE;
 
     public:
         void destroy(const VkDevice logi_device);
 
         void set_material(
-            const VkDescriptorPool pool,
+            DescPool& pool,
             const size_t swapchain_count,
             const VkDescriptorSetLayout descriptor_set_layout,
             const UniformBufferArray<U_PerFrame_InDeferred>& uniform_buffers,
@@ -33,7 +33,7 @@ namespace dal {
             const VkPhysicalDevice phys_device
         );
         void set_material(
-            const VkDescriptorPool pool,
+            DescPool& pool,
             const size_t swapchain_count,
             const VkDescriptorSetLayout descriptor_set_layout,
             const UniformBufferArray<U_PerFrame_InDeferred>& uniform_buffers,
@@ -86,7 +86,7 @@ namespace dal {
        std::vector<ModelInstance> m_instances;
 
     public:
-        void destroy(const VkDevice logi_device, const VkDescriptorPool pool);
+        void destroy(const VkDevice logi_device);
 
         RenderUnitVK& add_unit();
         ModelInstance& add_instance();
