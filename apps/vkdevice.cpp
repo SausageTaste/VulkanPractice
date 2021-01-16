@@ -363,17 +363,13 @@ namespace dal {
             this->m_desc_man.init(this->m_swapchainImages.size(), this->m_logiDevice.get());
 
             for (auto& model : this->m_models) {
-                for (auto& unit : model.render_units()) {
-                    unit.m_material.set_material(
-                        this->m_desc_man.pool(),
-                        this->m_swapchainImages.size(),
-                        this->m_descSetLayout.layout_deferred(),
-                        this->m_ubuf_per_frame_in_deferred,
-                        this->m_tex_man.sampler_1().get(),
-                        this->m_logiDevice.get(),
-                        this->m_physDevice.get()
-                    );
-                }
+                model.reset_desc_sets(
+                    this->m_ubuf_per_frame_in_deferred,
+                    this->m_swapchainImages.size(),
+                    this->m_tex_man.sampler_1().get(),
+                    this->m_descSetLayout.layout_deferred(),
+                    this->m_logiDevice.get()
+                );
             }
 
             for (size_t i = 0; i < this->m_swapchainImages.size(); ++i) {
@@ -491,6 +487,7 @@ namespace dal {
         {
             const auto mdoel_data = dal::get_horizontal_plane(500, 500);
             auto& model = this->m_models.emplace_back();
+            model.init(this->m_logiDevice.get());
 
             auto& inst = model.add_instance();
 
@@ -508,14 +505,17 @@ namespace dal {
             unit.m_material.m_material_data.m_metallic = mdoel_data.m_material.m_metallic;
 
             unit.m_material.set_material(
-                this->m_desc_man.pool(),
-                this->m_swapchainImages.size(),
-                this->m_descSetLayout.layout_deferred(),
-                this->m_ubuf_per_frame_in_deferred,
                 this->m_tex_grass->view.get(),
-                this->m_tex_man.sampler_1().get(),
                 this->m_logiDevice.get(),
                 this->m_physDevice.get()
+            );
+
+            model.reset_desc_sets(
+                this->m_ubuf_per_frame_in_deferred,
+                this->m_swapchainImages.size(),
+                this->m_tex_man.sampler_1().get(),
+                this->m_descSetLayout.layout_deferred(),
+                this->m_logiDevice.get()
             );
         }
 
@@ -524,6 +524,7 @@ namespace dal {
             const auto model_data = dal::get_aabb_box();
 
             auto& model = this->m_models.emplace_back();
+            model.init(this->m_logiDevice.get());
 
             auto& inst = model.add_instance();
             inst.transform().m_pos.x = 2;
@@ -542,20 +543,24 @@ namespace dal {
             unit.m_material.m_material_data.m_metallic = model_data.m_material.m_metallic;
 
             unit.m_material.set_material(
-                this->m_desc_man.pool(),
-                this->m_swapchainImages.size(),
-                this->m_descSetLayout.layout_deferred(),
-                this->m_ubuf_per_frame_in_deferred,
                 this->m_tex_tile->view.get(),
-                this->m_tex_man.sampler_1().get(),
                 this->m_logiDevice.get(),
                 this->m_physDevice.get()
+            );
+
+            model.reset_desc_sets(
+                this->m_ubuf_per_frame_in_deferred,
+                this->m_swapchainImages.size(),
+                this->m_tex_man.sampler_1().get(),
+                this->m_descSetLayout.layout_deferred(),
+                this->m_logiDevice.get()
             );
         }
 
         // Yuri
         {
             auto& model = this->m_models.emplace_back();
+            model.init(this->m_logiDevice.get());
 
             auto& inst1 = model.add_instance();
             inst1.transform().m_scale = 0.02;
@@ -588,14 +593,17 @@ namespace dal {
                 unit.m_material.m_material_data.m_metallic = model_data.m_material.m_metallic;
 
                 unit.m_material.set_material(
-                    this->m_desc_man.pool(),
-                    this->m_swapchainImages.size(),
-                    this->m_descSetLayout.layout_deferred(),
-                    this->m_ubuf_per_frame_in_deferred,
                     tex->view.get(),
-                    this->m_tex_man.sampler_1().get(),
                     this->m_logiDevice.get(),
                     this->m_physDevice.get()
+                );
+
+                model.reset_desc_sets(
+                    this->m_ubuf_per_frame_in_deferred,
+                    this->m_swapchainImages.size(),
+                    this->m_tex_man.sampler_1().get(),
+                    this->m_descSetLayout.layout_deferred(),
+                    this->m_logiDevice.get()
                 );
             }
         }
@@ -603,6 +611,7 @@ namespace dal {
         // Irin
         {
             auto& model = this->m_models.emplace_back();
+            model.init(this->m_logiDevice.get());
 
             auto& inst2 = model.add_instance();
             inst2.transform().m_scale = 0.8;
@@ -632,14 +641,17 @@ namespace dal {
                 unit.m_material.m_material_data.m_metallic = model_data.m_material.m_metallic;
 
                 unit.m_material.set_material(
-                    this->m_desc_man.pool(),
-                    this->m_swapchainImages.size(),
-                    this->m_descSetLayout.layout_deferred(),
-                    this->m_ubuf_per_frame_in_deferred,
                     tex->view.get(),
-                    this->m_tex_man.sampler_1().get(),
                     this->m_logiDevice.get(),
                     this->m_physDevice.get()
+                );
+
+                model.reset_desc_sets(
+                    this->m_ubuf_per_frame_in_deferred,
+                    this->m_swapchainImages.size(),
+                    this->m_tex_man.sampler_1().get(),
+                    this->m_descSetLayout.layout_deferred(),
+                    this->m_logiDevice.get()
                 );
             }
         }

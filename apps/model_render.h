@@ -14,30 +14,15 @@ namespace dal {
 
     public:
         U_Material_InDeferred m_material_data;
-        UniformBufferArray<U_Material_InDeferred> m_material_buffer;
+        UniformBuffer<U_Material_InDeferred> m_material_buffer;
 
-        std::vector<DescSet> m_desc_set;
         VkImageView m_albedo_map = VK_NULL_HANDLE;
 
     public:
         void destroy(const VkDevice logi_device);
 
         void set_material(
-            DescPool& pool,
-            const size_t swapchain_count,
-            const VkDescriptorSetLayout descriptor_set_layout,
-            const UniformBufferArray<U_PerFrame_InDeferred>& uniform_buffers,
             const VkImageView texture_image_view,
-            const VkSampler texture_sampler,
-            const VkDevice logi_device,
-            const VkPhysicalDevice phys_device
-        );
-        void set_material(
-            DescPool& pool,
-            const size_t swapchain_count,
-            const VkDescriptorSetLayout descriptor_set_layout,
-            const UniformBufferArray<U_PerFrame_InDeferred>& uniform_buffers,
-            const VkSampler texture_sampler,
             const VkDevice logi_device,
             const VkPhysicalDevice phys_device
         );
@@ -89,21 +74,24 @@ namespace dal {
             std::vector<DescSet> m_sets;
 
             uint32_t m_render_unit_count = 0;
-            uint32_t m_swapchain_count = 0;
+            uint32_t m_instance_count = 0;
 
         public:
-            DescSet& at(const uint32_t swapchain_index, const uint32_t inst_index, const uint32_t unit_index);
-            const DescSet& at(const uint32_t swapchain_index, const uint32_t inst_index, const uint32_t unit_index) const;
-
+            void init(const VkDevice logi_device);
+            void destroy(const VkDevice logi_device);
             void reset(
                 const std::vector<ModelInstance>& insts,
                 const std::vector<RenderUnitVK>& units,
-                const UniformBuffer<U_PerFrame_InDeferred>& ubuf_per_frame_in_deferred,
+                const UniformBufferArray<U_PerFrame_InDeferred>& ubuf_per_frame_in_deferred,
                 const uint32_t swapchain_count,
                 const VkSampler texture_sampler,
                 const VkDescriptorSetLayout desc_layout_deferred,
                 const VkDevice logi_device
             );
+
+            DescSet& at(const uint32_t swapchain_index, const uint32_t inst_index, const uint32_t unit_index);
+            const DescSet& at(const uint32_t swapchain_index, const uint32_t inst_index, const uint32_t unit_index) const;
+
 
         private:
             uint32_t calc_index(const uint32_t swapchain_index, const uint32_t inst_index, const uint32_t unit_index) const;
@@ -113,9 +101,20 @@ namespace dal {
     private:
        std::vector<RenderUnitVK> m_render_units;
        std::vector<ModelInstance> m_instances;
+       DescSet2D m_desc_sets;
 
     public:
+        void init(const VkDevice logi_device) {
+            this->m_desc_sets.init(logi_device);
+        }
         void destroy(const VkDevice logi_device);
+        void reset_desc_sets(
+            const UniformBufferArray<U_PerFrame_InDeferred>& ubuf_per_frame_in_deferred,
+            const uint32_t swapchain_count,
+            const VkSampler texture_sampler,
+            const VkDescriptorSetLayout desc_layout_deferred,
+            const VkDevice logi_device
+        );
 
         RenderUnitVK& add_unit();
         ModelInstance& add_instance();
@@ -131,6 +130,9 @@ namespace dal {
         }
         auto& instances() const {
             return this->m_instances;
+        }
+        auto& desc_set(const uint32_t swapchain_index, const uint32_t inst_index, const uint32_t unit_index) const {
+            return this->m_desc_sets.at(swapchain_index, inst_index, unit_index);
         }
 
     };
