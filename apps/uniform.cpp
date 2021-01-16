@@ -148,16 +148,16 @@ namespace dal {
 namespace dal {
 
     void DescSet::record_deferred(
-        const VkBuffer ubuf_per_frame_in_deferred,
-        const VkBuffer ubuf_material,
+        const UniformBuffer<U_PerFrame_InDeferred>& ubuf_per_frame_in_deferred,
+        const UniformBuffer<U_Material_InDeferred>& ubuf_material,
         const VkImageView textureImageView,
         const VkSampler textureSampler,
         const VkDevice logi_device
     ) {
         VkDescriptorBufferInfo bufferInfo{};
-        bufferInfo.buffer = ubuf_per_frame_in_deferred;
+        bufferInfo.buffer = ubuf_per_frame_in_deferred.buffer();
         bufferInfo.offset = 0;
-        bufferInfo.range = sizeof(U_PerFrame_InDeferred);
+        bufferInfo.range = ubuf_per_frame_in_deferred.data_size();
 
         VkDescriptorImageInfo imageInfo{};
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -165,9 +165,9 @@ namespace dal {
         imageInfo.sampler = textureSampler;
 
         VkDescriptorBufferInfo buffer_material_info{};
-        buffer_material_info.buffer = ubuf_material;
+        buffer_material_info.buffer = ubuf_material.buffer();
         buffer_material_info.offset = 0;
-        buffer_material_info.range = sizeof(U_Material_InDeferred);
+        buffer_material_info.range = ubuf_material.data_size();
 
 
         std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
@@ -213,7 +213,7 @@ namespace dal {
 
     void DescSet::record_composition(
         const size_t swapchainImagesSize,
-        const VkBuffer ubuf_per_frame,
+        const UniformBuffer<U_PerFrame_InComposition> ubuf_per_frame,
         const VkDescriptorSetLayout descriptorSetLayout,
         const std::vector<VkImageView>& attachment_views,
         const std::vector<VkImageView>& dlight_shadow_map_view,
@@ -244,9 +244,9 @@ namespace dal {
         // Unifrom buffer
 
         VkDescriptorBufferInfo buffer_per_frame_info{};
-        buffer_per_frame_info.buffer = ubuf_per_frame;
+        buffer_per_frame_info.buffer = ubuf_per_frame.buffer();
         buffer_per_frame_info.offset = 0;
-        buffer_per_frame_info.range = sizeof(U_PerFrame_InComposition);
+        buffer_per_frame_info.range = ubuf_per_frame.data_size();
         {
             auto& x = descriptorWrites.emplace_back();
             x.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
