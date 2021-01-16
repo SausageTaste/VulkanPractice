@@ -13,8 +13,8 @@ namespace dal {
     class MaterialVK {
 
     public:
-        U_Material m_material_data;
-        UniformBufferArray<U_Material> m_material_buffer;
+        U_Material_InDeferred m_material_data;
+        UniformBufferArray<U_Material_InDeferred> m_material_buffer;
 
         DescriptorSet m_desc_set;
         VkImageView m_albedo_map = VK_NULL_HANDLE;

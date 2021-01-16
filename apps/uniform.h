@@ -19,7 +19,7 @@ namespace dal {
         glm::mat4 view, proj;
     };
 
-    struct U_Material {
+    struct U_Material_InDeferred {
         float m_roughness = 0.5;
         float m_metallic = 0;
     };
@@ -153,7 +153,7 @@ namespace dal {
 
         void record_deferred(
             const UniformBufferArray<U_PerFrame_InDeferred>& per_frame_in_deferred,
-            const UniformBufferArray<U_Material>& material_buffer,
+            const UniformBufferArray<U_Material_InDeferred>& material_buffer,
             const VkImageView textureImageView,
             const VkSampler textureSampler,
             const VkDevice logi_device
