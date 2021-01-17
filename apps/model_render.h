@@ -148,6 +148,8 @@ namespace dal {
     };
 
 
+    const VkExtent2D SHADOW_MAP_EXTENT = { 1024 * 2, 1024 * 2 };
+
     class DepthMap {
 
     private:
@@ -156,12 +158,18 @@ namespace dal {
 
     public:
         void init(
-            const uint32_t count,
-            const VkRenderPass render_pass,
+            const VkRenderPass renderpass_shadow,
             const VkDevice logi_device,
             const VkPhysicalDevice phys_device
         );
         void destroy(const VkDevice logi_device);
+
+        auto& framebuffer() const {
+            return this->m_fbuf;
+        }
+        VkExtent2D extent() const {
+            return this->m_attachment.extent();
+        }
 
     };
 
@@ -180,7 +188,25 @@ namespace dal {
         glm::vec3 m_direc;
         glm::vec3 m_color;
 
+        DepthMap m_depth_map;
+        std::vector<VkCommandBuffer> m_cmd_bufs;  // For each frame
+        bool m_use_shadow = false;
+
     public:
+        void init_depth_map(
+            const uint32_t swapchain_count,
+            const glm::mat4& light_mat,
+            const std::vector<ModelVK>& models,
+            const VkRenderPass renderpass_shadow,
+            const VkPipeline pipeline_shadow,
+            const VkPipelineLayout pipelayout_shadow,
+            const VkCommandPool cmd_pool,
+            const VkDescriptorSet descset_shadow,
+            const VkDevice logi_device,
+            const VkPhysicalDevice phys_device
+        );
+        void destroy_depth_map(const VkCommandPool cmd_pool, const VkDevice logi_device);
+
         glm::mat4 make_light_mat() const;
 
     };

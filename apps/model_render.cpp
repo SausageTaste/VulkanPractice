@@ -2,6 +2,8 @@
 
 #include <stdexcept>
 
+#include "util_vulkan.h"
+
 
 namespace dal {
 
@@ -181,22 +183,27 @@ namespace dal {
 namespace dal {
 
     void DepthMap::init(
-        const uint32_t count,
-        const VkRenderPass render_pass,
+        const VkRenderPass renderpass_shadow,
         const VkDevice logi_device,
         const VkPhysicalDevice phys_device
     ) {
-        assert(0 != count);
-        assert(VK_NULL_HANDLE != render_pass);
+        assert(VK_NULL_HANDLE != renderpass_shadow);
         assert(VK_NULL_HANDLE != logi_device);
         assert(VK_NULL_HANDLE != phys_device);
 
         this->destroy(logi_device);
-        this->m_attachment.init(logi_device, phys_device, VK_FORMAT_D32_SFLOAT, FbufAttachment::Usage::depth_map, 1024*4, 1024*4);
+        this->m_attachment.init(
+            logi_device,
+            phys_device,
+            VK_FORMAT_D32_SFLOAT,
+            FbufAttachment::Usage::depth_map,
+            SHADOW_MAP_EXTENT.width,
+            SHADOW_MAP_EXTENT.height
+        );
 
         VkFramebufferCreateInfo framebufferInfo = {};
         framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebufferInfo.renderPass = render_pass;
+        framebufferInfo.renderPass = renderpass_shadow;
         framebufferInfo.attachmentCount = 1;
         framebufferInfo.pAttachments = &this->m_attachment.view();
         framebufferInfo.width = this->m_attachment.width();
@@ -217,6 +224,105 @@ namespace dal {
         }
     }
 
+
+    void DirectionalLight::init_depth_map(
+        const uint32_t swapchain_count,
+        const glm::mat4& light_mat,
+        const std::vector<ModelVK>& models,
+        const VkRenderPass renderpass_shadow,
+        const VkPipeline pipeline_shadow,
+        const VkPipelineLayout pipelayout_shadow,
+        const VkCommandPool cmd_pool,
+        const VkDescriptorSet descset_shadow,
+        const VkDevice logi_device,
+        const VkPhysicalDevice phys_device
+    ) {
+        this->destroy_depth_map(cmd_pool, logi_device);
+        this->m_depth_map.init(renderpass_shadow, logi_device, phys_device);
+
+        // Allocate command buffers
+        // ------------------------------------------------------------------------------
+
+        this->m_cmd_bufs.resize(swapchain_count);
+
+        VkCommandBufferAllocateInfo allocInfo = {};
+        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        allocInfo.commandPool = cmd_pool;
+        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocInfo.commandBufferCount = swapchain_count;
+
+        dal::assert_vk_success(
+            vkAllocateCommandBuffers(logi_device, &allocInfo, this->m_cmd_bufs.data())
+        );
+
+        // Record command buffers
+        // ------------------------------------------------------------------------------
+
+        VkCommandBufferBeginInfo beginInfo{};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+        std::array<VkClearValue, 1> clear_values{};
+        clear_values[0].depthStencil = {1.f, 0};
+
+        VkRenderPassBeginInfo renderPassInfo{};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        renderPassInfo.renderPass = renderpass_shadow;
+        renderPassInfo.renderArea.offset = { 0, 0 };
+        renderPassInfo.renderArea.extent = this->m_depth_map.extent();
+        renderPassInfo.clearValueCount = clear_values.size();
+        renderPassInfo.pClearValues = clear_values.data();
+
+        for (uint32_t i = 0; i < swapchain_count; ++i) {
+            auto& cmd_buf = this->m_cmd_bufs.at(i);
+
+            dal::assert_vk_success( vkBeginCommandBuffer(cmd_buf, &beginInfo) );
+
+            renderPassInfo.framebuffer = this->m_depth_map.framebuffer();
+            vkCmdBeginRenderPass(cmd_buf, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_shadow);
+
+            for (const auto& model : models) {
+                for (const auto& render_unit : model.render_units()) {
+                    VkBuffer vertBuffers[] = {render_unit.m_mesh.vertices.getBuf()};
+                    VkDeviceSize offsets[] = {0};
+                    vkCmdBindVertexBuffers(cmd_buf, 0, 1, vertBuffers, offsets);
+                    vkCmdBindIndexBuffer(cmd_buf, render_unit.m_mesh.indices.getBuf(), 0, VK_INDEX_TYPE_UINT32);
+
+                    vkCmdBindDescriptorSets(
+                        cmd_buf,
+                        VK_PIPELINE_BIND_POINT_GRAPHICS,
+                        pipelayout_shadow,
+                        0, 1, &descset_shadow, 0, nullptr
+                    );
+
+                    for (const auto& inst : model.instances()) {
+                        PushedConstValues pushed_consts;
+                        pushed_consts.m_model_mat = light_mat * inst.transform().make_mat();
+                        vkCmdPushConstants(cmd_buf, pipelayout_shadow, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushedConstValues), &pushed_consts);
+
+                        vkCmdDrawIndexed(cmd_buf, render_unit.m_mesh.indices.size(), 1, 0, 0, 0);
+                    }
+                }
+            }
+
+            vkCmdEndRenderPass(cmd_buf);
+
+            dal::assert_vk_success( vkEndCommandBuffer(cmd_buf) );
+        }
+
+        this->m_use_shadow = true;
+    }
+
+    void DirectionalLight::destroy_depth_map(const VkCommandPool cmd_pool, const VkDevice logi_device) {
+        this->m_depth_map.destroy(logi_device);
+
+        if (!this->m_cmd_bufs.empty()) {
+            vkFreeCommandBuffers(logi_device, cmd_pool, this->m_cmd_bufs.size(), this->m_cmd_bufs.data());
+            this->m_cmd_bufs.clear();
+        }
+
+        this->m_use_shadow = false;
+    }
 
     glm::mat4 DirectionalLight::make_light_mat() const {
         constexpr float half_proj_box_edge_length = 10;

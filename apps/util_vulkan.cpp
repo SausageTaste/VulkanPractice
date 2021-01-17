@@ -181,4 +181,11 @@ namespace dal {
         return imageView;
     }
 
+
+    void assert_vk_success(VkResult result) {
+        if (VK_SUCCESS != result) {
+            throw std::runtime_error{ "failed assertion = VK_SUCCESS" };
+        }
+    }
+
 }
