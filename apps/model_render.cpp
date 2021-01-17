@@ -1,5 +1,7 @@
 #include "model_render.h"
 
+#include <stdexcept>
+
 
 namespace dal {
 
@@ -171,6 +173,110 @@ namespace dal {
         auto& inst = this->m_instances.emplace_back();
         inst.init(swapchain_count, logi_device, phys_device);
         return inst;
+    }
+
+}
+
+
+namespace dal {
+
+    void DepthMap::init(
+        const uint32_t count,
+        const VkRenderPass render_pass,
+        const VkDevice logi_device,
+        const VkPhysicalDevice phys_device
+    ) {
+        assert(0 != count);
+        assert(VK_NULL_HANDLE != render_pass);
+        assert(VK_NULL_HANDLE != logi_device);
+        assert(VK_NULL_HANDLE != phys_device);
+
+        this->destroy(logi_device);
+        this->m_attachment.init(logi_device, phys_device, VK_FORMAT_D32_SFLOAT, FbufAttachment::Usage::depth_map, 1024*4, 1024*4);
+
+        VkFramebufferCreateInfo framebufferInfo = {};
+        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        framebufferInfo.renderPass = render_pass;
+        framebufferInfo.attachmentCount = 1;
+        framebufferInfo.pAttachments = &this->m_attachment.view();
+        framebufferInfo.width = this->m_attachment.width();
+        framebufferInfo.height = this->m_attachment.height();
+        framebufferInfo.layers = 1;
+
+        if (VK_SUCCESS != vkCreateFramebuffer(logi_device, &framebufferInfo, nullptr, &this->m_fbuf)) {
+            throw std::runtime_error("failed to create framebuffer for depth map");
+        }
+    }
+
+    void DepthMap::destroy(const VkDevice logi_device) {
+        this->m_attachment.destroy(logi_device);
+
+        if (VK_NULL_HANDLE != this->m_fbuf) {
+            vkDestroyFramebuffer(logi_device, this->m_fbuf, nullptr);
+            this->m_fbuf = VK_NULL_HANDLE;
+        }
+    }
+
+
+    glm::mat4 DirectionalLight::make_light_mat() const {
+        constexpr float half_proj_box_edge_length = 10;
+
+        const auto view_mat = glm::lookAt(-this->m_direc + this->m_pos, this->m_pos, glm::vec3{0, 1, 0});
+
+        auto proj_mat = glm::ortho<float>(
+            -half_proj_box_edge_length, half_proj_box_edge_length,
+            -half_proj_box_edge_length, half_proj_box_edge_length,
+            -half_proj_box_edge_length, half_proj_box_edge_length
+        );
+        proj_mat[1][1] *= -1;
+
+        return proj_mat * view_mat;
+    }
+
+
+    void LightManager::fill_uniform_data(U_PerFrame_InComposition& result) const {
+        const auto plight_count = std::min<size_t>(dal::MAX_PLIGHT_COUNT, this->m_plights.size());
+        const auto dlight_count = std::min<size_t>(dal::MAX_DLIGHT_COUNT, this->m_dlights.size());
+        const auto slight_count = std::min<size_t>(dal::MAX_SLIGHT_COUNT, this->m_slights.size());
+
+        result.m_num_of_plight_dlight_slight = glm::vec4{ plight_count, dlight_count, slight_count, 0 };
+
+        for (size_t i = 0; i < plight_count; ++i) {
+            result.m_plight_pos[i]   = glm::vec4{ this->m_plights.at(i).m_pos,   1 };
+            result.m_plight_color[i] = glm::vec4{ this->m_plights.at(i).m_color, 1 };
+        }
+
+        for (size_t i = 0; i < dlight_count; ++i) {
+            result.m_dlight_direc[i] = glm::vec4{ this->m_dlights.at(i).m_direc, 0 };
+            result.m_dlight_color[i] = glm::vec4{ this->m_dlights.at(i).m_color, 1 };
+            result.m_dlight_mat[i] = this->m_dlights.at(i).make_light_mat();
+        }
+
+        for (size_t i = 0; i < slight_count; ++i) {
+            result.m_slight_pos[i]            = glm::vec4{ this->m_slights.at(i).m_pos, 0 };
+            result.m_slight_direc[i]          = glm::vec4{ this->m_slights.at(i).m_direc, 0 };
+            result.m_slight_color[i]          = glm::vec4{ this->m_slights.at(i).m_color, 0 };
+            result.m_slight_fade_start_end[i] = glm::vec4{ this->m_slights.at(i).m_fade_start, this->m_slights.at(i).m_fade_end, 0, 0 };
+        }
+    }
+
+}
+
+
+namespace dal {
+
+    void SceneNode::destroy(const VkDevice logi_device) {
+        for (auto& model : this->m_models) {
+            model.destroy(logi_device);
+        }
+        this->m_models.clear();
+    }
+
+    void Scene::destroy(const VkDevice logi_device) {
+        for (auto& node : this->m_nodes) {
+            node.destroy(logi_device);
+        }
+        this->m_nodes.clear();
     }
 
 }

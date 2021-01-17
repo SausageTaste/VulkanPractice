@@ -19,7 +19,6 @@
 #include "texture.h"
 #include "depth_image.h"
 #include "model_render.h"
-#include "view_camera.h"
 
 
 namespace dal {
@@ -44,12 +43,10 @@ namespace dal {
         TextureManager m_tex_man;
         DepthMapManager m_depth_map_man;
 
-        U_PerFrame_InComposition m_data_per_frame_in_composition;
         UniformBufferArray<U_PerFrame_InDeferred> m_ubuf_per_frame_in_deferred;
         UniformBufferArray<U_PerFrame_InComposition> m_ubuf_per_frame_in_composition;
 
-        CameraLookAt m_camera;
-        std::vector<ModelVK> m_models;
+        Scene m_scene;
         std::shared_ptr<TextureUnit> m_tex_grass, m_tex_tile;
 
         unsigned m_currentFrame = 0;
@@ -65,7 +62,7 @@ namespace dal {
         void destroy(void);
 
         auto& camera() {
-            return this->m_camera;
+            return this->m_scene.m_camera;
         }
 
         void render(const VkSurfaceKHR surface);

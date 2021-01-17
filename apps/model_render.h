@@ -1,11 +1,13 @@
 #pragma once
 
 #include <vector>
+#include <optional>
 
 #include <vulkan/vulkan.h>
 
 #include "vert_data.h"
 #include "uniform.h"
+#include "view_camera.h"
 
 
 namespace dal {
@@ -28,7 +30,6 @@ namespace dal {
         );
 
     };
-
 
     class RenderUnitVK {
 
@@ -72,7 +73,6 @@ namespace dal {
         }
 
     };
-
 
     class ModelVK {
 
@@ -144,6 +144,90 @@ namespace dal {
         auto& desc_set(const uint32_t swapchain_index, const uint32_t inst_index, const uint32_t unit_index) const {
             return this->m_desc_sets.at(swapchain_index, inst_index, unit_index);
         }
+
+    };
+
+
+    class DepthMap {
+
+    private:
+        VkFramebuffer m_fbuf;
+        FbufAttachment m_attachment;
+
+    public:
+        void init(
+            const uint32_t count,
+            const VkRenderPass render_pass,
+            const VkDevice logi_device,
+            const VkPhysicalDevice phys_device
+        );
+        void destroy(const VkDevice logi_device);
+
+    };
+
+    class PointLight {
+
+    public:
+        glm::vec3 m_pos;
+        glm::vec3 m_color;
+
+    };
+
+    class DirectionalLight {
+
+    public:
+        glm::vec3 m_pos;
+        glm::vec3 m_direc;
+        glm::vec3 m_color;
+
+    public:
+        glm::mat4 make_light_mat() const;
+
+    };
+
+    class SpotLight {
+
+    public:
+        glm::vec3 m_pos;
+        glm::vec3 m_direc;
+        glm::vec3 m_color;
+        float m_fade_start;
+        float m_fade_end;
+
+    };
+
+    class LightManager {
+
+    public:
+        std::vector<PointLight> m_plights;
+        std::vector<DirectionalLight> m_dlights;
+        std::vector<SpotLight> m_slights;
+
+    public:
+        void fill_uniform_data(U_PerFrame_InComposition& output) const;
+
+    };
+
+
+    class SceneNode {
+
+    public:
+        std::vector<ModelVK> m_models;
+        LightManager m_lights;
+
+    public:
+        void destroy(const VkDevice logi_device);
+
+    };
+
+    class Scene {
+
+    public:
+        CameraLookAt m_camera;
+        std::vector<SceneNode> m_nodes;
+
+    public:
+        void destroy(const VkDevice logi_device);
 
     };
 

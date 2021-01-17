@@ -14,6 +14,11 @@
 
 namespace dal {
 
+    constexpr uint32_t MAX_PLIGHT_COUNT = 5;
+    constexpr uint32_t MAX_DLIGHT_COUNT = 3;
+    constexpr uint32_t MAX_SLIGHT_COUNT = 5;
+
+
     struct U_PerFrame_InDeferred {
         glm::mat4 view, proj;
     };
@@ -32,17 +37,17 @@ namespace dal {
 
         glm::vec4 m_num_of_plight_dlight_slight{ 0 };
 
-        glm::vec4 m_plight_color[5]{};
-        glm::vec4 m_plight_pos[5]{};
+        glm::vec4 m_plight_color[MAX_PLIGHT_COUNT]{};
+        glm::vec4 m_plight_pos[MAX_PLIGHT_COUNT]{};
 
-        glm::vec4 m_dlight_color[3]{};
-        glm::vec4 m_dlight_direc[3]{};
-        glm::mat4 m_dlight_mat[3]{};
+        glm::vec4 m_dlight_color[MAX_DLIGHT_COUNT]{};
+        glm::vec4 m_dlight_direc[MAX_DLIGHT_COUNT]{};
+        glm::mat4 m_dlight_mat[MAX_DLIGHT_COUNT]{};
 
-        glm::vec4 m_slight_pos[5]{};
-        glm::vec4 m_slight_direc[5]{};
-        glm::vec4 m_slight_color[5]{};
-        glm::vec4 m_slight_fade_start_end[5]{};
+        glm::vec4 m_slight_pos[MAX_SLIGHT_COUNT]{};
+        glm::vec4 m_slight_direc[MAX_SLIGHT_COUNT]{};
+        glm::vec4 m_slight_color[MAX_SLIGHT_COUNT]{};
+        glm::vec4 m_slight_fade_start_end[MAX_SLIGHT_COUNT]{};
     };
 
 }
