@@ -325,7 +325,7 @@ namespace dal {
     }
 
     glm::mat4 DirectionalLight::make_light_mat() const {
-        constexpr float half_proj_box_edge_length = 10;
+        constexpr float half_proj_box_edge_length = 4;
 
         const auto view_mat = glm::lookAt(-this->m_direc + this->m_pos, this->m_pos, glm::vec3{0, 1, 0});
 
@@ -364,6 +364,17 @@ namespace dal {
             result.m_slight_color[i]          = glm::vec4{ this->m_slights.at(i).m_color, 0 };
             result.m_slight_fade_start_end[i] = glm::vec4{ this->m_slights.at(i).m_fade_start, this->m_slights.at(i).m_fade_end, 0, 0 };
         }
+    }
+
+    std::vector<VkImageView> LightManager::make_view_list(const uint32_t size) const {
+        std::vector<VkImageView> result(size, VK_NULL_HANDLE);
+
+        const auto depth_map_count = std::min<uint32_t>(size, this->m_dlights.size());
+        for (uint32_t i = 0; i < depth_map_count; ++i) {
+            result.at(i) = this->m_dlights.at(i).m_depth_map.view();
+        }
+
+        return result;
     }
 
 }

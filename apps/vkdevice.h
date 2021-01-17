@@ -41,7 +41,6 @@ namespace dal {
         DepthImage m_depth_image;
         GbufManager m_gbuf;
         TextureManager m_tex_man;
-        DepthMapManager m_depth_map_man;
 
         UniformBufferArray<U_PerFrame_InDeferred> m_ubuf_per_frame_in_deferred;
         UniformBufferArray<U_PerFrame_InComposition> m_ubuf_per_frame_in_composition;
@@ -77,7 +76,7 @@ namespace dal {
     private:
         void initSwapChain(const VkSurfaceKHR surface);
         void destroySwapChain();
-        void submit_render_to_shadow_maps(const int work_count);
+        void submit_render_to_shadow_maps(const uint32_t swapchain_index);
         void udpate_uniform_buffers(const uint32_t swapchain_index);
 
         auto make_attachment_format_array() const {

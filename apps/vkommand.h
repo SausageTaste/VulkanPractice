@@ -14,7 +14,6 @@ namespace dal {
 
     private:
         std::vector<VkCommandBuffer> m_buffers;
-        std::vector<VkCommandBuffer> m_shadow_map_cmd;
 
     public:
         void init(
@@ -35,23 +34,10 @@ namespace dal {
             const std::vector<std::vector<VkDescriptorSet>>& descset_composition,
             const std::vector<ModelVK>& models
         );
-        void record_shadow(
-            const std::vector<glm::mat4>& light_mat,
-            const VkRenderPass renderpass,
-            const VkPipeline pipeline,
-            const VkPipelineLayout pipelayout,
-            const VkExtent2D& extent,
-            const std::vector<VkFramebuffer> fbuf,
-            const VkDescriptorSet descset_shadow,
-            const std::vector<ModelVK>& models
-        );
 
         auto& buffers(void) const {
             assert(0 != this->m_buffers.size());
             return this->m_buffers;
-        }
-        auto& shadow_map_cmd_bufs() const {
-            return this->m_shadow_map_cmd;
         }
 
     };

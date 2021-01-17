@@ -77,11 +77,11 @@ namespace dal {
 
             // Lights
 
-            scene_node.m_lights.m_plights.emplace_back().m_color = glm::vec3{ 10 };
-            scene_node.m_lights.m_plights.emplace_back().m_color = glm::vec4{ 100 };
-            scene_node.m_lights.m_plights.emplace_back().m_color = glm::vec4{ 30 };
-            scene_node.m_lights.m_plights.emplace_back().m_color = glm::vec4{ 40 };
-            scene_node.m_lights.m_plights.emplace_back().m_color = glm::vec4{ 50 };
+            //scene_node.m_lights.m_plights.emplace_back().m_color = glm::vec3{ 10 };
+            //scene_node.m_lights.m_plights.emplace_back().m_color = glm::vec4{ 100 };
+            //scene_node.m_lights.m_plights.emplace_back().m_color = glm::vec4{ 30 };
+            //scene_node.m_lights.m_plights.emplace_back().m_color = glm::vec4{ 40 };
+            //scene_node.m_lights.m_plights.emplace_back().m_color = glm::vec4{ 50 };
 
             scene_node.m_lights.m_dlights.emplace_back();
             scene_node.m_lights.m_dlights.back().m_direc = glm::normalize(glm::vec3{ 1, -2, -1 });
@@ -111,13 +111,12 @@ namespace dal {
         this->m_renderPass.init(this->m_logiDevice.get(), this->make_attachment_format_array());
         this->m_descSetLayout.init(this->m_logiDevice.get());
         this->m_fbuf.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchainImages.getViews(), this->m_swapchain.extent(), this->m_depth_image.image_view(), this->m_gbuf);
-        this->m_depth_map_man.init(3, this->m_renderPass.shadow_mapping(), this->m_logiDevice.get(), this->m_physDevice.get());
         this->m_pipeline.init(
             this->m_logiDevice.get(),
             this->m_renderPass.get(),
             this->m_renderPass.shadow_mapping(),
             this->m_swapchain.extent(),
-            this->m_depth_map_man.attachment(0).extent(),
+            SHADOW_MAP_EXTENT,
             this->m_descSetLayout.layout_deferred(),
             this->m_descSetLayout.layout_composition(),
             this->m_descSetLayout.layout_shadow()
@@ -130,6 +129,27 @@ namespace dal {
         this->m_ubuf_per_frame_in_deferred.init(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
         this->m_ubuf_per_frame_in_composition.init(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
         this->m_desc_man.init(this->m_swapchainImages.size(), this->m_logiDevice.get());
+        this->m_desc_man.init_descset_shadow(this->m_swapchainImages.size(), this->m_descSetLayout.layout_shadow(), this->m_logiDevice.get());
+
+        this->load_models();
+
+        for (auto& node : this->m_scene.m_nodes) {
+            for (auto& dlight : node.m_lights.m_dlights) {
+                dlight.init_depth_map(
+                    this->m_swapchainImages.size(),
+                    dlight.make_light_mat(),
+                    node.m_models,
+                    this->m_renderPass.shadow_mapping(),
+                    this->m_pipeline.pipeline_shadow(),
+                    this->m_pipeline.layout_shadow(),
+                    this->m_cmdPool.pool(),
+                    this->m_desc_man.descset_shadow().front(),
+                    this->m_logiDevice.get(),
+                    this->m_physDevice.get()
+                );
+            }
+        }
+
         for (size_t i = 0; i < this->m_swapchainImages.size(); ++i) {
             this->m_desc_man.addSets_composition(
                 this->m_logiDevice.get(),
@@ -137,16 +157,13 @@ namespace dal {
                 this->m_descSetLayout.layout_composition(),
                 this->m_ubuf_per_frame_in_composition,
                 this->m_gbuf.make_views_vector(this->m_depth_image.image_view()),
-                this->m_depth_map_man.views(),
+                this->m_scene.m_nodes.back().m_lights.make_view_list(3),
                 this->m_tex_man.sampler_shadow_map().get()
             );
         }
-        this->m_desc_man.init_descset_shadow(this->m_swapchainImages.size(), this->m_descSetLayout.layout_shadow(), this->m_logiDevice.get());
 
         this->m_cmdBuffers.init(this->m_logiDevice.get(), this->m_fbuf.getList().size(), this->m_cmdPool.pool());
         this->m_syncMas.init(this->m_logiDevice.get(), this->m_swapchainImages.size());
-
-        this->load_models();
 
         this->m_cmdBuffers.record(
             this->m_renderPass.get(),
@@ -159,27 +176,20 @@ namespace dal {
             this->m_desc_man.descset_composition(),
             this->m_scene.m_nodes.back().m_models
         );
-        this->m_cmdBuffers.record_shadow(
-            {
-                this->m_scene.m_nodes.back().m_lights.m_dlights.at(0).make_light_mat(),
-                this->m_scene.m_nodes.back().m_lights.m_dlights.at(1).make_light_mat(),
-                this->m_scene.m_nodes.back().m_lights.m_dlights.at(2).make_light_mat(),
-            },
-            this->m_renderPass.shadow_mapping(),
-            this->m_pipeline.pipeline_shadow(),
-            this->m_pipeline.layout_shadow(),
-            this->m_depth_map_man.attachment(0).extent(),
-            this->m_depth_map_man.fbufs(),
-            this->m_desc_man.descset_shadow().front(),
-            this->m_scene.m_nodes.back().m_models
-        );
 
         // For shadow maps transition
-        this->submit_render_to_shadow_maps(this->m_cmdBuffers.shadow_map_cmd_bufs().size());
+        this->submit_render_to_shadow_maps(0);
+        this->submit_render_to_shadow_maps(1);
+        this->submit_render_to_shadow_maps(2);
         this->waitLogiDeviceIdle();
     }
 
     void VulkanMaster::destroy(void) {
+        for (auto& node : this->m_scene.m_nodes) {
+            for (auto& dlight : node.m_lights.m_dlights) {
+                dlight.destroy_depth_map(this->m_cmdPool.pool(), this->m_logiDevice.get());
+            }
+        }
         this->m_scene.destroy(this->m_logiDevice.get());
 
         this->m_syncMas.destroy(this->m_logiDevice.get());
@@ -191,7 +201,6 @@ namespace dal {
 
         this->m_cmdPool.destroy(this->m_logiDevice.get());
         this->m_pipeline.destroy(this->m_logiDevice.get());
-        this->m_depth_map_man.destroy(this->m_logiDevice.get());
         this->m_fbuf.destroy(this->m_logiDevice.get());
         this->m_descSetLayout.destroy(this->m_logiDevice.get());
         this->m_renderPass.destroy(this->m_logiDevice.get());
@@ -226,7 +235,7 @@ namespace dal {
         this->udpate_uniform_buffers(imageIndex.first);
 
         // Draw shadow map
-        this->submit_render_to_shadow_maps(this->m_scene.m_nodes.back().m_lights.m_dlights.size());
+        this->submit_render_to_shadow_maps(imageIndex.first);
         this->waitLogiDeviceIdle();
 
         VkSubmitInfo submitInfo = {};
@@ -305,7 +314,7 @@ namespace dal {
                 this->m_renderPass.get(),
                 this->m_renderPass.shadow_mapping(),
                 this->m_swapchain.extent(),
-                this->m_depth_map_man.attachment(0).extent(),
+                dal::SHADOW_MAP_EXTENT,
                 this->m_descSetLayout.layout_deferred(),
                 this->m_descSetLayout.layout_composition(),
                 this->m_descSetLayout.layout_shadow()
@@ -313,6 +322,7 @@ namespace dal {
             this->m_ubuf_per_frame_in_deferred.init(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
             this->m_ubuf_per_frame_in_composition.init(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
             this->m_desc_man.init(this->m_swapchainImages.size(), this->m_logiDevice.get());
+            this->m_desc_man.init_descset_shadow(this->m_swapchainImages.size(), this->m_descSetLayout.layout_shadow(), this->m_logiDevice.get());
 
             for (auto& node : this->m_scene.m_nodes) {
                 for (auto& model : node.m_models) {
@@ -330,6 +340,23 @@ namespace dal {
                 }
             }
 
+            for (auto& node : this->m_scene.m_nodes) {
+                for (auto& dlight : node.m_lights.m_dlights) {
+                    dlight.init_depth_map(
+                        this->m_swapchainImages.size(),
+                        dlight.make_light_mat(),
+                        node.m_models,
+                        this->m_renderPass.shadow_mapping(),
+                        this->m_pipeline.pipeline_shadow(),
+                        this->m_pipeline.layout_shadow(),
+                        this->m_cmdPool.pool(),
+                        this->m_desc_man.descset_shadow().front(),
+                        this->m_logiDevice.get(),
+                        this->m_physDevice.get()
+                    );
+                }
+            }
+
             for (size_t i = 0; i < this->m_swapchainImages.size(); ++i) {
                 this->m_desc_man.addSets_composition(
                     this->m_logiDevice.get(),
@@ -337,11 +364,10 @@ namespace dal {
                     this->m_descSetLayout.layout_composition(),
                     this->m_ubuf_per_frame_in_composition,
                     this->m_gbuf.make_views_vector(this->m_depth_image.image_view()),
-                    this->m_depth_map_man.views(),
+                    this->m_scene.m_nodes.back().m_lights.make_view_list(3),
                     this->m_tex_man.sampler_shadow_map().get()
                 );
             }
-            this->m_desc_man.init_descset_shadow(this->m_swapchainImages.size(), this->m_descSetLayout.layout_shadow(), this->m_logiDevice.get());
 
             this->m_cmdBuffers.init(this->m_logiDevice.get(), this->m_fbuf.getList().size(), this->m_cmdPool.pool());
             this->m_syncMas.init(this->m_logiDevice.get(), this->m_swapchainImages.size());
@@ -356,20 +382,6 @@ namespace dal {
             this->m_swapchain.extent(),
             this->m_fbuf.getList(),
             this->m_desc_man.descset_composition(),
-            this->m_scene.m_nodes.back().m_models
-        );
-        this->m_cmdBuffers.record_shadow(
-            {
-                this->m_scene.m_nodes.back().m_lights.m_dlights.at(0).make_light_mat(),
-                this->m_scene.m_nodes.back().m_lights.m_dlights.at(1).make_light_mat(),
-                this->m_scene.m_nodes.back().m_lights.m_dlights.at(2).make_light_mat(),
-            },
-            this->m_renderPass.shadow_mapping(),
-            this->m_pipeline.pipeline_shadow(),
-            this->m_pipeline.layout_shadow(),
-            this->m_depth_map_man.attachment(0).extent(),
-            this->m_depth_map_man.fbufs(),
-            this->m_desc_man.descset_shadow().front(),
             this->m_scene.m_nodes.back().m_models
         );
     }
@@ -627,7 +639,7 @@ namespace dal {
         this->m_scrHeight = h;
     }
 
-    void VulkanMaster::submit_render_to_shadow_maps(const int work_count) {
+    void VulkanMaster::submit_render_to_shadow_maps(const uint32_t swapchain_index) {
         VkPipelineStageFlags shadow_map_wait_stages = 0;
         VkSubmitInfo submit_info{ };
         submit_info.pNext = NULL;
@@ -639,8 +651,12 @@ namespace dal {
         submit_info.pWaitDstStageMask = 0;
         submit_info.commandBufferCount = 1;
 
-        for (int i = 0; i < work_count; ++i) {
-            submit_info.pCommandBuffers = &this->m_cmdBuffers.shadow_map_cmd_bufs().at(i);
+        for (auto& dlight : this->m_scene.m_nodes.back().m_lights.m_dlights) {
+            if (!dlight.m_use_shadow) {
+                continue;
+            }
+
+            submit_info.pCommandBuffers = &dlight.m_cmd_bufs.at(swapchain_index);
 
             const auto submit_result = vkQueueSubmit(this->m_logiDevice.graphicsQ(), 1, &submit_info, nullptr);
             if ( submit_result != VK_SUCCESS ) {

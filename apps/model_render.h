@@ -167,6 +167,9 @@ namespace dal {
         auto& framebuffer() const {
             return this->m_fbuf;
         }
+        auto& view() const {
+            return this->m_attachment.view();
+        }
         VkExtent2D extent() const {
             return this->m_attachment.extent();
         }
@@ -231,6 +234,7 @@ namespace dal {
 
     public:
         void fill_uniform_data(U_PerFrame_InComposition& output) const;
+        std::vector<VkImageView> make_view_list(const uint32_t size) const;
 
     };
 
