@@ -8,6 +8,7 @@
 #include "vert_data.h"
 #include "uniform.h"
 #include "view_camera.h"
+#include "command_pool.h"
 
 
 namespace dal {
@@ -233,6 +234,8 @@ namespace dal {
         std::vector<SpotLight> m_slights;
 
     public:
+        void destroy(const VkCommandPool cmd_pool, const VkDevice logi_device);
+
         void fill_uniform_data(U_PerFrame_InComposition& output) const;
         std::vector<VkImageView> make_view_list(const uint32_t size) const;
 
@@ -245,7 +248,10 @@ namespace dal {
         std::vector<ModelVK> m_models;
         LightManager m_lights;
 
+        CommandPool m_cmd_pool;
+
     public:
+        void init(const VkSurfaceKHR surface, const VkDevice logi_device, const VkPhysicalDevice phys_device);
         void destroy(const VkDevice logi_device);
 
     };

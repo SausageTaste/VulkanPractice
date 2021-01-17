@@ -66,6 +66,9 @@ namespace {
 namespace dal {
 
     void VulkanMaster::init(const VkInstance instance, const VkSurfaceKHR surface, const unsigned w, const unsigned h) {
+        this->m_physDevice.init(instance, surface);
+        this->m_logiDevice.init(surface, this->m_physDevice.get());
+
         // Set member variables
         {
             this->m_currentFrame = 0;
@@ -74,6 +77,7 @@ namespace dal {
 
             this->m_scene.m_camera.m_pos = glm::vec3{ 0, 2, 4 };
             auto& scene_node = this->m_scene.m_nodes.emplace_back();
+            scene_node.init(surface, this->m_logiDevice.get(), this->m_physDevice.get());
 
             // Lights
 
@@ -102,8 +106,6 @@ namespace dal {
             scene_node.m_lights.m_slights.back().m_fade_end = std::cos(glm::radians<float>(55));
         }
 
-        this->m_physDevice.init(instance, surface);
-        this->m_logiDevice.init(surface, this->m_physDevice.get());
         this->m_swapchain.init(surface, this->m_physDevice.get(), this->m_logiDevice.get(), this->m_scrWidth, this->m_scrHeight);
         this->m_swapchainImages.init(this->m_logiDevice.get(), this->m_swapchain.get(), this->m_swapchain.imageFormat(), this->m_swapchain.extent());
         this->m_depth_image.init(this->m_swapchain.extent(), this->m_logiDevice.get(), this->m_physDevice.get());
@@ -142,7 +144,7 @@ namespace dal {
                     this->m_renderPass.shadow_mapping(),
                     this->m_pipeline.pipeline_shadow(),
                     this->m_pipeline.layout_shadow(),
-                    this->m_cmdPool.pool(),
+                    node.m_cmd_pool.pool(),
                     this->m_desc_man.descset_shadow().front(),
                     this->m_logiDevice.get(),
                     this->m_physDevice.get()
@@ -185,11 +187,6 @@ namespace dal {
     }
 
     void VulkanMaster::destroy(void) {
-        for (auto& node : this->m_scene.m_nodes) {
-            for (auto& dlight : node.m_lights.m_dlights) {
-                dlight.destroy_depth_map(this->m_cmdPool.pool(), this->m_logiDevice.get());
-            }
-        }
         this->m_scene.destroy(this->m_logiDevice.get());
 
         this->m_syncMas.destroy(this->m_logiDevice.get());
@@ -349,7 +346,7 @@ namespace dal {
                         this->m_renderPass.shadow_mapping(),
                         this->m_pipeline.pipeline_shadow(),
                         this->m_pipeline.layout_shadow(),
-                        this->m_cmdPool.pool(),
+                        node.m_cmd_pool.pool(),
                         this->m_desc_man.descset_shadow().front(),
                         this->m_logiDevice.get(),
                         this->m_physDevice.get()

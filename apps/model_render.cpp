@@ -340,6 +340,12 @@ namespace dal {
     }
 
 
+    void LightManager::destroy(const VkCommandPool cmd_pool, const VkDevice logi_device) {
+        for (auto& dlight : this->m_dlights) {
+            dlight.destroy_depth_map(cmd_pool, logi_device);
+        }
+    }
+
     void LightManager::fill_uniform_data(U_PerFrame_InComposition& result) const {
         const auto plight_count = std::min<size_t>(dal::MAX_PLIGHT_COUNT, this->m_plights.size());
         const auto dlight_count = std::min<size_t>(dal::MAX_DLIGHT_COUNT, this->m_dlights.size());
@@ -382,11 +388,19 @@ namespace dal {
 
 namespace dal {
 
+    void SceneNode::init(const VkSurfaceKHR surface, const VkDevice logi_device, const VkPhysicalDevice phys_device) {
+        this->m_cmd_pool.init(phys_device, logi_device, surface);
+    }
+
     void SceneNode::destroy(const VkDevice logi_device) {
         for (auto& model : this->m_models) {
             model.destroy(logi_device);
         }
         this->m_models.clear();
+
+        this->m_lights.destroy(this->m_cmd_pool.pool(), logi_device);
+
+        this->m_cmd_pool.destroy(logi_device);
     }
 
     void Scene::destroy(const VkDevice logi_device) {
