@@ -9,6 +9,7 @@
 #include "uniform.h"
 #include "view_camera.h"
 #include "command_pool.h"
+#include "data_tensor.h"
 
 
 namespace dal {
@@ -82,10 +83,7 @@ namespace dal {
 
         private:
             DescPool m_pool;
-            std::vector<DescSet> m_sets;
-
-            uint32_t m_render_unit_count = 0;
-            uint32_t m_instance_count = 0;
+            DataTensor<DescSet, 3> m_desc_sets;
 
         public:
             void init(const VkDevice logi_device);
@@ -102,10 +100,6 @@ namespace dal {
 
             DescSet& at(const uint32_t swapchain_index, const uint32_t inst_index, const uint32_t unit_index);
             const DescSet& at(const uint32_t swapchain_index, const uint32_t inst_index, const uint32_t unit_index) const;
-
-
-        private:
-            uint32_t calc_index(const uint32_t swapchain_index, const uint32_t inst_index, const uint32_t unit_index) const;
 
         };
 

@@ -78,17 +78,14 @@ namespace dal {
 
     void ModelVK::DescSet2D::destroy(const VkDevice logi_device) {
         this->m_pool.destroy(logi_device);
-        this->m_sets.clear();
-
-        this->m_render_unit_count = 0;
-        this->m_instance_count = 0;
+        this->m_desc_sets.clear();
     }
 
     DescSet& ModelVK::DescSet2D::at(const uint32_t swapchain_index, const uint32_t inst_index, const uint32_t unit_index) {
-        return this->m_sets.at(this->calc_index(swapchain_index, inst_index, unit_index));
+        return this->m_desc_sets.at({ inst_index, unit_index, swapchain_index });
     }
     const DescSet& ModelVK::DescSet2D::at(const uint32_t swapchain_index, const uint32_t inst_index, const uint32_t unit_index) const {
-        return this->m_sets.at(this->calc_index(swapchain_index, inst_index, unit_index));
+        return this->m_desc_sets.at({ inst_index, unit_index, swapchain_index });
     }
 
     void ModelVK::DescSet2D::reset(
@@ -100,11 +97,8 @@ namespace dal {
         const VkDescriptorSetLayout desc_layout_deferred,
         const VkDevice logi_device
     ) {
-        this->m_render_unit_count = units.size();
-        this->m_instance_count = insts.size();
-
         this->m_pool.reset(logi_device);
-        this->m_sets.resize(swapchain_count * insts.size() * units.size());
+        this->m_desc_sets.reset({ static_cast<uint32_t>(insts.size()), static_cast<uint32_t>(units.size()), swapchain_count });
 
         for (uint32_t inst_index = 0; inst_index < insts.size(); ++inst_index) {
             for (uint32_t unit_index = 0; unit_index < units.size(); ++unit_index) {
@@ -122,10 +116,6 @@ namespace dal {
                 }
             }
         }
-    }
-
-    uint32_t ModelVK::DescSet2D::calc_index(const uint32_t swapchain_index, const uint32_t inst_index, const uint32_t unit_index) const {
-        return (this->m_render_unit_count * this->m_instance_count * swapchain_index) + (this->m_render_unit_count * inst_index) + unit_index;
     }
 
 }
