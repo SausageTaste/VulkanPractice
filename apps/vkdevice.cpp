@@ -87,23 +87,31 @@ namespace dal {
             //scene_node.m_lights.m_plights.emplace_back().m_color = glm::vec4{ 40 };
             //scene_node.m_lights.m_plights.emplace_back().m_color = glm::vec4{ 50 };
 
-            scene_node.m_lights.m_dlights.emplace_back();
-            scene_node.m_lights.m_dlights.back().m_direc = glm::normalize(glm::vec3{ 1, -2, -1 });
-            scene_node.m_lights.m_dlights.back().m_color = glm::normalize(glm::vec3{ 5 });
+            {
+                auto& dlight = scene_node.lights().add_dlight();
+                dlight.m_direc = glm::normalize(glm::vec3{ 1, -2, -1 });
+                dlight.m_color = glm::normalize(glm::vec3{ 5 });
+            }
 
-            scene_node.m_lights.m_dlights.emplace_back();
-            scene_node.m_lights.m_dlights.back().m_direc = glm::normalize(glm::vec3{ -2, -2, -1 });
-            scene_node.m_lights.m_dlights.back().m_color = glm::normalize(glm::vec3{ 3 });
+            {
+                auto& dlight = scene_node.lights().add_dlight();
+                dlight.m_direc = glm::normalize(glm::vec3{ -2, -2, -1 });
+                dlight.m_color = glm::normalize(glm::vec3{ 3 });
+            }
 
-            scene_node.m_lights.m_dlights.emplace_back();
-            scene_node.m_lights.m_dlights.back().m_direc = glm::normalize(glm::vec3{ -1, -2, 4 });
-            scene_node.m_lights.m_dlights.back().m_color = glm::normalize(glm::vec3{ 2 });
+            {
+                auto& dlight = scene_node.lights().add_dlight();
+                dlight.m_direc = glm::normalize(glm::vec3{ -1, -2, 4 });
+                dlight.m_color = glm::normalize(glm::vec3{ 2 });
+            }
 
-            scene_node.m_lights.m_slights.emplace_back();
-            scene_node.m_lights.m_slights.back().m_color = glm::vec3{ 2000 };
-            scene_node.m_lights.m_slights.back().m_pos = glm::vec3{ 0, 7, -2 };
-            scene_node.m_lights.m_slights.back().m_fade_start = std::cos(glm::radians<float>(45));
-            scene_node.m_lights.m_slights.back().m_fade_end = std::cos(glm::radians<float>(55));
+            {
+                auto& slight = scene_node.lights().add_slight();
+                slight.m_color = glm::vec3{ 2000 };
+                slight.m_pos = glm::vec3{ 0, 7, -2 };
+                slight.m_fade_start = std::cos(glm::radians<float>(45));
+                slight.m_fade_end = std::cos(glm::radians<float>(55));
+            }
         }
 
         this->m_swapchain.init(surface, this->m_physDevice.get(), this->m_logiDevice.get(), this->m_scrWidth, this->m_scrHeight);
@@ -136,20 +144,18 @@ namespace dal {
         this->load_models();
 
         for (auto& node : this->m_scene.m_nodes) {
-            for (auto& dlight : node.m_lights.m_dlights) {
-                dlight.init_depth_map(
-                    this->m_swapchainImages.size(),
-                    dlight.make_light_mat(),
-                    node.m_models,
-                    this->m_renderPass.shadow_mapping(),
-                    this->m_pipeline.pipeline_shadow(),
-                    this->m_pipeline.layout_shadow(),
-                    node.m_cmd_pool.pool(),
-                    this->m_desc_man.descset_shadow().front(),
-                    this->m_logiDevice.get(),
-                    this->m_physDevice.get()
-                );
-            }
+            node.on_swapchain_count_change(
+                this->m_swapchainImages.size(),
+                this->m_ubuf_per_frame_in_deferred,
+                this->m_tex_man.sampler_1().get(),
+                this->m_descSetLayout.layout_deferred(),
+                this->m_renderPass.shadow_mapping(),
+                this->m_pipeline.pipeline_shadow(),
+                this->m_pipeline.layout_shadow(),
+                this->m_desc_man.descset_shadow().front(),
+                this->m_logiDevice.get(),
+                this->m_physDevice.get()
+            );
         }
 
         for (size_t i = 0; i < this->m_swapchainImages.size(); ++i) {
@@ -159,7 +165,7 @@ namespace dal {
                 this->m_descSetLayout.layout_composition(),
                 this->m_ubuf_per_frame_in_composition,
                 this->m_gbuf.make_views_vector(this->m_depth_image.image_view()),
-                this->m_scene.m_nodes.back().m_lights.make_view_list(3),
+                this->m_scene.m_nodes.back().lights().make_view_list(3),
                 this->m_tex_man.sampler_shadow_map().get()
             );
         }
@@ -176,7 +182,7 @@ namespace dal {
             this->m_swapchain.extent(),
             this->m_fbuf.getList(),
             this->m_desc_man.descset_composition(),
-            this->m_scene.m_nodes.back().m_models
+            this->m_scene.m_nodes.back().models()
         );
 
         // For shadow maps transition
@@ -343,7 +349,7 @@ namespace dal {
                     this->m_descSetLayout.layout_composition(),
                     this->m_ubuf_per_frame_in_composition,
                     this->m_gbuf.make_views_vector(this->m_depth_image.image_view()),
-                    this->m_scene.m_nodes.back().m_lights.make_view_list(3),
+                    this->m_scene.m_nodes.back().lights().make_view_list(3),
                     this->m_tex_man.sampler_shadow_map().get()
                 );
             }
@@ -361,7 +367,7 @@ namespace dal {
             this->m_swapchain.extent(),
             this->m_fbuf.getList(),
             this->m_desc_man.descset_composition(),
-            this->m_scene.m_nodes.back().m_models
+            this->m_scene.m_nodes.back().models()
         );
     }
 
@@ -437,7 +443,7 @@ namespace dal {
         // Floor
         {
             const auto mdoel_data = dal::get_horizontal_plane(500, 500);
-            auto& model = node.m_models.emplace_back();
+            auto& model = node.add_model();
             model.init(this->m_logiDevice.get());
 
             auto& inst = model.add_instance(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
@@ -460,21 +466,13 @@ namespace dal {
                 this->m_logiDevice.get(),
                 this->m_physDevice.get()
             );
-
-            model.reset_desc_sets(
-                this->m_ubuf_per_frame_in_deferred,
-                this->m_swapchainImages.size(),
-                this->m_tex_man.sampler_1().get(),
-                this->m_descSetLayout.layout_deferred(),
-                this->m_logiDevice.get()
-            );
         }
 
         // Box
         {
             const auto model_data = dal::get_aabb_box();
 
-            auto& model = node.m_models.emplace_back();
+            auto& model = node.add_model();
             model.init(this->m_logiDevice.get());
 
             auto& inst = model.add_instance(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
@@ -499,19 +497,11 @@ namespace dal {
                 this->m_logiDevice.get(),
                 this->m_physDevice.get()
             );
-
-            model.reset_desc_sets(
-                this->m_ubuf_per_frame_in_deferred,
-                this->m_swapchainImages.size(),
-                this->m_tex_man.sampler_1().get(),
-                this->m_descSetLayout.layout_deferred(),
-                this->m_logiDevice.get()
-            );
         }
 
         // Yuri
         {
-            auto& model = node.m_models.emplace_back();
+            auto& model = node.add_model();
             model.init(this->m_logiDevice.get());
 
             auto& inst1 = model.add_instance(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
@@ -551,20 +541,12 @@ namespace dal {
                     this->m_logiDevice.get(),
                     this->m_physDevice.get()
                 );
-
-                model.reset_desc_sets(
-                    this->m_ubuf_per_frame_in_deferred,
-                    this->m_swapchainImages.size(),
-                    this->m_tex_man.sampler_1().get(),
-                    this->m_descSetLayout.layout_deferred(),
-                    this->m_logiDevice.get()
-                );
             }
         }
 
         // Irin
         {
-            auto& model = node.m_models.emplace_back();
+            auto& model = node.add_model();
             model.init(this->m_logiDevice.get());
 
             auto& inst = model.add_instance(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
@@ -600,14 +582,6 @@ namespace dal {
                     this->m_logiDevice.get(),
                     this->m_physDevice.get()
                 );
-
-                model.reset_desc_sets(
-                    this->m_ubuf_per_frame_in_deferred,
-                    this->m_swapchainImages.size(),
-                    this->m_tex_man.sampler_1().get(),
-                    this->m_descSetLayout.layout_deferred(),
-                    this->m_logiDevice.get()
-                );
             }
         }
     }
@@ -630,7 +604,7 @@ namespace dal {
         submit_info.pWaitDstStageMask = 0;
         submit_info.commandBufferCount = 1;
 
-        for (auto& dlight : this->m_scene.m_nodes.back().m_lights.m_dlights) {
+        for (auto& dlight : this->m_scene.m_nodes.back().lights().dlights()) {
             if (!dlight.m_use_shadow) {
                 continue;
             }
@@ -660,10 +634,10 @@ namespace dal {
         {
             constexpr double RADIUS = 5;
 
-            const auto plight_count = this->m_scene.m_nodes.back().m_lights.m_plights.size();
+            const auto plight_count = this->m_scene.m_nodes.back().lights().plight_count();
             for (size_t i = 0; i < plight_count; ++i) {
                 const auto rotate_phase_diff = 2.0 * M_PI / static_cast<double>(plight_count);
-                this->m_scene.m_nodes.back().m_lights.m_plights.at(i).m_pos = glm::vec4{
+                this->m_scene.m_nodes.back().lights().plight_at(i).m_pos = glm::vec4{
                     RADIUS * std::cos(dal::getTimeInSec() + rotate_phase_diff * i),
                     4,
                     RADIUS * std::sin(dal::getTimeInSec() + rotate_phase_diff * i),
@@ -673,7 +647,7 @@ namespace dal {
         }
 
         {
-            auto& yuri_model = this->m_scene.m_nodes.back().m_models.at(2);
+            auto& yuri_model = this->m_scene.m_nodes.back().model_at(2);
             auto& yuri_inst = yuri_model.instances().at(0);
 
             yuri_inst.transform().m_pos = glm::vec3{
@@ -684,7 +658,7 @@ namespace dal {
             yuri_inst.update_ubuf(swapchain_index, this->m_logiDevice.get());
         }
 
-        this->m_scene.m_nodes.back().m_lights.m_slights.at(0).m_direc = glm::normalize(glm::vec3{
+        this->m_scene.m_nodes.back().lights().slight_at(0).m_direc = glm::normalize(glm::vec3{
             std::sin(dal::getTimeInSec()),
             std::cos(dal::getTimeInSec()),
             -0.4
@@ -692,7 +666,7 @@ namespace dal {
 
         U_PerFrame_InComposition data;
         data.m_view_pos = glm::vec4{ this->camera().m_pos, 1 };
-        this->m_scene.m_nodes.back().m_lights.fill_uniform_data(data);
+        this->m_scene.m_nodes.back().lights().fill_uniform_data(data);
         this->m_ubuf_per_frame_in_composition.copy_to_buffer(swapchain_index, data, this->m_logiDevice.get());
     }
 

@@ -27,8 +27,8 @@ namespace dal {
 namespace dal {
 
     void RenderUnitVK::set_mesh(
-        const std::vector<Vertex> vertices,
-        const std::vector<uint32_t> indices,
+        const std::vector<Vertex>& vertices,
+        const std::vector<uint32_t>& indices,
         dal::CommandPool& cmd_pool,
         const VkDevice logi_device,
         const VkPhysicalDevice phys_device,
@@ -336,6 +336,33 @@ namespace dal {
         }
     }
 
+    void LightManager::init_depth_maps_of_dlights(
+        CommandPool& cmd_pool,
+        const uint32_t swapchain_count,
+        const std::vector<ModelVK>& models,
+        const VkRenderPass renderpass_shadow,
+        const VkPipeline pipeline_shadow,
+        const VkPipelineLayout pipelayout_shadow,
+        const VkDescriptorSet descset_shadow,
+        const VkDevice logi_device,
+        const VkPhysicalDevice phys_device
+    ) {
+        for (auto& dlight : this->m_dlights) {
+            dlight.init_depth_map(
+                swapchain_count,
+                dlight.make_light_mat(),
+                models,
+                renderpass_shadow,
+                pipeline_shadow,
+                pipelayout_shadow,
+                cmd_pool.pool(),
+                descset_shadow,
+                logi_device,
+                phys_device
+            );
+        }
+    }
+
     void LightManager::fill_uniform_data(U_PerFrame_InComposition& result) const {
         const auto plight_count = std::min<size_t>(dal::MAX_PLIGHT_COUNT, this->m_plights.size());
         const auto dlight_count = std::min<size_t>(dal::MAX_DLIGHT_COUNT, this->m_dlights.size());
@@ -419,20 +446,17 @@ namespace dal {
             );
         }
 
-        for (auto& dlight : this->m_lights.m_dlights) {
-            dlight.init_depth_map(
-                swapchain_count,
-                dlight.make_light_mat(),
-                this->m_models,
-                renderpass_shadow,
-                pipeline_shadow,
-                pipelayout_shadow,
-                this->m_cmd_pool.pool(),
-                descset_shadow,
-                logi_device,
-                phys_device
-            );
-        }
+        this->m_lights.init_depth_maps_of_dlights(
+            this->m_cmd_pool,
+            swapchain_count,
+            this->m_models,
+            renderpass_shadow,
+            pipeline_shadow,
+            pipelayout_shadow,
+            descset_shadow,
+            logi_device,
+            phys_device
+        );
     }
 
 

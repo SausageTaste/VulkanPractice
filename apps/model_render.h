@@ -41,8 +41,8 @@ namespace dal {
 
     public:
         void set_mesh(
-            const std::vector<Vertex> vertices,
-            const std::vector<uint32_t> indices,
+            const std::vector<Vertex>& vertices,
+            const std::vector<uint32_t>& indices,
             dal::CommandPool& cmd_pool,
             const VkDevice logi_device,
             const VkPhysicalDevice phys_device,
@@ -222,23 +222,62 @@ namespace dal {
 
     class LightManager {
 
-    public:
+    private:
         std::vector<PointLight> m_plights;
         std::vector<DirectionalLight> m_dlights;
         std::vector<SpotLight> m_slights;
 
     public:
         void destroy(const VkCommandPool cmd_pool, const VkDevice logi_device);
+        void init_depth_maps_of_dlights(
+            CommandPool& cmd_pool,
+            const uint32_t swapchain_count,
+            const std::vector<ModelVK>& models,
+            const VkRenderPass renderpass_shadow,
+            const VkPipeline pipeline_shadow,
+            const VkPipelineLayout pipelayout_shadow,
+            const VkDescriptorSet descset_shadow,
+            const VkDevice logi_device,
+            const VkPhysicalDevice phys_device
+        );
 
         void fill_uniform_data(U_PerFrame_InComposition& output) const;
         std::vector<VkImageView> make_view_list(const uint32_t size) const;
+
+        auto& add_plight() {
+            return this->m_plights.emplace_back();
+        }
+        auto& add_dlight() {
+            return this->m_dlights.emplace_back();
+        }
+        auto& add_slight() {
+            return this->m_slights.emplace_back();
+        }
+
+        auto& dlights() const {
+            return this->m_dlights;
+        }
+
+        auto& plight_at(const uint32_t index) {
+            return this->m_plights.at(index);
+        }
+        auto plight_count() const {
+            return this->m_plights.size();
+        }
+
+        auto& slight_at(const uint32_t index) {
+            return this->m_slights.at(index);
+        }
+        auto slight_count() const {
+            return this->m_slights.size();
+        }
 
     };
 
 
     class SceneNode {
 
-    public:
+    private:
         std::vector<ModelVK> m_models;
         LightManager m_lights;
 
@@ -259,6 +298,23 @@ namespace dal {
             const VkDevice logi_device,
             const VkPhysicalDevice phys_device
         );
+
+        auto& models() const {
+            return this->m_models;
+        }
+        auto& lights() {
+            return this->m_lights;
+        }
+        auto& lights() const {
+            return this->m_lights;
+        }
+
+        auto& add_model() {
+            return this->m_models.emplace_back();
+        }
+        auto& model_at(const uint32_t index) {
+            return this->m_models.at(index);
+        }
 
     };
 
