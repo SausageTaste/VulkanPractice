@@ -100,12 +100,6 @@ namespace dal {
             }
 
             {
-                auto& dlight = scene_node.lights().add_dlight();
-                dlight.m_direc = glm::normalize(glm::vec3{ -1, -2, 4 });
-                dlight.m_color = glm::normalize(glm::vec3{ 2 });
-            }
-
-            {
                 auto& slight = scene_node.lights().add_slight();
                 slight.m_color = glm::vec3{ 2000 };
                 slight.m_pos = glm::vec3{ 0, 7, -2 };

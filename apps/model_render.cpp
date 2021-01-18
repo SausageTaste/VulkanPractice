@@ -452,7 +452,7 @@ namespace dal {
     }
 
     std::vector<VkImageView> LightManager::make_view_list(const uint32_t size) const {
-        std::vector<VkImageView> result(size, VK_NULL_HANDLE);
+        std::vector<VkImageView> result(size, this->m_dlights.at(0).m_depth_map.view());
 
         const auto depth_map_count = std::min<uint32_t>(size, this->m_dlights.size());
         for (uint32_t i = 0; i < depth_map_count; ++i) {
