@@ -247,6 +247,18 @@ namespace dal {
     public:
         void init(const VkSurfaceKHR surface, const VkDevice logi_device, const VkPhysicalDevice phys_device);
         void destroy(const VkDevice logi_device);
+        void on_swapchain_count_change(
+            const uint32_t swapchain_count,
+            const UniformBufferArray<U_PerFrame_InDeferred>& ubuf_per_frame_in_deferred,
+            const VkSampler texture_sampler,
+            const VkDescriptorSetLayout desc_layout_deferred,
+            const VkRenderPass renderpass_shadow,
+            const VkPipeline pipeline_shadow,
+            const VkPipelineLayout pipelayout_shadow,
+            const VkDescriptorSet descset_shadow,
+            const VkDevice logi_device,
+            const VkPhysicalDevice phys_device
+        );
 
     };
 

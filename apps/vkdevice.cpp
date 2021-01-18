@@ -322,36 +322,18 @@ namespace dal {
             this->m_desc_man.init_descset_shadow(this->m_swapchainImages.size(), this->m_descSetLayout.layout_shadow(), this->m_logiDevice.get());
 
             for (auto& node : this->m_scene.m_nodes) {
-                for (auto& model : node.m_models) {
-                    for (auto& inst : model.instances()) {
-                        inst.init(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
-                    }
-
-                    model.reset_desc_sets(
-                        this->m_ubuf_per_frame_in_deferred,
-                        this->m_swapchainImages.size(),
-                        this->m_tex_man.sampler_1().get(),
-                        this->m_descSetLayout.layout_deferred(),
-                        this->m_logiDevice.get()
-                    );
-                }
-            }
-
-            for (auto& node : this->m_scene.m_nodes) {
-                for (auto& dlight : node.m_lights.m_dlights) {
-                    dlight.init_depth_map(
-                        this->m_swapchainImages.size(),
-                        dlight.make_light_mat(),
-                        node.m_models,
-                        this->m_renderPass.shadow_mapping(),
-                        this->m_pipeline.pipeline_shadow(),
-                        this->m_pipeline.layout_shadow(),
-                        node.m_cmd_pool.pool(),
-                        this->m_desc_man.descset_shadow().front(),
-                        this->m_logiDevice.get(),
-                        this->m_physDevice.get()
-                    );
-                }
+                node.on_swapchain_count_change(
+                    this->m_swapchainImages.size(),
+                    this->m_ubuf_per_frame_in_deferred,
+                    this->m_tex_man.sampler_1().get(),
+                    this->m_descSetLayout.layout_deferred(),
+                    this->m_renderPass.shadow_mapping(),
+                    this->m_pipeline.pipeline_shadow(),
+                    this->m_pipeline.layout_shadow(),
+                    this->m_desc_man.descset_shadow().front(),
+                    this->m_logiDevice.get(),
+                    this->m_physDevice.get()
+                );
             }
 
             for (size_t i = 0; i < this->m_swapchainImages.size(); ++i) {

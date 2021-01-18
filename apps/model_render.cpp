@@ -393,6 +393,49 @@ namespace dal {
         this->m_cmd_pool.destroy(logi_device);
     }
 
+    void SceneNode::on_swapchain_count_change(
+        const uint32_t swapchain_count,
+        const UniformBufferArray<U_PerFrame_InDeferred>& ubuf_per_frame_in_deferred,
+        const VkSampler texture_sampler,
+        const VkDescriptorSetLayout desc_layout_deferred,
+        const VkRenderPass renderpass_shadow,
+        const VkPipeline pipeline_shadow,
+        const VkPipelineLayout pipelayout_shadow,
+        const VkDescriptorSet descset_shadow,
+        const VkDevice logi_device,
+        const VkPhysicalDevice phys_device
+    ) {
+        for (auto& model : this->m_models) {
+            for (auto& inst : model.instances()) {
+                inst.init(swapchain_count, logi_device, phys_device);
+            }
+
+            model.reset_desc_sets(
+                ubuf_per_frame_in_deferred,
+                swapchain_count,
+                texture_sampler,
+                desc_layout_deferred,
+                logi_device
+            );
+        }
+
+        for (auto& dlight : this->m_lights.m_dlights) {
+            dlight.init_depth_map(
+                swapchain_count,
+                dlight.make_light_mat(),
+                this->m_models,
+                renderpass_shadow,
+                pipeline_shadow,
+                pipelayout_shadow,
+                this->m_cmd_pool.pool(),
+                descset_shadow,
+                logi_device,
+                phys_device
+            );
+        }
+    }
+
+
     void Scene::destroy(const VkDevice logi_device) {
         for (auto& node : this->m_nodes) {
             node.destroy(logi_device);
