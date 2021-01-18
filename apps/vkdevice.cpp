@@ -491,21 +491,18 @@ namespace dal {
             );
         }
 
-        // Yuri
+        // Sphere
         {
             auto& model = node.add_model();
             model.init(this->m_logiDevice.get());
 
-            auto& inst1 = model.add_instance(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
-            inst1.transform().m_scale = 0.02;
-            inst1.update_ubuf(this->m_logiDevice.get());
+            for (int i = 0; i < 8; ++i) {
+                auto& inst = model.add_instance(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
+                inst.transform().m_scale = 0.3;
+                inst.update_ubuf(this->m_logiDevice.get());
+            }
 
-            auto& inst2 = model.add_instance(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
-            inst2.transform().m_scale = 0.02;
-            inst2.transform().m_pos.x = -1;
-            inst2.update_ubuf(this->m_logiDevice.get());
-
-            for (const auto& model_data : get_test_model()) {
+            for (const auto& model_data : load_dmd_model("sphere.dmd")) {
                 auto& unit = model.add_unit();
 
                 unit.set_mesh(
@@ -536,17 +533,58 @@ namespace dal {
             }
         }
 
-        // Irin
+        // Monkey
         {
             auto& model = node.add_model();
             model.init(this->m_logiDevice.get());
 
             auto& inst = model.add_instance(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
-            inst.transform().m_scale = 0.8;
-            inst.transform().m_pos.x = -2;
+            inst.transform().m_scale = 0.6;
+            inst.transform().m_pos = glm::vec3{ -0, 1, 0 };
             inst.update_ubuf(this->m_logiDevice.get());
 
-            for (const auto& model_data : load_dmd_model("irin.dmd")) {
+            for (const auto& model_data : load_dmd_model("monkey.dmd")) {
+                auto& unit = model.add_unit();
+
+                unit.set_mesh(
+                    model_data.m_vertices,
+                    model_data.m_indices,
+                    this->m_cmdPool,
+                    this->m_logiDevice.get(),
+                    this->m_physDevice.get(),
+                    this->m_logiDevice.graphicsQ()
+                );
+
+                const auto& tex = this->m_tex_man.request_texture(
+                    model_data.m_material.m_albedo_map.c_str(),
+                    this->m_cmdPool,
+                    this->m_logiDevice.get(),
+                    this->m_physDevice,
+                    this->m_logiDevice.graphicsQ()
+                );
+
+                unit.m_material.m_material_data.m_roughness = model_data.m_material.m_roughness;
+                unit.m_material.m_material_data.m_metallic = model_data.m_material.m_metallic;
+
+                unit.m_material.set_material(
+                    tex->view.get(),
+                    this->m_logiDevice.get(),
+                    this->m_physDevice.get()
+                );
+            }
+        }
+
+        // Yuri
+        {
+            auto& model = node.add_model();
+            model.init(this->m_logiDevice.get());
+
+            auto& inst = model.add_instance(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
+            inst.transform().m_scale = 0.02;
+            inst.transform().m_pos = glm::vec3{ -1, 0, 0 };
+            inst.update_ubuf(this->m_logiDevice.get());
+
+            for (const auto& model_data : load_dmd_model("yuri_cso2.dmd")) {
                 auto& unit = model.add_unit();
 
                 unit.set_mesh(
@@ -639,15 +677,24 @@ namespace dal {
         }
 
         {
-            auto& yuri_model = this->m_scene.m_nodes.back().model_at(2);
-            auto& yuri_inst = yuri_model.instances().at(0);
+            constexpr double RADIUS = 2;
+            constexpr double SPEED = 2;
+            const glm::vec3 CENTER{ 0, 3, 2 };
 
-            yuri_inst.transform().m_pos = glm::vec3{
-                std::cos(dal::getTimeInSec()),
-                0,
-                std::sin(dal::getTimeInSec()) - 3
-            };
-            yuri_inst.update_ubuf(swapchain_index, this->m_logiDevice.get());
+            auto& model = this->m_scene.m_nodes.back().model_at(2);
+            const float phase_per_one = 2.0 * M_PI / static_cast<double>(model.instances().size());
+
+            for (size_t i = 0; i < model.instances().size(); ++i) {
+                auto& inst = model.instances().at(i);
+
+                inst.transform().m_pos = CENTER;
+                inst.transform().m_pos.x += RADIUS * std::cos(SPEED * dal::getTimeInSec() + phase_per_one * i);
+                inst.transform().m_pos.y +=    0.5 * std::sin(SPEED * dal::getTimeInSec() + phase_per_one * i);
+                inst.transform().m_pos.z += RADIUS * std::sin(SPEED * dal::getTimeInSec() + phase_per_one * i + M_PI);
+
+                inst.update_ubuf(swapchain_index, this->m_logiDevice.get());
+            }
+
         }
 
         this->m_scene.m_nodes.back().lights().slight_at(0).m_direc = glm::normalize(glm::vec3{
