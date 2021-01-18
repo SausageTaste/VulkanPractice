@@ -8,7 +8,7 @@
 namespace dal {
 
     void DescSetTensor_Shadow::init(const VkDevice logi_device) {
-        this->m_pool.init(128, 128, 128, 128, logi_device);
+        this->m_pool.init(150, 150, 150, 150, logi_device);
     }
 
     void DescSetTensor_Shadow::destroy(const VkDevice logi_device) {
