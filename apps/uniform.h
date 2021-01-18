@@ -28,6 +28,7 @@ namespace dal {
         float m_metallic = 0;
     };
 
+    // In deferred, shadow
     struct U_PerInst_PerFrame_InDeferred {
         glm::mat4 m_model_mat;
     };
@@ -48,6 +49,11 @@ namespace dal {
         glm::vec4 m_slight_direc[MAX_SLIGHT_COUNT]{};
         glm::vec4 m_slight_color[MAX_SLIGHT_COUNT]{};
         glm::vec4 m_slight_fade_start_end[MAX_SLIGHT_COUNT]{};
+    };
+
+    // In shadow
+    struct U_PerFrame_PerLight {
+        glm::mat4 m_light_mat;
     };
 
 }
@@ -195,6 +201,8 @@ namespace dal {
             const VkDevice logiDevice
         );
         void record_shadow(
+            const UniformBuffer<U_PerInst_PerFrame_InDeferred>& ubuf_per_inst_per_frame,
+            const UniformBuffer<U_PerFrame_PerLight>& ubuf_per_light_per_frame,
             const VkDevice logi_device
         );
 
@@ -233,7 +241,6 @@ namespace dal {
         DescPool m_pool;
 
         std::vector<std::vector<DescSet>> m_descset_composition;
-        std::vector<DescSet> m_descset_shadow;
 
     public:
         void init(const uint32_t swapchain_count, const VkDevice logi_device);
@@ -246,11 +253,6 @@ namespace dal {
             const std::vector<VkImageView>& dlight_shadow_map_view,
             const VkSampler dlight_shadow_map_sampler
         );
-        void init_descset_shadow(
-            const uint32_t swapchain_count,
-            const VkDescriptorSetLayout descset_layout,
-            const VkDevice logi_device
-        );
         void destroy(VkDevice logiDevice);
 
         auto& pool() {
@@ -258,7 +260,6 @@ namespace dal {
         }
 
         std::vector<std::vector<VkDescriptorSet>> descset_composition() const;
-        std::vector<VkDescriptorSet> descset_shadow() const;
 
     };
 

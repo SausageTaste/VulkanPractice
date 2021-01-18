@@ -139,7 +139,6 @@ namespace dal {
         this->m_ubuf_per_frame_in_deferred.init(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
         this->m_ubuf_per_frame_in_composition.init(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
         this->m_desc_man.init(this->m_swapchainImages.size(), this->m_logiDevice.get());
-        this->m_desc_man.init_descset_shadow(this->m_swapchainImages.size(), this->m_descSetLayout.layout_shadow(), this->m_logiDevice.get());
 
         this->load_models();
 
@@ -149,10 +148,10 @@ namespace dal {
                 this->m_ubuf_per_frame_in_deferred,
                 this->m_tex_man.sampler_1().get(),
                 this->m_descSetLayout.layout_deferred(),
+                this->m_descSetLayout.layout_shadow(),
                 this->m_renderPass.shadow_mapping(),
                 this->m_pipeline.pipeline_shadow(),
                 this->m_pipeline.layout_shadow(),
-                this->m_desc_man.descset_shadow().front(),
                 this->m_logiDevice.get(),
                 this->m_physDevice.get()
             );
@@ -325,7 +324,6 @@ namespace dal {
             this->m_ubuf_per_frame_in_deferred.init(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
             this->m_ubuf_per_frame_in_composition.init(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
             this->m_desc_man.init(this->m_swapchainImages.size(), this->m_logiDevice.get());
-            this->m_desc_man.init_descset_shadow(this->m_swapchainImages.size(), this->m_descSetLayout.layout_shadow(), this->m_logiDevice.get());
 
             for (auto& node : this->m_scene.m_nodes) {
                 node.on_swapchain_count_change(
@@ -333,10 +331,10 @@ namespace dal {
                     this->m_ubuf_per_frame_in_deferred,
                     this->m_tex_man.sampler_1().get(),
                     this->m_descSetLayout.layout_deferred(),
+                    this->m_descSetLayout.layout_shadow(),
                     this->m_renderPass.shadow_mapping(),
                     this->m_pipeline.pipeline_shadow(),
                     this->m_pipeline.layout_shadow(),
-                    this->m_desc_man.descset_shadow().front(),
                     this->m_logiDevice.get(),
                     this->m_physDevice.get()
                 );

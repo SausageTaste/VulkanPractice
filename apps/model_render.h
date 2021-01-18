@@ -14,6 +14,37 @@
 
 namespace dal {
 
+    class ModelVK;
+    class DirectionalLight;
+
+
+    class DescSetTensor_Shadow {
+
+    private:
+        DescPool m_pool;
+        DataTensor<DescSet, 4> m_desc_sets;
+
+    public:
+        void init(const VkDevice logi_device);
+        void destroy(const VkDevice logi_device);
+        void reset(
+            const std::vector<ModelVK>& models,
+            const std::vector<DirectionalLight> dlights,
+            const uint32_t swapchain_count,
+            const VkDescriptorSetLayout desc_layout_shadow,
+            const VkDevice logi_device
+        );
+
+        DescSet& at(const uint32_t swapchain_index, const uint32_t dlight_index, const uint32_t model_index, const uint32_t unit_index);
+        const DescSet& at(const uint32_t swapchain_index, const uint32_t dlight_index, const uint32_t model_index, const uint32_t unit_index) const;
+
+    };
+
+}
+
+
+namespace dal {
+
     class MaterialVK {
 
     public:
@@ -187,24 +218,30 @@ namespace dal {
         glm::vec3 m_color;
 
         DepthMap m_depth_map;
+        UniformBufferArray<U_PerFrame_PerLight> m_ubufs;  // Per frame
         std::vector<VkCommandBuffer> m_cmd_bufs;  // For each frame
         bool m_use_shadow = false;
 
     public:
-        void init_depth_map(
+        void init(
             const uint32_t swapchain_count,
-            const glm::mat4& light_mat,
-            const std::vector<ModelVK>& models,
             const VkRenderPass renderpass_shadow,
-            const VkPipeline pipeline_shadow,
-            const VkPipelineLayout pipelayout_shadow,
             const VkCommandPool cmd_pool,
-            const VkDescriptorSet descset_shadow,
             const VkDevice logi_device,
             const VkPhysicalDevice phys_device
         );
-        void destroy_depth_map(const VkCommandPool cmd_pool, const VkDevice logi_device);
+        void destroy(const VkCommandPool cmd_pool, const VkDevice logi_device);
+        void update_cmd_buf(
+            const uint32_t swapchain_count,
+            const uint32_t dlight_index,
+            const std::vector<ModelVK>& models,
+            const DescSetTensor_Shadow& descsets_shadow,
+            const VkRenderPass renderpass_shadow,
+            const VkPipeline pipeline_shadow,
+            const VkPipelineLayout pipelayout_shadow
+        );
 
+        void update_ubuf_at(const size_t index, const VkDevice logi_device);
         glm::mat4 make_light_mat() const;
 
     };
@@ -229,17 +266,6 @@ namespace dal {
 
     public:
         void destroy(const VkCommandPool cmd_pool, const VkDevice logi_device);
-        void init_depth_maps_of_dlights(
-            CommandPool& cmd_pool,
-            const uint32_t swapchain_count,
-            const std::vector<ModelVK>& models,
-            const VkRenderPass renderpass_shadow,
-            const VkPipeline pipeline_shadow,
-            const VkPipelineLayout pipelayout_shadow,
-            const VkDescriptorSet descset_shadow,
-            const VkDevice logi_device,
-            const VkPhysicalDevice phys_device
-        );
 
         void fill_uniform_data(U_PerFrame_InComposition& output) const;
         std::vector<VkImageView> make_view_list(const uint32_t size) const;
@@ -254,6 +280,9 @@ namespace dal {
             return this->m_slights.emplace_back();
         }
 
+        auto& dlights() {
+            return this->m_dlights;
+        }
         auto& dlights() const {
             return this->m_dlights;
         }
@@ -281,6 +310,7 @@ namespace dal {
         std::vector<ModelVK> m_models;
         LightManager m_lights;
 
+        DescSetTensor_Shadow m_desc_sets_for_dlights;
         CommandPool m_cmd_pool;
 
     public:
@@ -291,10 +321,10 @@ namespace dal {
             const UniformBufferArray<U_PerFrame_InDeferred>& ubuf_per_frame_in_deferred,
             const VkSampler texture_sampler,
             const VkDescriptorSetLayout desc_layout_deferred,
+            const VkDescriptorSetLayout desc_layout_shadow,
             const VkRenderPass renderpass_shadow,
             const VkPipeline pipeline_shadow,
             const VkPipelineLayout pipelayout_shadow,
-            const VkDescriptorSet descset_shadow,
             const VkDevice logi_device,
             const VkPhysicalDevice phys_device
         );

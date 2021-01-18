@@ -125,7 +125,17 @@ namespace {
     }
 
     VkDescriptorSetLayout create_layout_shadow(const VkDevice logiDevice) {
-        std::array<VkDescriptorSetLayoutBinding, 0> bindings{};
+        std::array<VkDescriptorSetLayoutBinding, 2> bindings{};
+
+        bindings.at(0).binding = 0;
+        bindings.at(0).descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        bindings.at(0).descriptorCount = 1;
+        bindings.at(0).stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+        bindings.at(1).binding = 1;
+        bindings.at(1).descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        bindings.at(1).descriptorCount = 1;
+        bindings.at(1).stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -328,8 +338,40 @@ namespace dal {
         );
     }
 
-    void DescSet::record_shadow(const VkDevice logi_device) {
-        std::array<VkWriteDescriptorSet, 0> descriptorWrites{};
+    void DescSet::record_shadow(
+        const UniformBuffer<U_PerInst_PerFrame_InDeferred>& ubuf_per_inst_per_frame,
+        const UniformBuffer<U_PerFrame_PerLight>& ubuf_per_light_per_frame,
+        const VkDevice logi_device
+    ) {
+        VkDescriptorBufferInfo ubuf_info_per_inst_per_frame{};
+        ubuf_info_per_inst_per_frame.buffer = ubuf_per_inst_per_frame.buffer();
+        ubuf_info_per_inst_per_frame.offset = 0;
+        ubuf_info_per_inst_per_frame.range = ubuf_per_inst_per_frame.data_size();
+
+        VkDescriptorBufferInfo ubuf_info_per_light_per_frame{};
+        ubuf_info_per_light_per_frame.buffer = ubuf_per_light_per_frame.buffer();
+        ubuf_info_per_light_per_frame.offset = 0;
+        ubuf_info_per_light_per_frame.range = ubuf_per_light_per_frame.data_size();
+
+
+        std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+
+        descriptorWrites.at(0).sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites.at(0).dstSet = this->m_handle;
+        descriptorWrites.at(0).dstBinding = 0;
+        descriptorWrites.at(0).dstArrayElement = 0;
+        descriptorWrites.at(0).descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrites.at(0).descriptorCount = 1;
+        descriptorWrites.at(0).pBufferInfo = &ubuf_info_per_inst_per_frame;
+
+        descriptorWrites.at(1).sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites.at(1).dstSet = this->m_handle;
+        descriptorWrites.at(1).dstBinding = 1;
+        descriptorWrites.at(1).dstArrayElement = 0;
+        descriptorWrites.at(1).descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrites.at(1).descriptorCount = 1;
+        descriptorWrites.at(1).pBufferInfo = &ubuf_info_per_light_per_frame;
+
 
         vkUpdateDescriptorSets(
             logi_device,
@@ -456,22 +498,9 @@ namespace dal {
         this->m_descset_composition.emplace_back(desc_sets);
     }
 
-    void DescriptorSetManager::init_descset_shadow(
-        const uint32_t swapchain_count,
-        const VkDescriptorSetLayout descset_layout,
-        const VkDevice logi_device
-    ) {
-        this->m_descset_shadow = this->m_pool.allocate(swapchain_count, descset_layout, logi_device);
-
-        for (uint32_t i = 0; i < this->m_descset_shadow.size(); ++i) {
-            this->m_descset_shadow.at(i).record_shadow(logi_device);
-        }
-    }
-
     void DescriptorSetManager::destroy(VkDevice logiDevice) {
         this->m_pool.destroy(logiDevice);
         this->m_descset_composition.clear();
-        this->m_descset_shadow.clear();
     }
 
     std::vector<std::vector<VkDescriptorSet>> DescriptorSetManager::descset_composition() const {
@@ -483,16 +512,6 @@ namespace dal {
             for (auto& y : x) {
                 one.emplace_back(y.get());
             }
-        }
-
-        return result;
-    }
-
-    std::vector<VkDescriptorSet> DescriptorSetManager::descset_shadow() const {
-        std::vector<VkDescriptorSet> result;
-
-        for (auto& x : this->m_descset_shadow) {
-            result.emplace_back(x.get());
         }
 
         return result;

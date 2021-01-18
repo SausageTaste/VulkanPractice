@@ -7,6 +7,78 @@
 
 namespace dal {
 
+    void DescSetTensor_Shadow::init(const VkDevice logi_device) {
+        this->m_pool.init(128, 128, 128, 128, logi_device);
+    }
+
+    void DescSetTensor_Shadow::destroy(const VkDevice logi_device) {
+        this->m_pool.destroy(logi_device);
+        this->m_desc_sets.clear();
+    }
+
+    void DescSetTensor_Shadow::reset(
+        const std::vector<ModelVK>& models,
+        const std::vector<DirectionalLight> dlights,
+        const uint32_t swapchain_count,
+        const VkDescriptorSetLayout desc_layout_shadow,
+        const VkDevice logi_device
+    ) {
+        const auto max_inst_count = [&models]() {
+            uint32_t result = 0;
+
+            for (auto& x : models) {
+                if (x.instances().size() > result) {
+                    result = x.instances().size();
+                }
+            }
+
+            return result;
+        }();
+
+        this->m_pool.reset(logi_device);
+        this->m_desc_sets.reset({
+            swapchain_count,
+            static_cast<uint32_t>(dlights.size()),
+            static_cast<uint32_t>(models.size()),
+            max_inst_count,
+        });
+
+        for (uint32_t dlight_index = 0; dlight_index < dlights.size(); ++dlight_index) {
+            auto& dlight = dlights.at(dlight_index);
+
+            for (uint32_t model_index = 0; model_index < models.size(); ++model_index) {
+                auto& model = models.at(model_index);
+
+                for (uint32_t inst_index = 0; inst_index < model.instances().size(); ++inst_index) {
+                    for (uint32_t swapchain_index = 0; swapchain_index < swapchain_count; ++swapchain_index) {
+                        auto inst = model.instances().at(inst_index);
+                        auto& one = this->at(swapchain_index, dlight_index, model_index, inst_index);
+                        one = this->m_pool.allocate(desc_layout_shadow, logi_device);
+
+                        one.record_shadow(
+                            inst.uniform_buffers().buffer_at(swapchain_index),
+                            dlight.m_ubufs.buffer_at(swapchain_index),
+                            logi_device
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    DescSet& DescSetTensor_Shadow::at(const uint32_t swapchain_index, const uint32_t dlight_index, const uint32_t model_index, const uint32_t inst_index) {
+        return this->m_desc_sets.at({ swapchain_index, dlight_index, model_index, inst_index });
+    }
+
+    const DescSet& DescSetTensor_Shadow::at(const uint32_t swapchain_index, const uint32_t dlight_index, const uint32_t model_index, const uint32_t inst_index) const {
+        return this->m_desc_sets.at({ swapchain_index, dlight_index, model_index, inst_index });
+    }
+
+}
+
+
+namespace dal {
+
     void MaterialVK::destroy(const VkDevice logi_device) {
         this->m_material_buffer.destroy(logi_device);
     }
@@ -215,20 +287,20 @@ namespace dal {
     }
 
 
-    void DirectionalLight::init_depth_map(
+    void DirectionalLight::init(
         const uint32_t swapchain_count,
-        const glm::mat4& light_mat,
-        const std::vector<ModelVK>& models,
         const VkRenderPass renderpass_shadow,
-        const VkPipeline pipeline_shadow,
-        const VkPipelineLayout pipelayout_shadow,
         const VkCommandPool cmd_pool,
-        const VkDescriptorSet descset_shadow,
         const VkDevice logi_device,
         const VkPhysicalDevice phys_device
     ) {
-        this->destroy_depth_map(cmd_pool, logi_device);
+        this->destroy(cmd_pool, logi_device);
         this->m_depth_map.init(renderpass_shadow, logi_device, phys_device);
+
+        this->m_ubufs.init(swapchain_count, logi_device, phys_device);
+        for (uint32_t i = 0; i < this->m_ubufs.array_size(); ++i) {
+            this->update_ubuf_at(i, logi_device);
+        }
 
         // Allocate command buffers
         // ------------------------------------------------------------------------------
@@ -244,7 +316,29 @@ namespace dal {
         dal::assert_vk_success(
             vkAllocateCommandBuffers(logi_device, &allocInfo, this->m_cmd_bufs.data())
         );
+    }
 
+    void DirectionalLight::destroy(const VkCommandPool cmd_pool, const VkDevice logi_device) {
+        this->m_depth_map.destroy(logi_device);
+        this->m_ubufs.destroy(logi_device);
+
+        if (!this->m_cmd_bufs.empty()) {
+            vkFreeCommandBuffers(logi_device, cmd_pool, this->m_cmd_bufs.size(), this->m_cmd_bufs.data());
+            this->m_cmd_bufs.clear();
+        }
+
+        this->m_use_shadow = false;
+    }
+
+    void DirectionalLight::update_cmd_buf(
+        const uint32_t swapchain_count,
+        const uint32_t dlight_index,
+        const std::vector<ModelVK>& models,
+        const DescSetTensor_Shadow& descsets_shadow,
+        const VkRenderPass renderpass_shadow,
+        const VkPipeline pipeline_shadow,
+        const VkPipelineLayout pipelayout_shadow
+    ) {
         // Record command buffers
         // ------------------------------------------------------------------------------
 
@@ -271,24 +365,24 @@ namespace dal {
             vkCmdBeginRenderPass(cmd_buf, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
             vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_shadow);
 
-            for (const auto& model : models) {
+            for (uint32_t model_index = 0; model_index < models.size(); ++model_index) {
+                auto& model = models.at(model_index);
+
                 for (const auto& render_unit : model.render_units()) {
                     VkBuffer vertBuffers[] = {render_unit.m_mesh.vertices.getBuf()};
                     VkDeviceSize offsets[] = {0};
                     vkCmdBindVertexBuffers(cmd_buf, 0, 1, vertBuffers, offsets);
                     vkCmdBindIndexBuffer(cmd_buf, render_unit.m_mesh.indices.getBuf(), 0, VK_INDEX_TYPE_UINT32);
 
-                    vkCmdBindDescriptorSets(
-                        cmd_buf,
-                        VK_PIPELINE_BIND_POINT_GRAPHICS,
-                        pipelayout_shadow,
-                        0, 1, &descset_shadow, 0, nullptr
-                    );
+                    for (uint32_t inst_index = 0; inst_index < model.instances().size(); ++inst_index) {
+                        auto& inst = model.instances().at(inst_index);
 
-                    for (const auto& inst : model.instances()) {
-                        PushedConstValues pushed_consts;
-                        pushed_consts.m_model_mat = light_mat * inst.transform().make_mat();
-                        vkCmdPushConstants(cmd_buf, pipelayout_shadow, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushedConstValues), &pushed_consts);
+                        vkCmdBindDescriptorSets(
+                            cmd_buf,
+                            VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            pipelayout_shadow,
+                            0, 1, &descsets_shadow.at(i, dlight_index, model_index, inst_index).get(), 0, nullptr
+                        );
 
                         vkCmdDrawIndexed(cmd_buf, render_unit.m_mesh.indices.size(), 1, 0, 0, 0);
                     }
@@ -303,15 +397,10 @@ namespace dal {
         this->m_use_shadow = true;
     }
 
-    void DirectionalLight::destroy_depth_map(const VkCommandPool cmd_pool, const VkDevice logi_device) {
-        this->m_depth_map.destroy(logi_device);
-
-        if (!this->m_cmd_bufs.empty()) {
-            vkFreeCommandBuffers(logi_device, cmd_pool, this->m_cmd_bufs.size(), this->m_cmd_bufs.data());
-            this->m_cmd_bufs.clear();
-        }
-
-        this->m_use_shadow = false;
+    void DirectionalLight::update_ubuf_at(const size_t index, const VkDevice logi_device) {
+        U_PerFrame_PerLight data;
+        data.m_light_mat = this->make_light_mat();
+        this->m_ubufs.copy_to_buffer(index, data, logi_device);
     }
 
     glm::mat4 DirectionalLight::make_light_mat() const {
@@ -332,34 +421,7 @@ namespace dal {
 
     void LightManager::destroy(const VkCommandPool cmd_pool, const VkDevice logi_device) {
         for (auto& dlight : this->m_dlights) {
-            dlight.destroy_depth_map(cmd_pool, logi_device);
-        }
-    }
-
-    void LightManager::init_depth_maps_of_dlights(
-        CommandPool& cmd_pool,
-        const uint32_t swapchain_count,
-        const std::vector<ModelVK>& models,
-        const VkRenderPass renderpass_shadow,
-        const VkPipeline pipeline_shadow,
-        const VkPipelineLayout pipelayout_shadow,
-        const VkDescriptorSet descset_shadow,
-        const VkDevice logi_device,
-        const VkPhysicalDevice phys_device
-    ) {
-        for (auto& dlight : this->m_dlights) {
-            dlight.init_depth_map(
-                swapchain_count,
-                dlight.make_light_mat(),
-                models,
-                renderpass_shadow,
-                pipeline_shadow,
-                pipelayout_shadow,
-                cmd_pool.pool(),
-                descset_shadow,
-                logi_device,
-                phys_device
-            );
+            dlight.destroy(cmd_pool, logi_device);
         }
     }
 
@@ -407,6 +469,7 @@ namespace dal {
 
     void SceneNode::init(const VkSurfaceKHR surface, const VkDevice logi_device, const VkPhysicalDevice phys_device) {
         this->m_cmd_pool.init(phys_device, logi_device, surface);
+        this->m_desc_sets_for_dlights.init(logi_device);
     }
 
     void SceneNode::destroy(const VkDevice logi_device) {
@@ -418,6 +481,7 @@ namespace dal {
         this->m_lights.destroy(this->m_cmd_pool.pool(), logi_device);
 
         this->m_cmd_pool.destroy(logi_device);
+        this->m_desc_sets_for_dlights.destroy(logi_device);
     }
 
     void SceneNode::on_swapchain_count_change(
@@ -425,10 +489,10 @@ namespace dal {
         const UniformBufferArray<U_PerFrame_InDeferred>& ubuf_per_frame_in_deferred,
         const VkSampler texture_sampler,
         const VkDescriptorSetLayout desc_layout_deferred,
+        const VkDescriptorSetLayout desc_layout_shadow,
         const VkRenderPass renderpass_shadow,
         const VkPipeline pipeline_shadow,
         const VkPipelineLayout pipelayout_shadow,
-        const VkDescriptorSet descset_shadow,
         const VkDevice logi_device,
         const VkPhysicalDevice phys_device
     ) {
@@ -446,17 +510,29 @@ namespace dal {
             );
         }
 
-        this->m_lights.init_depth_maps_of_dlights(
-            this->m_cmd_pool,
-            swapchain_count,
+        for (auto& dlight : this->m_lights.dlights()) {
+            dlight.init(swapchain_count, renderpass_shadow, this->m_cmd_pool.pool(), logi_device, phys_device);
+        }
+
+        this->m_desc_sets_for_dlights.reset(
             this->m_models,
-            renderpass_shadow,
-            pipeline_shadow,
-            pipelayout_shadow,
-            descset_shadow,
-            logi_device,
-            phys_device
+            this->m_lights.dlights(),
+            swapchain_count,
+            desc_layout_shadow,
+            logi_device
         );
+
+        for (uint32_t i = 0; i < this->m_lights.dlights().size(); ++i) {
+            this->m_lights.dlights().at(i).update_cmd_buf(
+                swapchain_count,
+                i,
+                this->m_models,
+                this->m_desc_sets_for_dlights,
+                renderpass_shadow,
+                pipeline_shadow,
+                pipelayout_shadow
+            );
+        }
     }
 
 
