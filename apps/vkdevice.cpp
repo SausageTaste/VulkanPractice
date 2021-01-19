@@ -637,11 +637,7 @@ namespace dal {
         submit_info.commandBufferCount = 1;
 
         for (auto& dlight : this->m_scene.m_nodes.back().lights().dlights()) {
-            if (!dlight.m_use_shadow) {
-                continue;
-            }
-
-            submit_info.pCommandBuffers = &dlight.m_cmd_bufs.at(swapchain_index);
+            submit_info.pCommandBuffers = &dlight.cmd_buf_at(swapchain_index);
 
             const auto submit_result = vkQueueSubmit(this->m_logiDevice.graphicsQ(), 1, &submit_info, nullptr);
             if ( submit_result != VK_SUCCESS ) {
@@ -650,11 +646,7 @@ namespace dal {
         }
 
         for (auto& slight : this->m_scene.m_nodes.back().lights().slights()) {
-            if (!slight.m_use_shadow) {
-                continue;
-            }
-
-            submit_info.pCommandBuffers = &slight.m_cmd_bufs.at(swapchain_index);
+            submit_info.pCommandBuffers = &slight.cmd_buf_at(swapchain_index);
 
             const auto submit_result = vkQueueSubmit(this->m_logiDevice.graphicsQ(), 1, &submit_info, nullptr);
             if ( submit_result != VK_SUCCESS ) {

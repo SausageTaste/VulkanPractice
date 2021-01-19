@@ -294,22 +294,20 @@ namespace dal {
 }
 
 
-// DirectionalLight
+// DepthMapRenderTools
 namespace dal {
 
-    void DirectionalLight::init(
+    void DepthMapRenderTools::init(
         const uint32_t swapchain_count,
+        const U_PerFrame_PerLight& per_light_data,
         const VkRenderPass renderpass_shadow,
         const VkCommandPool cmd_pool,
         const VkDevice logi_device,
         const VkPhysicalDevice phys_device
     ) {
-        this->destroy(cmd_pool, logi_device);
-        this->m_depth_map.init(renderpass_shadow, logi_device, phys_device);
-
         this->m_ubufs.init(swapchain_count, logi_device, phys_device);
         for (uint32_t i = 0; i < this->m_ubufs.array_size(); ++i) {
-            this->update_ubuf_at(i, logi_device);
+            this->update_ubuf_at(i, per_light_data, logi_device);
         }
 
         // Allocate command buffers
@@ -328,8 +326,7 @@ namespace dal {
         );
     }
 
-    void DirectionalLight::destroy(const VkCommandPool cmd_pool, const VkDevice logi_device) {
-        this->m_depth_map.destroy(logi_device);
+    void DepthMapRenderTools::destroy(const VkCommandPool cmd_pool, const VkDevice logi_device) {
         this->m_ubufs.destroy(logi_device);
 
         if (!this->m_cmd_bufs.empty()) {
@@ -337,21 +334,18 @@ namespace dal {
             this->m_cmd_bufs.clear();
         }
 
-        this->m_use_shadow = false;
     }
 
-    void DirectionalLight::update_cmd_buf(
+    void DepthMapRenderTools::update_cmd_buf(
         const uint32_t swapchain_count,
         const uint32_t dlight_index,
+        const DepthMap& depth_map,
         const std::vector<ModelVK>& models,
         const DescSetTensor_Shadow& descsets_shadow,
         const VkRenderPass renderpass_shadow,
         const VkPipeline pipeline_shadow,
         const VkPipelineLayout pipelayout_shadow
     ) {
-        // Record command buffers
-        // ------------------------------------------------------------------------------
-
         VkCommandBufferBeginInfo beginInfo{};
         beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
@@ -362,7 +356,7 @@ namespace dal {
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
         renderPassInfo.renderPass = renderpass_shadow;
         renderPassInfo.renderArea.offset = { 0, 0 };
-        renderPassInfo.renderArea.extent = this->m_depth_map.extent();
+        renderPassInfo.renderArea.extent = depth_map.extent();
         renderPassInfo.clearValueCount = clear_values.size();
         renderPassInfo.pClearValues = clear_values.data();
 
@@ -371,7 +365,7 @@ namespace dal {
 
             dal::assert_vk_success( vkBeginCommandBuffer(cmd_buf, &beginInfo) );
 
-            renderPassInfo.framebuffer = this->m_depth_map.framebuffer();
+            renderPassInfo.framebuffer = depth_map.framebuffer();
             vkCmdBeginRenderPass(cmd_buf, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
             vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_shadow);
 
@@ -403,14 +397,70 @@ namespace dal {
 
             dal::assert_vk_success( vkEndCommandBuffer(cmd_buf) );
         }
+    }
 
-        this->m_use_shadow = true;
+    void DepthMapRenderTools::update_ubuf_at(const size_t index, const U_PerFrame_PerLight& data, const VkDevice logi_device) {
+        this->m_ubufs.copy_to_buffer(index, data, logi_device);
+    }
+
+}
+
+
+// DirectionalLight
+namespace dal {
+
+    void DirectionalLight::init(
+        const uint32_t swapchain_count,
+        const VkRenderPass renderpass_shadow,
+        const VkCommandPool cmd_pool,
+        const VkDevice logi_device,
+        const VkPhysicalDevice phys_device
+    ) {
+        this->destroy(cmd_pool, logi_device);
+        this->m_depth_map.init(renderpass_shadow, logi_device, phys_device);
+
+        U_PerFrame_PerLight data;
+        data.m_light_mat = this->make_light_mat();
+        this->m_render_tool.init(
+            swapchain_count,
+            data,
+            renderpass_shadow,
+            cmd_pool,
+            logi_device,
+            phys_device
+        );
+    }
+
+    void DirectionalLight::destroy(const VkCommandPool cmd_pool, const VkDevice logi_device) {
+        this->m_depth_map.destroy(logi_device);
+        this->m_render_tool.destroy(cmd_pool, logi_device);
+    }
+
+    void DirectionalLight::update_cmd_buf(
+        const uint32_t swapchain_count,
+        const uint32_t dlight_index,
+        const std::vector<ModelVK>& models,
+        const DescSetTensor_Shadow& descsets_shadow,
+        const VkRenderPass renderpass_shadow,
+        const VkPipeline pipeline_shadow,
+        const VkPipelineLayout pipelayout_shadow
+    ) {
+        this->m_render_tool.update_cmd_buf(
+            swapchain_count,
+            dlight_index,
+            this->m_depth_map,
+            models,
+            descsets_shadow,
+            renderpass_shadow,
+            pipeline_shadow,
+            pipelayout_shadow
+        );
     }
 
     void DirectionalLight::update_ubuf_at(const size_t index, const VkDevice logi_device) {
         U_PerFrame_PerLight data;
         data.m_light_mat = this->make_light_mat();
-        this->m_ubufs.copy_to_buffer(index, data, logi_device);
+        this->m_render_tool.update_ubuf_at(index, data, logi_device);
     }
 
     glm::mat4 DirectionalLight::make_light_mat() const {
@@ -445,37 +495,21 @@ namespace dal {
         this->destroy(cmd_pool, logi_device);
         this->m_depth_map.init(renderpass_shadow, logi_device, phys_device);
 
-        this->m_ubufs.init(swapchain_count, logi_device, phys_device);
-        for (uint32_t i = 0; i < this->m_ubufs.array_size(); ++i) {
-            this->update_ubuf_at(i, logi_device);
-        }
-
-        // Allocate command buffers
-        // ------------------------------------------------------------------------------
-
-        this->m_cmd_bufs.resize(swapchain_count);
-
-        VkCommandBufferAllocateInfo allocInfo = {};
-        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        allocInfo.commandPool = cmd_pool;
-        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandBufferCount = swapchain_count;
-
-        dal::assert_vk_success(
-            vkAllocateCommandBuffers(logi_device, &allocInfo, this->m_cmd_bufs.data())
+        U_PerFrame_PerLight data;
+        data.m_light_mat = this->make_light_mat();
+        this->m_render_tool.init(
+            swapchain_count,
+            data,
+            renderpass_shadow,
+            cmd_pool,
+            logi_device,
+            phys_device
         );
     }
 
     void SpotLight::destroy(const VkCommandPool cmd_pool, const VkDevice logi_device) {
         this->m_depth_map.destroy(logi_device);
-        this->m_ubufs.destroy(logi_device);
-
-        if (!this->m_cmd_bufs.empty()) {
-            vkFreeCommandBuffers(logi_device, cmd_pool, this->m_cmd_bufs.size(), this->m_cmd_bufs.data());
-            this->m_cmd_bufs.clear();
-        }
-
-        this->m_use_shadow = false;
+        this->m_render_tool.destroy(cmd_pool, logi_device);
     }
 
     void SpotLight::update_cmd_buf(
@@ -487,68 +521,22 @@ namespace dal {
         const VkPipeline pipeline_shadow,
         const VkPipelineLayout pipelayout_shadow
     ) {
-        // Record command buffers
-        // ------------------------------------------------------------------------------
-
-        VkCommandBufferBeginInfo beginInfo{};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-
-        std::array<VkClearValue, 1> clear_values{};
-        clear_values[0].depthStencil = {1.f, 0};
-
-        VkRenderPassBeginInfo renderPassInfo{};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass = renderpass_shadow;
-        renderPassInfo.renderArea.offset = { 0, 0 };
-        renderPassInfo.renderArea.extent = this->m_depth_map.extent();
-        renderPassInfo.clearValueCount = clear_values.size();
-        renderPassInfo.pClearValues = clear_values.data();
-
-        for (uint32_t i = 0; i < swapchain_count; ++i) {
-            auto& cmd_buf = this->m_cmd_bufs.at(i);
-
-            dal::assert_vk_success( vkBeginCommandBuffer(cmd_buf, &beginInfo) );
-
-            renderPassInfo.framebuffer = this->m_depth_map.framebuffer();
-            vkCmdBeginRenderPass(cmd_buf, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_shadow);
-
-            for (uint32_t model_index = 0; model_index < models.size(); ++model_index) {
-                auto& model = models.at(model_index);
-
-                for (const auto& render_unit : model.render_units()) {
-                    VkBuffer vertBuffers[] = {render_unit.m_mesh.vertices.getBuf()};
-                    VkDeviceSize offsets[] = {0};
-                    vkCmdBindVertexBuffers(cmd_buf, 0, 1, vertBuffers, offsets);
-                    vkCmdBindIndexBuffer(cmd_buf, render_unit.m_mesh.indices.getBuf(), 0, VK_INDEX_TYPE_UINT32);
-
-                    for (uint32_t inst_index = 0; inst_index < model.instances().size(); ++inst_index) {
-                        auto& inst = model.instances().at(inst_index);
-
-                        vkCmdBindDescriptorSets(
-                            cmd_buf,
-                            VK_PIPELINE_BIND_POINT_GRAPHICS,
-                            pipelayout_shadow,
-                            0, 1, &descsets_shadow.at(i, dlight_index, model_index, inst_index).get(), 0, nullptr
-                        );
-
-                        vkCmdDrawIndexed(cmd_buf, render_unit.m_mesh.indices.size(), 1, 0, 0, 0);
-                    }
-                }
-            }
-
-            vkCmdEndRenderPass(cmd_buf);
-
-            dal::assert_vk_success( vkEndCommandBuffer(cmd_buf) );
-        }
-
-        this->m_use_shadow = true;
+        this->m_render_tool.update_cmd_buf(
+            swapchain_count,
+            dlight_index,
+            this->m_depth_map,
+            models,
+            descsets_shadow,
+            renderpass_shadow,
+            pipeline_shadow,
+            pipelayout_shadow
+        );
     }
 
     void SpotLight::update_ubuf_at(const size_t index, const VkDevice logi_device) {
         U_PerFrame_PerLight data;
         data.m_light_mat = this->make_light_mat();
-        this->m_ubufs.copy_to_buffer(index, data, logi_device);
+        this->m_render_tool.update_ubuf_at(index, data, logi_device);
     }
 
     glm::mat4 SpotLight::make_light_mat() const {
@@ -612,22 +600,22 @@ namespace dal {
     }
 
     std::vector<VkImageView> LightManager::make_view_list_dlight(const uint32_t size) const {
-        std::vector<VkImageView> result(size, this->m_dlights.at(0).m_depth_map.view());
+        std::vector<VkImageView> result(size, this->m_dlights.at(0).depth_map_view());
 
         const auto depth_map_count = std::min<uint32_t>(size, this->m_dlights.size());
         for (uint32_t i = 0; i < depth_map_count; ++i) {
-            result.at(i) = this->m_dlights.at(i).m_depth_map.view();
+            result.at(i) = this->m_dlights.at(i).depth_map_view();
         }
 
         return result;
     }
 
     std::vector<VkImageView> LightManager::make_view_list_slight(const uint32_t size) const {
-        std::vector<VkImageView> result(size, this->m_slights.at(0).m_depth_map.view());
+        std::vector<VkImageView> result(size, this->m_slights.at(0).depth_map_view());
 
         const auto depth_map_count = std::min<uint32_t>(size, this->m_slights.size());
         for (uint32_t i = 0; i < depth_map_count; ++i) {
-            result.at(i) = this->m_slights.at(i).m_depth_map.view();
+            result.at(i) = this->m_slights.at(i).depth_map_view();
         }
 
         return result;
@@ -637,7 +625,7 @@ namespace dal {
         std::vector<const UniformBufferArray<U_PerFrame_PerLight>*> result;
 
         for (auto& x : this->m_dlights) {
-            result.emplace_back(&x.m_ubufs);
+            result.emplace_back(&x.uniform_buffers());
         }
 
         return result;
@@ -647,7 +635,7 @@ namespace dal {
         std::vector<const UniformBufferArray<U_PerFrame_PerLight>*> result;
 
         for (auto& x : this->m_slights) {
-            result.emplace_back(&x.m_ubufs);
+            result.emplace_back(&x.uniform_buffers());
         }
 
         return result;

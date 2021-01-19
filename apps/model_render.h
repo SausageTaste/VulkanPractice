@@ -202,6 +202,38 @@ namespace dal {
 
     };
 
+    class DepthMapRenderTools {
+
+    public:
+        UniformBufferArray<U_PerFrame_PerLight> m_ubufs;  // Per frame
+        std::vector<VkCommandBuffer> m_cmd_bufs;  // For each frame
+
+    public:
+        void init(
+            const uint32_t swapchain_count,
+            const U_PerFrame_PerLight& per_light_data,
+            const VkRenderPass renderpass_shadow,
+            const VkCommandPool cmd_pool,
+            const VkDevice logi_device,
+            const VkPhysicalDevice phys_device
+        );
+        void destroy(const VkCommandPool cmd_pool, const VkDevice logi_device);
+
+        void update_cmd_buf(
+            const uint32_t swapchain_count,
+            const uint32_t dlight_index,
+            const DepthMap& depth_map,
+            const std::vector<ModelVK>& models,
+            const DescSetTensor_Shadow& descsets_shadow,
+            const VkRenderPass renderpass_shadow,
+            const VkPipeline pipeline_shadow,
+            const VkPipelineLayout pipelayout_shadow
+        );
+        void update_ubuf_at(const size_t index, const U_PerFrame_PerLight& data, const VkDevice logi_device);
+
+
+    };
+
     class PointLight {
 
     public:
@@ -217,10 +249,9 @@ namespace dal {
         glm::vec3 m_direc;
         glm::vec3 m_color;
 
+    private:
         DepthMap m_depth_map;
-        UniformBufferArray<U_PerFrame_PerLight> m_ubufs;  // Per frame
-        std::vector<VkCommandBuffer> m_cmd_bufs;  // For each frame
-        bool m_use_shadow = false;
+        DepthMapRenderTools m_render_tool;
 
     public:
         void init(
@@ -244,6 +275,16 @@ namespace dal {
         void update_ubuf_at(const size_t index, const VkDevice logi_device);
         glm::mat4 make_light_mat() const;
 
+        auto& depth_map_view() const {
+            return this->m_depth_map.view();
+        }
+        auto& uniform_buffers() const {
+            return this->m_render_tool.m_ubufs;
+        }
+        auto& cmd_buf_at(const size_t index) const {
+            return this->m_render_tool.m_cmd_bufs.at(index);
+        }
+
     };
 
     class SpotLight {
@@ -258,11 +299,8 @@ namespace dal {
         float m_fade_end;
         float m_fade_end_radians;
 
-    public:
         DepthMap m_depth_map;
-        UniformBufferArray<U_PerFrame_PerLight> m_ubufs;  // Per frame
-        std::vector<VkCommandBuffer> m_cmd_bufs;  // For each frame
-        bool m_use_shadow = false;
+        DepthMapRenderTools m_render_tool;
 
     public:
         void init(
@@ -294,6 +332,16 @@ namespace dal {
         }
         void set_fade_start(const double radians);
         void set_fade_end(const double radians);
+
+        auto& depth_map_view() const {
+            return this->m_depth_map.view();
+        }
+        auto& uniform_buffers() const {
+            return this->m_render_tool.m_ubufs;
+        }
+        auto& cmd_buf_at(const size_t index) const {
+            return this->m_render_tool.m_cmd_bufs.at(index);
+        }
 
     };
 
