@@ -89,22 +89,22 @@ namespace dal {
 
             {
                 auto& dlight = scene_node.lights().add_dlight();
-                dlight.m_direc = glm::normalize(glm::vec3{ 1, -2, -1 });
-                dlight.m_color = glm::normalize(glm::vec3{ 5 });
+                dlight.m_direc = glm::normalize(glm::vec3{ 1, -2, 1 });
+                dlight.m_color = glm::vec3{ 5 };
             }
 
             {
                 auto& dlight = scene_node.lights().add_dlight();
-                dlight.m_direc = glm::normalize(glm::vec3{ -2, -2, -1 });
-                dlight.m_color = glm::normalize(glm::vec3{ 3 });
+                dlight.m_direc = glm::normalize(glm::vec3{ -2, -2, 4 });
+                dlight.m_color = glm::vec3{ 1, 1, 4 } * 0.3f;
             }
 
             {
                 auto& slight = scene_node.lights().add_slight();
-                slight.m_color = glm::vec3{ 2000 };
-                slight.m_pos = glm::vec3{ 0, 7, -2 };
-                slight.set_fade_start(glm::radians<float>(45));
-                slight.set_fade_end(glm::radians<float>(55));
+                slight.m_color = glm::vec3{ 1000 };
+                slight.m_pos = glm::vec3{ 0, 6, -5 };
+                slight.set_fade_start(glm::radians<float>(25));
+                slight.set_fade_end(glm::radians<float>(30));
             }
         }
 
@@ -158,7 +158,8 @@ namespace dal {
                 this->m_descSetLayout.layout_composition(),
                 this->m_ubuf_per_frame_in_composition,
                 this->m_gbuf.make_views_vector(this->m_depth_image.image_view()),
-                this->m_scene.m_nodes.back().lights().make_view_list_dlight(3),
+                this->m_scene.m_nodes.back().lights().make_view_list_dlight(dal::MAX_DLIGHT_COUNT),
+                this->m_scene.m_nodes.back().lights().make_view_list_slight(dal::MAX_SLIGHT_COUNT),
                 this->m_tex_man.sampler_shadow_map().get()
             );
         }
@@ -342,6 +343,7 @@ namespace dal {
                     this->m_ubuf_per_frame_in_composition,
                     this->m_gbuf.make_views_vector(this->m_depth_image.image_view()),
                     this->m_scene.m_nodes.back().lights().make_view_list_dlight(3),
+                    this->m_scene.m_nodes.back().lights().make_view_list_slight(5),
                     this->m_tex_man.sampler_shadow_map().get()
                 );
             }
@@ -539,8 +541,8 @@ namespace dal {
             model.init(this->m_logiDevice.get());
 
             auto& inst = model.add_instance(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
-            inst.transform().m_scale = 0.6;
-            inst.transform().m_pos = glm::vec3{ -0, 1, 0 };
+            inst.transform().m_scale = 1;
+            inst.transform().m_pos = glm::vec3{ -0, 0.5, 0 };
             inst.update_ubuf(this->m_logiDevice.get());
 
             for (const auto& model_data : load_dmd_model("monkey.dmd")) {
@@ -574,7 +576,7 @@ namespace dal {
             }
         }
 
-        // Yuri
+        // Honoka
         {
             auto& model = node.add_model();
             model.init(this->m_logiDevice.get());
@@ -710,12 +712,36 @@ namespace dal {
 
         }
 
-        this->m_scene.m_nodes.back().lights().slight_at(0).m_direc = glm::normalize(glm::vec3{
-            std::sin(dal::getTimeInSec()),
-            std::cos(dal::getTimeInSec()),
-            -0.4
-        });
-        this->m_scene.m_nodes.back().lights().slight_at(0).update_ubuf_at(swapchain_index, this->m_logiDevice.get());
+        {
+            constexpr double SPEED = 0.1;
+
+            auto& sun_light = this->m_scene.m_nodes.back().lights().dlights().at(0);
+            sun_light.m_direc = glm::vec3(glm::vec3{
+                std::cos(SPEED * dal::getTimeInSec()),
+                std::sin(SPEED * dal::getTimeInSec()),
+                -0.3,
+            });
+            sun_light.update_ubuf_at(swapchain_index, this->m_logiDevice.get());
+
+            auto& moon_light = this->m_scene.m_nodes.back().lights().dlights().at(1);
+            moon_light.m_direc = glm::vec3(glm::vec3{
+                std::cos(SPEED * dal::getTimeInSec() + M_PI),
+                std::sin(SPEED * dal::getTimeInSec() + M_PI),
+                -0.3,
+            });
+            moon_light.update_ubuf_at(swapchain_index, this->m_logiDevice.get());
+        }
+
+        {
+            constexpr double SPEED = 0.8;
+
+            this->m_scene.m_nodes.back().lights().slight_at(0).m_direc = glm::normalize(glm::vec3{
+                std::sin(SPEED * dal::getTimeInSec()),
+                std::cos(SPEED * dal::getTimeInSec()),
+                1
+            });
+            this->m_scene.m_nodes.back().lights().slight_at(0).update_ubuf_at(swapchain_index, this->m_logiDevice.get());
+        }
 
         U_PerFrame_InComposition data;
         data.m_view_pos = glm::vec4{ this->camera().m_pos, 1 };

@@ -73,7 +73,7 @@ namespace {
     }
 
     VkDescriptorSetLayout create_layout_composition(const VkDevice logiDevice) {
-        std::array<VkDescriptorSetLayoutBinding, 7> bindings{};
+        std::array<VkDescriptorSetLayoutBinding, 8> bindings{};
 
         bindings[0].binding = 0;
         bindings[0].descriptorCount = 1;
@@ -108,8 +108,14 @@ namespace {
 
         bindings[6].binding = 6;
         bindings[6].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        bindings[6].descriptorCount = 3;
+        bindings[6].descriptorCount = dal::MAX_DLIGHT_COUNT;
         bindings[6].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+        bindings[7].binding = 7;
+        bindings[7].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        bindings[7].descriptorCount = dal::MAX_SLIGHT_COUNT;
+        bindings[7].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
 
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -268,7 +274,8 @@ namespace dal {
         const VkDescriptorSetLayout descriptorSetLayout,
         const std::vector<VkImageView>& attachment_views,
         const std::vector<VkImageView>& dlight_shadow_map_view,
-        const VkSampler dlight_shadow_map_sampler,
+        const std::vector<VkImageView>& slight_shadow_map_view,
+        const VkSampler shadow_map_sampler,
         const VkDevice logiDevice
     ) {
         std::vector<VkDescriptorImageInfo> imageInfo(attachment_views.size());
@@ -311,11 +318,11 @@ namespace dal {
             x.pTexelBufferView = nullptr;
         }
 
-        std::array<VkDescriptorImageInfo, 3> dlight_shadow_map_info{};
+        std::array<VkDescriptorImageInfo, dal::MAX_DLIGHT_COUNT> dlight_shadow_map_info{};
         for (uint32_t i = 0; i < dlight_shadow_map_info.size(); ++i) {
             dlight_shadow_map_info.at(i).imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             dlight_shadow_map_info.at(i).imageView = dlight_shadow_map_view.at(i);
-            dlight_shadow_map_info.at(i).sampler = dlight_shadow_map_sampler;
+            dlight_shadow_map_info.at(i).sampler = shadow_map_sampler;
         }
         {
             auto& x = descriptorWrites.emplace_back();
@@ -326,6 +333,23 @@ namespace dal {
             x.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
             x.descriptorCount = dlight_shadow_map_info.size();
             x.pImageInfo = dlight_shadow_map_info.data();
+        }
+
+        std::array<VkDescriptorImageInfo, dal::MAX_SLIGHT_COUNT> slight_shadow_map_info{};
+        for (uint32_t i = 0; i < slight_shadow_map_info.size(); ++i) {
+            slight_shadow_map_info.at(i).imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            slight_shadow_map_info.at(i).imageView = slight_shadow_map_view.at(i);
+            slight_shadow_map_info.at(i).sampler = shadow_map_sampler;
+        }
+        {
+            auto& x = descriptorWrites.emplace_back();
+            x.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            x.dstSet = this->m_handle;
+            x.dstBinding = descriptorWrites.size() - 1;
+            x.dstArrayElement = 0;
+            x.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            x.descriptorCount = slight_shadow_map_info.size();
+            x.pImageInfo = slight_shadow_map_info.data();
         }
 
         // Create
@@ -479,6 +503,7 @@ namespace dal {
         const UniformBufferArray<U_PerFrame_InComposition>& ubuf_per_frame,
         const std::vector<VkImageView>& attachment_views,
         const std::vector<VkImageView>& dlight_shadow_map_view,
+        const std::vector<VkImageView>& slight_shadow_map_view,
         const VkSampler dlight_shadow_map_sampler
     ) {
         auto desc_sets = this->m_pool.allocate(swapchainImagesSize, descriptorSetLayout, logiDevice);
@@ -490,6 +515,7 @@ namespace dal {
                 descriptorSetLayout,
                 attachment_views,
                 dlight_shadow_map_view,
+                slight_shadow_map_view,
                 dlight_shadow_map_sampler,
                 logiDevice
             );

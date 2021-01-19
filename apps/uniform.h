@@ -49,6 +49,7 @@ namespace dal {
         glm::vec4 m_slight_direc[MAX_SLIGHT_COUNT]{};
         glm::vec4 m_slight_color[MAX_SLIGHT_COUNT]{};
         glm::vec4 m_slight_fade_start_end[MAX_SLIGHT_COUNT]{};
+        glm::mat4 m_slight_mat[MAX_SLIGHT_COUNT]{};
     };
 
     // In shadow
@@ -197,6 +198,7 @@ namespace dal {
             const VkDescriptorSetLayout descriptorSetLayout,
             const std::vector<VkImageView>& attachment_views,
             const std::vector<VkImageView>& dlight_shadow_map_view,
+            const std::vector<VkImageView>& slight_shadow_map_view,
             const VkSampler dlight_shadow_map_sampler,
             const VkDevice logiDevice
         );
@@ -251,6 +253,7 @@ namespace dal {
             const UniformBufferArray<U_PerFrame_InComposition>& ubuf_per_frame,
             const std::vector<VkImageView>& attachment_views,
             const std::vector<VkImageView>& dlight_shadow_map_view,
+            const std::vector<VkImageView>& slight_shadow_map_view,
             const VkSampler dlight_shadow_map_sampler
         );
         void destroy(VkDevice logiDevice);

@@ -292,8 +292,8 @@ namespace dal {
         float fade_end() const {
             return this->m_fade_end;
         }
-        void set_fade_start(const float radians);
-        void set_fade_end(const float radians);
+        void set_fade_start(const double radians);
+        void set_fade_end(const double radians);
 
     };
 

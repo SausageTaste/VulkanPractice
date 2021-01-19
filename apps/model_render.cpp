@@ -554,17 +554,17 @@ namespace dal {
     glm::mat4 SpotLight::make_light_mat() const {
         const auto view_mat = glm::lookAt(this->m_pos, this->m_pos + this->m_direc, glm::vec3{ 0, 1, 0 });
 
-        auto proj_mat = glm::perspective<float>(this->m_fade_end_radians * 2, 1, 1, 100);
+        auto proj_mat = glm::perspective<float>(this->m_fade_end_radians * 2, 1, 1, 20);
         proj_mat[1][1] *= -1;
 
         return proj_mat * view_mat;
     }
 
-    void SpotLight::set_fade_start(const float radians) {
+    void SpotLight::set_fade_start(const double radians) {
         this->m_fade_start = std::cos(radians);
     }
 
-    void SpotLight::set_fade_end(const float radians) {
+    void SpotLight::set_fade_end(const double radians) {
         this->m_fade_end_radians = radians;
         this->m_fade_end = std::cos(radians);
     }
@@ -607,6 +607,7 @@ namespace dal {
             result.m_slight_direc[i]          = glm::vec4{ this->m_slights.at(i).m_direc, 0 };
             result.m_slight_color[i]          = glm::vec4{ this->m_slights.at(i).m_color, 0 };
             result.m_slight_fade_start_end[i] = glm::vec4{ this->m_slights.at(i).fade_start(), this->m_slights.at(i).fade_end(), 0, 0 };
+            result.m_slight_mat[i]            = this->m_slights.at(i).make_light_mat();
         }
     }
 
