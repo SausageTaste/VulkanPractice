@@ -29,7 +29,7 @@ namespace dal {
         void destroy(const VkDevice logi_device);
         void reset(
             const std::vector<ModelVK>& models,
-            const std::vector<DirectionalLight> dlights,
+            const std::vector<const UniformBufferArray<U_PerFrame_PerLight>*>& light_ubufs,
             const uint32_t swapchain_count,
             const VkDescriptorSetLayout desc_layout_shadow,
             const VkDevice logi_device
@@ -252,8 +252,48 @@ namespace dal {
         glm::vec3 m_pos;
         glm::vec3 m_direc;
         glm::vec3 m_color;
+
+    private:
         float m_fade_start;
         float m_fade_end;
+        float m_fade_end_radians;
+
+    public:
+        DepthMap m_depth_map;
+        UniformBufferArray<U_PerFrame_PerLight> m_ubufs;  // Per frame
+        std::vector<VkCommandBuffer> m_cmd_bufs;  // For each frame
+        bool m_use_shadow = false;
+
+    public:
+        void init(
+            const uint32_t swapchain_count,
+            const VkRenderPass renderpass_shadow,
+            const VkCommandPool cmd_pool,
+            const VkDevice logi_device,
+            const VkPhysicalDevice phys_device
+        );
+        void destroy(const VkCommandPool cmd_pool, const VkDevice logi_device);
+        void update_cmd_buf(
+            const uint32_t swapchain_count,
+            const uint32_t dlight_index,
+            const std::vector<ModelVK>& models,
+            const DescSetTensor_Shadow& descsets_shadow,
+            const VkRenderPass renderpass_shadow,
+            const VkPipeline pipeline_shadow,
+            const VkPipelineLayout pipelayout_shadow
+        );
+
+        void update_ubuf_at(const size_t index, const VkDevice logi_device);
+        glm::mat4 make_light_mat() const;
+
+        float fade_start() const {
+            return this->m_fade_start;
+        }
+        float fade_end() const {
+            return this->m_fade_end;
+        }
+        void set_fade_start(const float radians);
+        void set_fade_end(const float radians);
 
     };
 
@@ -268,7 +308,8 @@ namespace dal {
         void destroy(const VkCommandPool cmd_pool, const VkDevice logi_device);
 
         void fill_uniform_data(U_PerFrame_InComposition& output) const;
-        std::vector<VkImageView> make_view_list(const uint32_t size) const;
+        std::vector<VkImageView> make_view_list_dlight(const uint32_t size) const;
+        std::vector<VkImageView> make_view_list_slight(const uint32_t size) const;
 
         auto& add_plight() {
             return this->m_plights.emplace_back();
@@ -286,6 +327,14 @@ namespace dal {
         auto& dlights() const {
             return this->m_dlights;
         }
+        auto& slights() {
+            return this->m_slights;
+        }
+        auto& slights() const {
+            return this->m_slights;
+        }
+        std::vector<const UniformBufferArray<U_PerFrame_PerLight>*> dlight_ubufs() const;
+        std::vector<const UniformBufferArray<U_PerFrame_PerLight>*> slight_ubufs() const;
 
         auto& plight_at(const uint32_t index) {
             return this->m_plights.at(index);
@@ -311,6 +360,7 @@ namespace dal {
         LightManager m_lights;
 
         DescSetTensor_Shadow m_desc_sets_for_dlights;
+        DescSetTensor_Shadow m_desc_sets_for_slights;
         CommandPool m_cmd_pool;
 
     public:

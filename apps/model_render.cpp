@@ -19,7 +19,7 @@ namespace dal {
 
     void DescSetTensor_Shadow::reset(
         const std::vector<ModelVK>& models,
-        const std::vector<DirectionalLight> dlights,
+        const std::vector<const UniformBufferArray<U_PerFrame_PerLight>*>& light_ubufs,
         const uint32_t swapchain_count,
         const VkDescriptorSetLayout desc_layout_shadow,
         const VkDevice logi_device
@@ -39,14 +39,12 @@ namespace dal {
         this->m_pool.reset(logi_device);
         this->m_desc_sets.reset({
             swapchain_count,
-            static_cast<uint32_t>(dlights.size()),
+            static_cast<uint32_t>(light_ubufs.size()),
             static_cast<uint32_t>(models.size()),
             max_inst_count,
         });
 
-        for (uint32_t dlight_index = 0; dlight_index < dlights.size(); ++dlight_index) {
-            auto& dlight = dlights.at(dlight_index);
-
+        for (uint32_t dlight_index = 0; dlight_index < light_ubufs.size(); ++dlight_index) {
             for (uint32_t model_index = 0; model_index < models.size(); ++model_index) {
                 auto& model = models.at(model_index);
 
@@ -58,7 +56,7 @@ namespace dal {
 
                         one.record_shadow(
                             inst.uniform_buffers().buffer_at(swapchain_index),
-                            dlight.m_ubufs.buffer_at(swapchain_index),
+                            light_ubufs.at(dlight_index)->buffer_at(swapchain_index),
                             logi_device
                         );
                     }
@@ -150,7 +148,7 @@ namespace dal {
 namespace dal {
 
     void ModelVK::DescSet2D::init(const VkDevice logi_device) {
-        this->m_pool.init(512, 512, 512, 512, logi_device);
+        this->m_pool.init(1024, 1024, 1024, 1024, logi_device);
     }
 
     void ModelVK::DescSet2D::destroy(const VkDevice logi_device) {
@@ -433,12 +431,156 @@ namespace dal {
 }
 
 
+
+// SpotLight
+namespace dal {
+
+    void SpotLight::init(
+        const uint32_t swapchain_count,
+        const VkRenderPass renderpass_shadow,
+        const VkCommandPool cmd_pool,
+        const VkDevice logi_device,
+        const VkPhysicalDevice phys_device
+    ) {
+        this->destroy(cmd_pool, logi_device);
+        this->m_depth_map.init(renderpass_shadow, logi_device, phys_device);
+
+        this->m_ubufs.init(swapchain_count, logi_device, phys_device);
+        for (uint32_t i = 0; i < this->m_ubufs.array_size(); ++i) {
+            this->update_ubuf_at(i, logi_device);
+        }
+
+        // Allocate command buffers
+        // ------------------------------------------------------------------------------
+
+        this->m_cmd_bufs.resize(swapchain_count);
+
+        VkCommandBufferAllocateInfo allocInfo = {};
+        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        allocInfo.commandPool = cmd_pool;
+        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocInfo.commandBufferCount = swapchain_count;
+
+        dal::assert_vk_success(
+            vkAllocateCommandBuffers(logi_device, &allocInfo, this->m_cmd_bufs.data())
+        );
+    }
+
+    void SpotLight::destroy(const VkCommandPool cmd_pool, const VkDevice logi_device) {
+        this->m_depth_map.destroy(logi_device);
+        this->m_ubufs.destroy(logi_device);
+
+        if (!this->m_cmd_bufs.empty()) {
+            vkFreeCommandBuffers(logi_device, cmd_pool, this->m_cmd_bufs.size(), this->m_cmd_bufs.data());
+            this->m_cmd_bufs.clear();
+        }
+
+        this->m_use_shadow = false;
+    }
+
+    void SpotLight::update_cmd_buf(
+        const uint32_t swapchain_count,
+        const uint32_t dlight_index,
+        const std::vector<ModelVK>& models,
+        const DescSetTensor_Shadow& descsets_shadow,
+        const VkRenderPass renderpass_shadow,
+        const VkPipeline pipeline_shadow,
+        const VkPipelineLayout pipelayout_shadow
+    ) {
+        // Record command buffers
+        // ------------------------------------------------------------------------------
+
+        VkCommandBufferBeginInfo beginInfo{};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+        std::array<VkClearValue, 1> clear_values{};
+        clear_values[0].depthStencil = {1.f, 0};
+
+        VkRenderPassBeginInfo renderPassInfo{};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        renderPassInfo.renderPass = renderpass_shadow;
+        renderPassInfo.renderArea.offset = { 0, 0 };
+        renderPassInfo.renderArea.extent = this->m_depth_map.extent();
+        renderPassInfo.clearValueCount = clear_values.size();
+        renderPassInfo.pClearValues = clear_values.data();
+
+        for (uint32_t i = 0; i < swapchain_count; ++i) {
+            auto& cmd_buf = this->m_cmd_bufs.at(i);
+
+            dal::assert_vk_success( vkBeginCommandBuffer(cmd_buf, &beginInfo) );
+
+            renderPassInfo.framebuffer = this->m_depth_map.framebuffer();
+            vkCmdBeginRenderPass(cmd_buf, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+            vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_shadow);
+
+            for (uint32_t model_index = 0; model_index < models.size(); ++model_index) {
+                auto& model = models.at(model_index);
+
+                for (const auto& render_unit : model.render_units()) {
+                    VkBuffer vertBuffers[] = {render_unit.m_mesh.vertices.getBuf()};
+                    VkDeviceSize offsets[] = {0};
+                    vkCmdBindVertexBuffers(cmd_buf, 0, 1, vertBuffers, offsets);
+                    vkCmdBindIndexBuffer(cmd_buf, render_unit.m_mesh.indices.getBuf(), 0, VK_INDEX_TYPE_UINT32);
+
+                    for (uint32_t inst_index = 0; inst_index < model.instances().size(); ++inst_index) {
+                        auto& inst = model.instances().at(inst_index);
+
+                        vkCmdBindDescriptorSets(
+                            cmd_buf,
+                            VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            pipelayout_shadow,
+                            0, 1, &descsets_shadow.at(i, dlight_index, model_index, inst_index).get(), 0, nullptr
+                        );
+
+                        vkCmdDrawIndexed(cmd_buf, render_unit.m_mesh.indices.size(), 1, 0, 0, 0);
+                    }
+                }
+            }
+
+            vkCmdEndRenderPass(cmd_buf);
+
+            dal::assert_vk_success( vkEndCommandBuffer(cmd_buf) );
+        }
+
+        this->m_use_shadow = true;
+    }
+
+    void SpotLight::update_ubuf_at(const size_t index, const VkDevice logi_device) {
+        U_PerFrame_PerLight data;
+        data.m_light_mat = this->make_light_mat();
+        this->m_ubufs.copy_to_buffer(index, data, logi_device);
+    }
+
+    glm::mat4 SpotLight::make_light_mat() const {
+        const auto view_mat = glm::lookAt(this->m_pos, this->m_pos + this->m_direc, glm::vec3{ 0, 1, 0 });
+
+        auto proj_mat = glm::perspective<float>(this->m_fade_end_radians * 2, 1, 1, 100);
+        proj_mat[1][1] *= -1;
+
+        return proj_mat * view_mat;
+    }
+
+    void SpotLight::set_fade_start(const float radians) {
+        this->m_fade_start = std::cos(radians);
+    }
+
+    void SpotLight::set_fade_end(const float radians) {
+        this->m_fade_end_radians = radians;
+        this->m_fade_end = std::cos(radians);
+    }
+
+}
+
+
 // LightManager
 namespace dal {
 
     void LightManager::destroy(const VkCommandPool cmd_pool, const VkDevice logi_device) {
         for (auto& dlight : this->m_dlights) {
             dlight.destroy(cmd_pool, logi_device);
+        }
+        for (auto& slight : this->m_slights) {
+            slight.destroy(cmd_pool, logi_device);
         }
     }
 
@@ -464,16 +606,47 @@ namespace dal {
             result.m_slight_pos[i]            = glm::vec4{ this->m_slights.at(i).m_pos, 0 };
             result.m_slight_direc[i]          = glm::vec4{ this->m_slights.at(i).m_direc, 0 };
             result.m_slight_color[i]          = glm::vec4{ this->m_slights.at(i).m_color, 0 };
-            result.m_slight_fade_start_end[i] = glm::vec4{ this->m_slights.at(i).m_fade_start, this->m_slights.at(i).m_fade_end, 0, 0 };
+            result.m_slight_fade_start_end[i] = glm::vec4{ this->m_slights.at(i).fade_start(), this->m_slights.at(i).fade_end(), 0, 0 };
         }
     }
 
-    std::vector<VkImageView> LightManager::make_view_list(const uint32_t size) const {
+    std::vector<VkImageView> LightManager::make_view_list_dlight(const uint32_t size) const {
         std::vector<VkImageView> result(size, this->m_dlights.at(0).m_depth_map.view());
 
         const auto depth_map_count = std::min<uint32_t>(size, this->m_dlights.size());
         for (uint32_t i = 0; i < depth_map_count; ++i) {
             result.at(i) = this->m_dlights.at(i).m_depth_map.view();
+        }
+
+        return result;
+    }
+
+    std::vector<VkImageView> LightManager::make_view_list_slight(const uint32_t size) const {
+        std::vector<VkImageView> result(size, this->m_slights.at(0).m_depth_map.view());
+
+        const auto depth_map_count = std::min<uint32_t>(size, this->m_slights.size());
+        for (uint32_t i = 0; i < depth_map_count; ++i) {
+            result.at(i) = this->m_slights.at(i).m_depth_map.view();
+        }
+
+        return result;
+    }
+
+    std::vector<const UniformBufferArray<U_PerFrame_PerLight>*> LightManager::dlight_ubufs() const {
+        std::vector<const UniformBufferArray<U_PerFrame_PerLight>*> result;
+
+        for (auto& x : this->m_dlights) {
+            result.emplace_back(&x.m_ubufs);
+        }
+
+        return result;
+    }
+
+    std::vector<const UniformBufferArray<U_PerFrame_PerLight>*> LightManager::slight_ubufs() const {
+        std::vector<const UniformBufferArray<U_PerFrame_PerLight>*> result;
+
+        for (auto& x : this->m_slights) {
+            result.emplace_back(&x.m_ubufs);
         }
 
         return result;
@@ -488,6 +661,7 @@ namespace dal {
     void SceneNode::init(const VkSurfaceKHR surface, const VkDevice logi_device, const VkPhysicalDevice phys_device) {
         this->m_cmd_pool.init(phys_device, logi_device, surface);
         this->m_desc_sets_for_dlights.init(logi_device);
+        this->m_desc_sets_for_slights.init(logi_device);
     }
 
     void SceneNode::destroy(const VkDevice logi_device) {
@@ -500,6 +674,7 @@ namespace dal {
 
         this->m_cmd_pool.destroy(logi_device);
         this->m_desc_sets_for_dlights.destroy(logi_device);
+        this->m_desc_sets_for_slights.destroy(logi_device);
     }
 
     void SceneNode::on_swapchain_count_change(
@@ -531,10 +706,20 @@ namespace dal {
         for (auto& dlight : this->m_lights.dlights()) {
             dlight.init(swapchain_count, renderpass_shadow, this->m_cmd_pool.pool(), logi_device, phys_device);
         }
+        for (auto& slight : this->m_lights.slights()) {
+            slight.init(swapchain_count, renderpass_shadow, this->m_cmd_pool.pool(), logi_device, phys_device);
+        }
 
         this->m_desc_sets_for_dlights.reset(
             this->m_models,
-            this->m_lights.dlights(),
+            this->m_lights.dlight_ubufs(),
+            swapchain_count,
+            desc_layout_shadow,
+            logi_device
+        );
+        this->m_desc_sets_for_slights.reset(
+            this->m_models,
+            this->m_lights.slight_ubufs(),
             swapchain_count,
             desc_layout_shadow,
             logi_device
@@ -546,6 +731,17 @@ namespace dal {
                 i,
                 this->m_models,
                 this->m_desc_sets_for_dlights,
+                renderpass_shadow,
+                pipeline_shadow,
+                pipelayout_shadow
+            );
+        }
+        for (uint32_t i = 0; i < this->m_lights.slights().size(); ++i) {
+            this->m_lights.slights().at(i).update_cmd_buf(
+                swapchain_count,
+                i,
+                this->m_models,
+                this->m_desc_sets_for_slights,
                 renderpass_shadow,
                 pipeline_shadow,
                 pipelayout_shadow

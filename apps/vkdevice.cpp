@@ -103,8 +103,8 @@ namespace dal {
                 auto& slight = scene_node.lights().add_slight();
                 slight.m_color = glm::vec3{ 2000 };
                 slight.m_pos = glm::vec3{ 0, 7, -2 };
-                slight.m_fade_start = std::cos(glm::radians<float>(45));
-                slight.m_fade_end = std::cos(glm::radians<float>(55));
+                slight.set_fade_start(glm::radians<float>(45));
+                slight.set_fade_end(glm::radians<float>(55));
             }
         }
 
@@ -158,7 +158,7 @@ namespace dal {
                 this->m_descSetLayout.layout_composition(),
                 this->m_ubuf_per_frame_in_composition,
                 this->m_gbuf.make_views_vector(this->m_depth_image.image_view()),
-                this->m_scene.m_nodes.back().lights().make_view_list(3),
+                this->m_scene.m_nodes.back().lights().make_view_list_dlight(3),
                 this->m_tex_man.sampler_shadow_map().get()
             );
         }
@@ -341,7 +341,7 @@ namespace dal {
                     this->m_descSetLayout.layout_composition(),
                     this->m_ubuf_per_frame_in_composition,
                     this->m_gbuf.make_views_vector(this->m_depth_image.image_view()),
-                    this->m_scene.m_nodes.back().lights().make_view_list(3),
+                    this->m_scene.m_nodes.back().lights().make_view_list_dlight(3),
                     this->m_tex_man.sampler_shadow_map().get()
                 );
             }
@@ -646,6 +646,19 @@ namespace dal {
                 throw std::runtime_error("failed to submit draw command buffer!");
             }
         }
+
+        for (auto& slight : this->m_scene.m_nodes.back().lights().slights()) {
+            if (!slight.m_use_shadow) {
+                continue;
+            }
+
+            submit_info.pCommandBuffers = &slight.m_cmd_bufs.at(swapchain_index);
+
+            const auto submit_result = vkQueueSubmit(this->m_logiDevice.graphicsQ(), 1, &submit_info, nullptr);
+            if ( submit_result != VK_SUCCESS ) {
+                throw std::runtime_error("failed to submit draw command buffer!");
+            }
+        }
     }
 
     void VulkanMaster::udpate_uniform_buffers(const uint32_t swapchain_index) {
@@ -702,6 +715,7 @@ namespace dal {
             std::cos(dal::getTimeInSec()),
             -0.4
         });
+        this->m_scene.m_nodes.back().lights().slight_at(0).update_ubuf_at(swapchain_index, this->m_logiDevice.get());
 
         U_PerFrame_InComposition data;
         data.m_view_pos = glm::vec4{ this->camera().m_pos, 1 };
