@@ -2,6 +2,7 @@
 
 #include <tuple>
 #include <vector>
+#include <cassert>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -13,88 +14,133 @@
 
 namespace dal {
 
-    struct UniformBufferObject {
+    constexpr uint32_t MAX_PLIGHT_COUNT = 5;
+    constexpr uint32_t MAX_DLIGHT_COUNT = 3;
+    constexpr uint32_t MAX_SLIGHT_COUNT = 5;
+
+
+    struct U_PerFrame_InDeferred {
         glm::mat4 view, proj;
     };
 
-    struct U_Material {
+    struct U_Material_InDeferred {
         float m_roughness = 0.5;
         float m_metallic = 0;
     };
 
-
-    std::pair<VkBuffer, VkDeviceMemory> _init_uniform_buffer(const void* const data, const VkDeviceSize data_size, const VkDevice logi_device, const VkPhysicalDevice phys_device);
-    void _destroy_buffer_memory(const VkBuffer buffer, const VkDeviceMemory memory, const VkDevice logi_device);
-
-    template <typename _UniformStruct>
-    class UniformBufferConst {
-
-    private:
-        VkBuffer m_buffer = VK_NULL_HANDLE;
-        VkDeviceMemory m_memory = VK_NULL_HANDLE;
-
-    public:
-        void init(const _UniformStruct& data, const VkDevice logi_device, const VkPhysicalDevice phys_device) {
-            this->destroy(logi_device);
-            std::tie(this->m_buffer, this->m_memory) = dal::_init_uniform_buffer(
-                reinterpret_cast<const void*>(&data),
-                this->data_size(),
-                logi_device,
-                phys_device
-            );
-        }
-        void destroy(const VkDevice logi_device) {
-            _destroy_buffer_memory(this->m_buffer, this->m_memory, logi_device);
-            this->m_buffer = VK_NULL_HANDLE;
-            this->m_memory = VK_NULL_HANDLE;
-        }
-
-        auto& buffer() const {
-            assert(VK_NULL_HANDLE != this->m_buffer);
-            return this->m_buffer;
-        }
-        auto data_size() const {
-            return sizeof(_UniformStruct);
-        }
-
+    // In deferred, shadow
+    struct U_PerInst_PerFrame_InDeferred {
+        glm::mat4 m_model_mat;
     };
-
 
     struct U_PerFrame_InComposition {
         glm::vec4 m_view_pos{ 0 };
 
         glm::vec4 m_num_of_plight_dlight_slight{ 0 };
 
-        glm::vec4 m_plight_color[5]{};
-        glm::vec4 m_plight_pos[5]{};
+        glm::vec4 m_plight_color[MAX_PLIGHT_COUNT]{};
+        glm::vec4 m_plight_pos[MAX_PLIGHT_COUNT]{};
 
-        glm::vec4 m_dlight_color[3]{};
-        glm::vec4 m_dlight_direc[3]{};
+        glm::vec4 m_dlight_color[MAX_DLIGHT_COUNT]{};
+        glm::vec4 m_dlight_direc[MAX_DLIGHT_COUNT]{};
+        glm::mat4 m_dlight_mat[MAX_DLIGHT_COUNT]{};
 
-        glm::vec4 m_slight_pos[5]{};
-        glm::vec4 m_slight_direc[5]{};
-        glm::vec4 m_slight_color[5]{};
-        glm::vec4 m_slight_fade_start_end[5]{};
+        glm::vec4 m_slight_pos[MAX_SLIGHT_COUNT]{};
+        glm::vec4 m_slight_direc[MAX_SLIGHT_COUNT]{};
+        glm::vec4 m_slight_color[MAX_SLIGHT_COUNT]{};
+        glm::vec4 m_slight_fade_start_end[MAX_SLIGHT_COUNT]{};
+        glm::mat4 m_slight_mat[MAX_SLIGHT_COUNT]{};
     };
 
-    class UniformBuffer_PerFrame {
+    // In shadow
+    struct U_PerFrame_PerLight {
+        glm::mat4 m_light_mat;
+    };
+
+}
+
+
+namespace dal {
+
+    std::pair<VkBuffer, VkDeviceMemory> _create_uniform_buffer_memory(const uint32_t data_size, const VkDevice logi_device, const VkPhysicalDevice phys_device);
+
+
+    template <typename _DataStruct>
+    class UniformBuffer {
 
     private:
-        std::vector<VkBuffer> m_buffers;
-        std::vector<VkDeviceMemory> m_memories;
-        VkDeviceSize m_data_size = 0;
+        VkBuffer m_buffer = VK_NULL_HANDLE;
+        VkDeviceMemory m_memory = VK_NULL_HANDLE;
 
     public:
-        void init(const VkDeviceSize data_size, const uint32_t swapchain_count, const VkDevice logi_device, const VkPhysicalDevice phys_device);
-        void destroy(const VkDevice logiDevice);
+        void init(const VkDevice logi_device, const VkPhysicalDevice phys_device) {
+            this->destroy(logi_device);
+            std::tie(this->m_buffer, this->m_memory) = dal::_create_uniform_buffer_memory(this->data_size(), logi_device, phys_device);
+        }
 
-        void copy_to_memory(const uint32_t index, const void* const data, const VkDeviceSize data_size, const VkDevice logi_device) const;
+        void destroy(const VkDevice logi_device) {
+            if (VK_NULL_HANDLE != this->m_buffer) {
+                vkDestroyBuffer(logi_device, this->m_buffer, nullptr);
+                this->m_buffer = VK_NULL_HANDLE;
+            }
 
-        auto buffer(const uint32_t index) const {
+            if (VK_NULL_HANDLE != this->m_memory) {
+                vkFreeMemory(logi_device, this->m_memory, nullptr);
+                this->m_memory = VK_NULL_HANDLE;
+            }
+        }
+
+        constexpr uint32_t data_size() const {
+            return sizeof(_DataStruct);
+        }
+        auto buffer() const {
+            return this->m_buffer;
+        }
+
+        void copy_to_buffer(const _DataStruct& data, const VkDevice logi_device) {
+            void* dst_ptr = nullptr;
+            vkMapMemory(logi_device, this->m_memory, 0, this->data_size(), 0, &dst_ptr);
+            memcpy(dst_ptr, &data, this->data_size());
+            vkUnmapMemory(logi_device, this->m_memory);
+        }
+
+    };
+
+
+    template <typename _DataStruct>
+    class UniformBufferArray {
+
+    private:
+        std::vector<UniformBuffer<_DataStruct>> m_buffers;
+
+    public:
+        void init(const uint32_t array_size, const VkDevice logi_device, const VkPhysicalDevice phys_device) {
+            this->destroy(logi_device);
+
+            for (uint32_t i = 0; i < array_size; ++i) {
+                this->m_buffers.emplace_back().init(logi_device, phys_device);
+            }
+        }
+
+        void destroy(const VkDevice logi_device) {
+            for (auto& x : this->m_buffers) {
+                x.destroy(logi_device);
+            }
+            this->m_buffers.clear();
+        }
+
+        constexpr uint32_t data_size() const {
+            return sizeof(_DataStruct);
+        }
+        uint32_t array_size() const {
+            return this->m_buffers.size();
+        }
+        auto& buffer_at(const uint32_t index) const {
             return this->m_buffers.at(index);
         }
-        auto data_size() const {
-            return this->m_data_size;
+
+        void copy_to_buffer(const size_t index, const _DataStruct& data, const VkDevice logi_device) {
+            this->m_buffers.at(index).copy_to_buffer(data, logi_device);
         }
 
     };
@@ -105,6 +151,7 @@ namespace dal {
     private:
         VkDescriptorSetLayout m_layout_deferred = VK_NULL_HANDLE;
         VkDescriptorSetLayout m_layout_composition = VK_NULL_HANDLE;
+        VkDescriptorSetLayout m_layout_shadow = VK_NULL_HANDLE;
 
     public:
         void init(const VkDevice logiDevice);
@@ -116,92 +163,106 @@ namespace dal {
         auto& layout_composition() const {
             return this->m_layout_composition;
         }
+        auto& layout_shadow() const {
+            return this->m_layout_shadow;
+        }
 
     };
 
 
-    class DescriptorSet {
+    class DescSet {
 
     private:
-        std::vector<VkDescriptorSet> m_handles;
+        VkDescriptorSet m_handle = VK_NULL_HANDLE;
 
     public:
-        void destroy(const VkDescriptorPool pool, const VkDevice logi_device);
+        void set(const VkDescriptorSet desc_set) {
+            this->m_handle = desc_set;
+        }
 
-        void init(
-            const uint32_t swapchain_count,
-            const VkDescriptorSetLayout descriptor_set_layout,
-            const VkDescriptorPool pool,
-            const VkDevice logi_device
-        );
+        auto& get() const {
+            return this->m_handle;
+        }
 
         void record_deferred(
-            const std::vector<VkBuffer>& uniformBuffers,
-            const UniformBufferConst<U_Material>& m_material_buffer,
+            const UniformBuffer<U_PerFrame_InDeferred>& ubuf_per_frame_in_deferred,
+            const UniformBuffer<U_Material_InDeferred>& ubuf_material,
+            const UniformBuffer<U_PerInst_PerFrame_InDeferred>& ubuf_per_inst_per_frame,
             const VkImageView textureImageView,
             const VkSampler textureSampler,
             const VkDevice logi_device
         );
         void record_composition(
             const size_t swapchainImagesSize,
-            const UniformBuffer_PerFrame& u_per_frame,
+            const UniformBuffer<U_PerFrame_InComposition> ubuf_per_frame,
             const VkDescriptorSetLayout descriptorSetLayout,
             const std::vector<VkImageView>& attachment_views,
+            const std::vector<VkImageView>& dlight_shadow_map_view,
+            const std::vector<VkImageView>& slight_shadow_map_view,
+            const VkSampler dlight_shadow_map_sampler,
             const VkDevice logiDevice
         );
+        void record_shadow(
+            const UniformBuffer<U_PerInst_PerFrame_InDeferred>& ubuf_per_inst_per_frame,
+            const UniformBuffer<U_PerFrame_PerLight>& ubuf_per_light_per_frame,
+            const VkDevice logi_device
+        );
 
-        auto& at(const uint32_t swapchain_index) const {
-            return this->m_handles.at(swapchain_index);
-        }
-        auto& vector() const {
-            return this->m_handles;
+    };
+
+
+    class DescPool {
+
+    private:
+        VkDescriptorPool m_pool = VK_NULL_HANDLE;
+
+    public:
+        void init(
+            const uint32_t uniform_buf_count,
+            const uint32_t image_sampler_count,
+            const uint32_t input_attachment_count,
+            const uint32_t desc_set_count,
+            const VkDevice logi_device
+        );
+        void destroy(const VkDevice logi_device);
+        void reset(const VkDevice logi_device);
+
+        DescSet allocate(const VkDescriptorSetLayout layout, const VkDevice logi_device);
+        std::vector<DescSet> allocate(const uint32_t count, const VkDescriptorSetLayout layout, const VkDevice logi_device);
+
+        auto get() const {
+            return this->m_pool;
         }
 
     };
 
 
-    class DescriptorPool {
+    class DescriptorSetManager {
 
     private:
-        VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
-        std::vector<DescriptorSet> m_descset_composition;
+        DescPool m_pool;
+
+        std::vector<std::vector<DescSet>> m_descset_composition;
 
     public:
-        void initPool(VkDevice logiDevice, size_t swapchainImagesSize);
+        void init(const uint32_t swapchain_count, const VkDevice logi_device);
         void addSets_composition(
             const VkDevice logiDevice,
             const size_t swapchainImagesSize,
             const VkDescriptorSetLayout descriptorSetLayout,
-            const UniformBuffer_PerFrame& ubuf_per_frame,
-            const std::vector<VkImageView>& attachment_views
+            const UniformBufferArray<U_PerFrame_InComposition>& ubuf_per_frame,
+            const std::vector<VkImageView>& attachment_views,
+            const std::vector<VkImageView>& dlight_shadow_map_view,
+            const std::vector<VkImageView>& slight_shadow_map_view,
+            const VkSampler dlight_shadow_map_sampler
         );
         void destroy(VkDevice logiDevice);
 
-        auto& pool() const {
-            return this->descriptorPool;
+        auto& pool() {
+            return this->m_pool;
         }
+
         std::vector<std::vector<VkDescriptorSet>> descset_composition() const;
-
-    };
-
-
-    class UniformBuffers {
-
-    private:
-        std::vector<VkBuffer> uniformBuffers;
-        std::vector<VkDeviceMemory> uniformBuffersMemory;
-
-    public:
-        void init(VkDevice logiDevice, VkPhysicalDevice physDevice, size_t swapchainImagesSize);
-        void destroy(const VkDevice logiDevice);
-
-        void update(const glm::mat4& view_mat, const uint32_t imageIndex, const VkExtent2D swapchainExtent, const VkDevice logiDevice);
-        void copy_to_memory(const VkDevice logiDevice, const UniformBufferObject& ubo, const uint32_t index) const;
-
-        auto& buffers() const {
-            assert(0 != this->uniformBuffers.size());
-            return this->uniformBuffers;
-        }
 
     };
 

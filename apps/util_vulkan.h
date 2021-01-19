@@ -65,4 +65,7 @@ namespace dal {
         const VkImageAspectFlags aspectFlags, const VkDevice logiDevice
     );
 
+
+    void assert_vk_success(VkResult result);
+
 }

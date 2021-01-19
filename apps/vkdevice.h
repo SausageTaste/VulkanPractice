@@ -19,7 +19,6 @@
 #include "texture.h"
 #include "depth_image.h"
 #include "model_render.h"
-#include "view_camera.h"
 
 
 namespace dal {
@@ -38,16 +37,15 @@ namespace dal {
         CommandBuffers m_cmdBuffers;
         SyncMaster m_syncMas;
         DescriptorSetLayout m_descSetLayout;
-        UniformBuffers m_uniformBufs;
-        UniformBuffer_PerFrame m_ubuf_per_frame_in_composition;
-        DescriptorPool m_descPool;
+        DescriptorSetManager m_desc_man;
         DepthImage m_depth_image;
         GbufManager m_gbuf;
         TextureManager m_tex_man;
 
-        U_PerFrame_InComposition m_data_per_frame_in_composition;
-        CameraLookAt m_camera;
-        std::vector<ModelVK> m_models;
+        UniformBufferArray<U_PerFrame_InDeferred> m_ubuf_per_frame_in_deferred;
+        UniformBufferArray<U_PerFrame_InComposition> m_ubuf_per_frame_in_composition;
+
+        Scene m_scene;
         std::shared_ptr<TextureUnit> m_tex_grass, m_tex_tile;
 
         unsigned m_currentFrame = 0;
@@ -63,7 +61,7 @@ namespace dal {
         void destroy(void);
 
         auto& camera() {
-            return this->m_camera;
+            return this->m_scene.m_camera;
         }
 
         void render(const VkSurfaceKHR surface);
@@ -78,6 +76,9 @@ namespace dal {
     private:
         void initSwapChain(const VkSurfaceKHR surface);
         void destroySwapChain();
+        void submit_render_to_shadow_maps(const uint32_t swapchain_index);
+        void udpate_uniform_buffers(const uint32_t swapchain_index);
+
         auto make_attachment_format_array() const {
             return this->m_gbuf.make_formats_array(this->m_swapchain.imageFormat(), this->m_depth_image.format());
         }

@@ -6,12 +6,16 @@
 
 namespace dal {
 
-    void CommandBuffers::init(VkDevice logiDevice, const std::vector<VkFramebuffer>& swapChainFbufs, VkCommandPool cmdPool) {
+    void CommandBuffers::init(
+        const VkDevice logiDevice,
+        const size_t swapchain_count,
+        const VkCommandPool cmdPool
+    ) {
         this->destroy(logiDevice, cmdPool);
 
         // Create command buffers
         {
-            this->m_buffers.resize(swapChainFbufs.size());
+            this->m_buffers.resize(swapchain_count);
 
             VkCommandBufferAllocateInfo allocInfo = {};
             allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -57,7 +61,7 @@ namespace dal {
         renderPassInfo.clearValueCount = static_cast<uint32_t>(clear_values.size());
         renderPassInfo.pClearValues = clear_values.data();
 
-        for ( size_t i = 0; i < this->m_buffers.size(); i++ ) {
+        for (uint32_t i = 0; i < this->m_buffers.size(); ++i) {
             if ( VK_SUCCESS != vkBeginCommandBuffer(this->m_buffers[i], &beginInfo) ) {
                 throw std::runtime_error("failed to begin recording command buffer!");
             }
@@ -69,23 +73,23 @@ namespace dal {
                     vkCmdBindPipeline(this->m_buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_deferred);
 
                     for (const auto& model : models) {
-                        for (const auto& render_unit : model.render_units()) {
+                        for (uint32_t unit_index = 0; unit_index < model.render_units().size(); ++unit_index) {
+                            const auto& render_unit = model.render_units().at(unit_index);
+
                             VkBuffer vertBuffers[] = {render_unit.m_mesh.vertices.getBuf()};
                             VkDeviceSize offsets[] = {0};
                             vkCmdBindVertexBuffers(this->m_buffers[i], 0, 1, vertBuffers, offsets);
                             vkCmdBindIndexBuffer(this->m_buffers[i], render_unit.m_mesh.indices.getBuf(), 0, VK_INDEX_TYPE_UINT32);
 
-                            vkCmdBindDescriptorSets(
-                                this->m_buffers[i],
-                                VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                pipelayout_deferred,
-                                0, 1, &render_unit.m_material.m_desc_set.at(i), 0, nullptr
-                            );
+                            for (uint32_t inst_index = 0; inst_index < model.instances().size(); ++inst_index) {
+                                const auto& inst = model.instances().at(inst_index);
 
-                            for (const auto& inst : model.instances()) {
-                                PushedConstValues pushed_consts;
-                                pushed_consts.m_model_mat = inst.transform().make_mat();
-                                vkCmdPushConstants(this->m_buffers[i], pipelayout_deferred, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushedConstValues), &pushed_consts);
+                                vkCmdBindDescriptorSets(
+                                    this->m_buffers[i],
+                                    VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                    pipelayout_deferred,
+                                    0, 1, &model.desc_set(i, inst_index, unit_index).get(), 0, nullptr
+                                );
 
                                 vkCmdDrawIndexed(this->m_buffers[i], render_unit.m_mesh.indices.size(), 1, 0, 0, 0);
                             }

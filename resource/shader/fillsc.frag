@@ -19,15 +19,61 @@ layout(binding = 5) uniform UniformBufferObject {
 
     vec4 m_dlight_color[3];
     vec4 m_dlight_direc[3];
+    mat4 m_dlight_mat[3];
 
     vec4 m_slight_pos[5];
     vec4 m_slight_direc[5];
     vec4 m_slight_color[5];
     vec4 m_slight_fade_start_end[5];
+    mat4 m_slight_mat[5];
 } u_per_frame;
+
+layout(binding = 6) uniform sampler2D u_dlight_shadow_maps[3];
+layout(binding = 7) uniform sampler2D u_slight_shadow_maps[5];
 
 
 layout (location = 0) out vec4 out_color;
+
+
+float _sample_dlight_depth(uint index, vec2 coord) {
+    if (coord.x > 1.0 || coord.x < 0.0) return 1.0;
+    if (coord.y > 1.0 || coord.y < 0.0) return 1.0;
+    return texture(u_dlight_shadow_maps[index], coord).r;
+}
+
+float _sample_slight_depth(uint index, vec2 coord) {
+    if (coord.x > 1.0 || coord.x < 0.0) return 1.0;
+    if (coord.y > 1.0 || coord.y < 0.0) return 1.0;
+    return texture(u_slight_shadow_maps[index], coord).r;
+}
+
+bool is_frag_in_dlight_shadow(uint index, vec3 frag_pos) {
+    const vec4 frag_pos_in_dlight = u_per_frame.m_dlight_mat[index] * vec4(frag_pos, 1);
+    const vec3 projCoords = frag_pos_in_dlight.xyz / frag_pos_in_dlight.w;
+
+    if (projCoords.z > 1.0)
+        return false;
+
+    const vec2 sample_coord = projCoords.xy * 0.5 + 0.5;
+    const float closestDepth = _sample_dlight_depth(index, sample_coord);
+    const float currentDepth = projCoords.z;
+
+    return currentDepth > closestDepth;
+}
+
+bool is_frag_in_slight_shadow(uint index, vec3 frag_pos) {
+    const vec4 frag_pos_in_light = u_per_frame.m_slight_mat[index] * vec4(frag_pos, 1);
+    const vec3 projCoords = frag_pos_in_light.xyz / frag_pos_in_light.w;
+
+    if (projCoords.z > 1.0)
+        return false;
+
+    const vec2 sample_coord = projCoords.xy * 0.5 + 0.5;
+    const float closestDepth = _sample_slight_depth(index, sample_coord);
+    const float currentDepth = projCoords.z;
+
+    return currentDepth > closestDepth;
+}
 
 
 vec3 fix_color(vec3 color) {
@@ -58,7 +104,8 @@ void main() {
     }
     for (uint i = 0; i < u_per_frame.m_num_of_plight_dlight_slight.y; ++i) {
         const vec3 frag_to_light_direc = normalize(-u_per_frame.m_dlight_direc[i].xyz);
-        light += calc_pbr_illumination(material.x, material.y, albedo, normal, F0, view_direc, frag_to_light_direc, 1, u_per_frame.m_dlight_color[i].xyz);
+        const bool in_shadow = is_frag_in_dlight_shadow(i, frag_world_pos);
+        light += in_shadow ? vec3(0) : calc_pbr_illumination(material.x, material.y, albedo, normal, F0, view_direc, frag_to_light_direc, 1, u_per_frame.m_dlight_color[i].xyz);
     }
     for (uint i = 0; i < u_per_frame.m_num_of_plight_dlight_slight.z; ++i) {
         const vec3 frag_to_light_vec = u_per_frame.m_slight_pos[i].xyz - frag_world_pos;
@@ -69,7 +116,8 @@ void main() {
             u_per_frame.m_slight_fade_start_end[i].x,
             u_per_frame.m_slight_fade_start_end[i].y
         );
-        light += calc_pbr_illumination(material.x, material.y, albedo, normal, F0, view_direc, normalize(frag_to_light_vec), length(frag_to_light_vec), u_per_frame.m_slight_color[i].xyz) * attenuation;
+        const bool shadow = is_frag_in_slight_shadow(i, frag_world_pos);
+        light += shadow ? vec3(0) : calc_pbr_illumination(material.x, material.y, albedo, normal, F0, view_direc, normalize(frag_to_light_vec), length(frag_to_light_vec), u_per_frame.m_slight_color[i].xyz) * attenuation;
     }
 
     out_color.xyz = light;

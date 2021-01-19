@@ -13,6 +13,9 @@
 
 namespace {
 
+    constexpr int HALF_PROJ_BOX_LEN_OF_DLIGHT = 5;
+
+
     bool isResizeNeeded(const VkResult res) {
         if (VK_ERROR_OUT_OF_DATE_KHR  == res) {
             return true;
@@ -25,6 +28,37 @@ namespace {
         }
     }
 
+    glm::mat4 make_perspective_proj_mat(const VkExtent2D extent) {
+        const float ratio = static_cast<double>(extent.width) / static_cast<double>(extent.height);
+
+        auto mat = glm::perspective<float>(glm::radians<float>(45), ratio, 0.1, 100);
+        mat[1][1] *= -1;
+        return mat;
+    }
+
+    glm::mat4 make_dlight_proj_mat(const float m_halfProjBoxEdgeLen) {
+        auto mat = glm::ortho<float>(
+            -m_halfProjBoxEdgeLen, m_halfProjBoxEdgeLen,
+            -m_halfProjBoxEdgeLen, m_halfProjBoxEdgeLen,
+            -m_halfProjBoxEdgeLen, m_halfProjBoxEdgeLen
+        );
+        mat[1][1] *= -1;
+        return mat;
+    }
+
+    glm::mat4 make_dlight_view_mat(const glm::vec3 light_direc, const glm::vec3 light_pos) {
+        const auto mat = glm::lookAt(-light_direc + light_pos, light_pos, glm::vec3{0, 1, 0});
+        return mat;
+    }
+
+    glm::mat4 make_dlight_mat(const float half_proj_box_length, const glm::vec3 light_direc, const glm::vec3 light_pos) {
+        return ::make_dlight_proj_mat(half_proj_box_length) * ::make_dlight_view_mat(light_direc, light_pos);
+    }
+
+    glm::mat4 make_dlight_mat(const float half_proj_box_length, const glm::vec4 light_direc, const glm::vec4 light_pos) {
+        return ::make_dlight_mat(half_proj_box_length, glm::vec3{ light_direc }, glm::vec3{ light_pos });
+    }
+
 }
 
 
@@ -34,36 +68,104 @@ namespace dal {
     void VulkanMaster::init(const VkInstance instance, const VkSurfaceKHR surface, const unsigned w, const unsigned h) {
         this->m_physDevice.init(instance, surface);
         this->m_logiDevice.init(surface, this->m_physDevice.get());
+
+        // Set member variables
+        {
+            this->m_currentFrame = 0;
+            this->m_scrWidth = w;
+            this->m_scrHeight = h;
+
+            this->m_scene.m_camera.m_pos = glm::vec3{ 0, 2, 4 };
+            auto& scene_node = this->m_scene.m_nodes.emplace_back();
+            scene_node.init(surface, this->m_logiDevice.get(), this->m_physDevice.get());
+
+            // Lights
+
+            //scene_node.m_lights.m_plights.emplace_back().m_color = glm::vec3{ 10 };
+            //scene_node.m_lights.m_plights.emplace_back().m_color = glm::vec4{ 100 };
+            //scene_node.m_lights.m_plights.emplace_back().m_color = glm::vec4{ 30 };
+            //scene_node.m_lights.m_plights.emplace_back().m_color = glm::vec4{ 40 };
+            //scene_node.m_lights.m_plights.emplace_back().m_color = glm::vec4{ 50 };
+
+            {
+                auto& dlight = scene_node.lights().add_dlight();
+                dlight.m_direc = glm::normalize(glm::vec3{ 1, -2, 1 });
+                dlight.m_color = glm::vec3{ 5 };
+            }
+
+            {
+                auto& dlight = scene_node.lights().add_dlight();
+                dlight.m_direc = glm::normalize(glm::vec3{ -2, -2, 4 });
+                dlight.m_color = glm::vec3{ 1, 1, 4 } * 0.3f;
+            }
+
+            {
+                auto& slight = scene_node.lights().add_slight();
+                slight.m_color = glm::vec3{ 1000 };
+                slight.m_pos = glm::vec3{ 0, 6, -5 };
+                slight.set_fade_start(glm::radians<float>(25));
+                slight.set_fade_end(glm::radians<float>(30));
+            }
+        }
+
         this->m_swapchain.init(surface, this->m_physDevice.get(), this->m_logiDevice.get(), this->m_scrWidth, this->m_scrHeight);
         this->m_swapchainImages.init(this->m_logiDevice.get(), this->m_swapchain.get(), this->m_swapchain.imageFormat(), this->m_swapchain.extent());
         this->m_depth_image.init(this->m_swapchain.extent(), this->m_logiDevice.get(), this->m_physDevice.get());
         this->m_gbuf.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchain.extent().width, this->m_swapchain.extent().height);
         this->m_renderPass.init(this->m_logiDevice.get(), this->make_attachment_format_array());
         this->m_descSetLayout.init(this->m_logiDevice.get());
-        this->m_pipeline.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchain.extent(), this->m_descSetLayout.layout_deferred(), this->m_descSetLayout.layout_composition());
         this->m_fbuf.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchainImages.getViews(), this->m_swapchain.extent(), this->m_depth_image.image_view(), this->m_gbuf);
+        this->m_pipeline.init(
+            this->m_logiDevice.get(),
+            this->m_renderPass.get(),
+            this->m_renderPass.shadow_mapping(),
+            this->m_swapchain.extent(),
+            SHADOW_MAP_EXTENT,
+            this->m_descSetLayout.layout_deferred(),
+            this->m_descSetLayout.layout_composition(),
+            this->m_descSetLayout.layout_shadow()
+        );
         this->m_cmdPool.init(this->m_physDevice.get(), this->m_logiDevice.get(), surface);
         this->m_tex_man.init(this->m_logiDevice.get(), this->m_physDevice.get());
 
         this->load_textures();
 
-        this->m_uniformBufs.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchainImages.size());
-        this->m_ubuf_per_frame_in_composition.init(sizeof(dal::U_PerFrame_InComposition), this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
-        this->m_descPool.initPool(this->m_logiDevice.get(), this->m_swapchainImages.size());
+        this->m_ubuf_per_frame_in_deferred.init(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
+        this->m_ubuf_per_frame_in_composition.init(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
+        this->m_desc_man.init(this->m_swapchainImages.size(), this->m_logiDevice.get());
+
+        this->load_models();
+
+        for (auto& node : this->m_scene.m_nodes) {
+            node.on_swapchain_count_change(
+                this->m_swapchainImages.size(),
+                this->m_ubuf_per_frame_in_deferred,
+                this->m_tex_man.sampler_1().get(),
+                this->m_descSetLayout.layout_deferred(),
+                this->m_descSetLayout.layout_shadow(),
+                this->m_renderPass.shadow_mapping(),
+                this->m_pipeline.pipeline_shadow(),
+                this->m_pipeline.layout_shadow(),
+                this->m_logiDevice.get(),
+                this->m_physDevice.get()
+            );
+        }
+
         for (size_t i = 0; i < this->m_swapchainImages.size(); ++i) {
-            this->m_descPool.addSets_composition(
+            this->m_desc_man.addSets_composition(
                 this->m_logiDevice.get(),
                 this->m_swapchainImages.size(),
                 this->m_descSetLayout.layout_composition(),
                 this->m_ubuf_per_frame_in_composition,
-                this->m_gbuf.make_views_vector(this->m_depth_image.image_view())
+                this->m_gbuf.make_views_vector(this->m_depth_image.image_view()),
+                this->m_scene.m_nodes.back().lights().make_view_list_dlight(dal::MAX_DLIGHT_COUNT),
+                this->m_scene.m_nodes.back().lights().make_view_list_slight(dal::MAX_SLIGHT_COUNT),
+                this->m_tex_man.sampler_shadow_map().get()
             );
         }
 
-        this->m_cmdBuffers.init(this->m_logiDevice.get(), this->m_fbuf.getList(), this->m_cmdPool.pool());
+        this->m_cmdBuffers.init(this->m_logiDevice.get(), this->m_fbuf.getList().size(), this->m_cmdPool.pool());
         this->m_syncMas.init(this->m_logiDevice.get(), this->m_swapchainImages.size());
-
-        this->load_models();
 
         this->m_cmdBuffers.record(
             this->m_renderPass.get(),
@@ -73,52 +175,30 @@ namespace dal {
             this->m_pipeline.layout_composition(),
             this->m_swapchain.extent(),
             this->m_fbuf.getList(),
-            this->m_descPool.descset_composition(),
-            this->m_models
+            this->m_desc_man.descset_composition(),
+            this->m_scene.m_nodes.back().models()
         );
 
-        this->m_currentFrame = 0;
-        this->m_scrWidth = w;
-        this->m_scrHeight = h;
-
-        this->m_camera.m_pos = glm::vec3{ 0, 2, 4 };
-
-        // Init lights
-        {
-            this->m_data_per_frame_in_composition.m_num_of_plight_dlight_slight = glm::vec4{ 2, 1, 1, 0 };
-            this->m_data_per_frame_in_composition.m_plight_color[0] = glm::vec4{ 10 };
-            this->m_data_per_frame_in_composition.m_plight_color[1] = glm::vec4{ 100 };
-            this->m_data_per_frame_in_composition.m_plight_color[2] = glm::vec4{ 30 };
-            this->m_data_per_frame_in_composition.m_plight_color[3] = glm::vec4{ 40 };
-            this->m_data_per_frame_in_composition.m_plight_color[4] = glm::vec4{ 50 };
-
-            this->m_data_per_frame_in_composition.m_dlight_direc[0] = glm::normalize(glm::vec4{  1, -2, -1, 0 });
-            this->m_data_per_frame_in_composition.m_dlight_direc[1] = glm::normalize(glm::vec4{ -1, -2, -1, 0 });
-            this->m_data_per_frame_in_composition.m_dlight_color[0] = glm::vec4{ 0.5, 0.3, 2, 1 };
-            this->m_data_per_frame_in_composition.m_dlight_color[1] = glm::vec4{ 0, 0, 2, 1 };
-
-            this->m_data_per_frame_in_composition.m_slight_color[0] = glm::vec4{ 2000 };
-            this->m_data_per_frame_in_composition.m_slight_pos[0] = glm::vec4{ 0, 7, -2, 1 };
-            this->m_data_per_frame_in_composition.m_slight_fade_start_end[0] = glm::normalize(glm::vec4{ std::cos(glm::radians<float>(45)), std::cos(glm::radians<float>(55)), 0, 0 });
-        }
+        // For shadow maps transition
+        this->submit_render_to_shadow_maps(0);
+        this->submit_render_to_shadow_maps(1);
+        this->submit_render_to_shadow_maps(2);
+        this->waitLogiDeviceIdle();
     }
 
     void VulkanMaster::destroy(void) {
-        for (auto& model : this->m_models) {
-            model.destroy(this->m_logiDevice.get(), this->m_descPool.pool());
-        }
-        this->m_models.clear();
+        this->m_scene.destroy(this->m_logiDevice.get());
 
         this->m_syncMas.destroy(this->m_logiDevice.get());
         //this->m_cmdBuffers.destroy(this->m_logiDevice.get(), this->m_cmdPool.pool());
-        this->m_descPool.destroy(this->m_logiDevice.get());
+        this->m_desc_man.destroy(this->m_logiDevice.get());
         this->m_ubuf_per_frame_in_composition.destroy(this->m_logiDevice.get());
-        this->m_uniformBufs.destroy(this->m_logiDevice.get());
+        this->m_ubuf_per_frame_in_deferred.destroy(this->m_logiDevice.get());
         this->m_tex_man.destroy(this->m_logiDevice.get());
 
         this->m_cmdPool.destroy(this->m_logiDevice.get());
-        this->m_fbuf.destroy(this->m_logiDevice.get());
         this->m_pipeline.destroy(this->m_logiDevice.get());
+        this->m_fbuf.destroy(this->m_logiDevice.get());
         this->m_descSetLayout.destroy(this->m_logiDevice.get());
         this->m_renderPass.destroy(this->m_logiDevice.get());
         this->m_gbuf.destroy(this->m_logiDevice.get());
@@ -149,39 +229,11 @@ namespace dal {
         }
 
         // Update uniform buffers
-        {
-            this->m_uniformBufs.update(this->m_camera.make_view_mat(), imageIndex.first, this->m_swapchain.extent(), this->m_logiDevice.get());
+        this->udpate_uniform_buffers(imageIndex.first);
 
-            constexpr double RADIUS = 5;
-
-            this->m_data_per_frame_in_composition.m_view_pos = glm::vec4{ this->m_camera.m_pos, 1 };
-
-            const auto plight_count = this->m_data_per_frame_in_composition.m_num_of_plight_dlight_slight[0];
-            for (int i = 0; i < plight_count; ++i) {
-                const auto rotate_phase_diff = 2.0 * M_PI / static_cast<double>(plight_count);
-                this->m_data_per_frame_in_composition.m_plight_pos[i] = glm::vec4{
-                    RADIUS * std::cos(dal::getTimeInSec() + rotate_phase_diff * i),
-                    4,
-                    RADIUS * std::sin(dal::getTimeInSec() + rotate_phase_diff * i),
-                    1
-                };
-            }
-
-
-            this->m_data_per_frame_in_composition.m_slight_direc[0] = glm::normalize(glm::vec4{
-                std::sin(dal::getTimeInSec()),
-                std::cos(dal::getTimeInSec()),
-                -0.4,
-                0
-            });
-
-            this->m_ubuf_per_frame_in_composition.copy_to_memory(
-                imageIndex.first,
-                &this->m_data_per_frame_in_composition,
-                sizeof(this->m_data_per_frame_in_composition),
-                this->m_logiDevice.get()
-            );
-        }
+        // Draw shadow map
+        this->submit_render_to_shadow_maps(imageIndex.first);
+        this->waitLogiDeviceIdle();
 
         VkSubmitInfo submitInfo = {};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -235,11 +287,11 @@ namespace dal {
         {
             this->m_syncMas.destroy(this->m_logiDevice.get());
             this->m_cmdBuffers.destroy(this->m_logiDevice.get(), this->m_cmdPool.pool());
-            this->m_descPool.destroy(this->m_logiDevice.get());
+            this->m_desc_man.destroy(this->m_logiDevice.get());
             this->m_ubuf_per_frame_in_composition.destroy(this->m_logiDevice.get());
-            this->m_uniformBufs.destroy(this->m_logiDevice.get());
-            this->m_fbuf.destroy(this->m_logiDevice.get());
+            this->m_ubuf_per_frame_in_deferred.destroy(this->m_logiDevice.get());
             this->m_pipeline.destroy(this->m_logiDevice.get());
+            this->m_fbuf.destroy(this->m_logiDevice.get());
             this->m_renderPass.destroy(this->m_logiDevice.get());
             this->m_gbuf.destroy(this->m_logiDevice.get());
             this->m_depth_image.destroy(this->m_logiDevice.get());
@@ -253,37 +305,50 @@ namespace dal {
             this->m_depth_image.init(this->m_swapchain.extent(), this->m_logiDevice.get(), this->m_physDevice.get());
             this->m_gbuf.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchain.extent().width, this->m_swapchain.extent().height);
             this->m_renderPass.init(this->m_logiDevice.get(), this->make_attachment_format_array());
-            this->m_pipeline.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchain.extent(), this->m_descSetLayout.layout_deferred(), this->m_descSetLayout.layout_composition());
             this->m_fbuf.init(this->m_logiDevice.get(), this->m_renderPass.get(), this->m_swapchainImages.getViews(), this->m_swapchain.extent(), this->m_depth_image.image_view(), this->m_gbuf);
-            this->m_uniformBufs.init(this->m_logiDevice.get(), this->m_physDevice.get(), this->m_swapchainImages.size());
-            this->m_ubuf_per_frame_in_composition.init(sizeof(dal::U_PerFrame_InComposition), this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
-            this->m_descPool.initPool(this->m_logiDevice.get(), this->m_swapchainImages.size());
+            this->m_pipeline.init(
+                this->m_logiDevice.get(),
+                this->m_renderPass.get(),
+                this->m_renderPass.shadow_mapping(),
+                this->m_swapchain.extent(),
+                dal::SHADOW_MAP_EXTENT,
+                this->m_descSetLayout.layout_deferred(),
+                this->m_descSetLayout.layout_composition(),
+                this->m_descSetLayout.layout_shadow()
+            );
+            this->m_ubuf_per_frame_in_deferred.init(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
+            this->m_ubuf_per_frame_in_composition.init(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
+            this->m_desc_man.init(this->m_swapchainImages.size(), this->m_logiDevice.get());
 
-            for (auto& model : this->m_models) {
-                for (auto& unit : model.render_units()) {
-                    unit.m_material.set_material(
-                        this->m_descPool.pool(),
-                        this->m_swapchainImages.size(),
-                        this->m_descSetLayout.layout_deferred(),
-                        this->m_uniformBufs.buffers(),
-                        this->m_tex_man.sampler_1().get(),
-                        this->m_logiDevice.get(),
-                        this->m_physDevice.get()
-                    );
-                }
+            for (auto& node : this->m_scene.m_nodes) {
+                node.on_swapchain_count_change(
+                    this->m_swapchainImages.size(),
+                    this->m_ubuf_per_frame_in_deferred,
+                    this->m_tex_man.sampler_1().get(),
+                    this->m_descSetLayout.layout_deferred(),
+                    this->m_descSetLayout.layout_shadow(),
+                    this->m_renderPass.shadow_mapping(),
+                    this->m_pipeline.pipeline_shadow(),
+                    this->m_pipeline.layout_shadow(),
+                    this->m_logiDevice.get(),
+                    this->m_physDevice.get()
+                );
             }
 
             for (size_t i = 0; i < this->m_swapchainImages.size(); ++i) {
-                this->m_descPool.addSets_composition(
+                this->m_desc_man.addSets_composition(
                     this->m_logiDevice.get(),
                     this->m_swapchainImages.size(),
                     this->m_descSetLayout.layout_composition(),
                     this->m_ubuf_per_frame_in_composition,
-                    this->m_gbuf.make_views_vector(this->m_depth_image.image_view())
+                    this->m_gbuf.make_views_vector(this->m_depth_image.image_view()),
+                    this->m_scene.m_nodes.back().lights().make_view_list_dlight(3),
+                    this->m_scene.m_nodes.back().lights().make_view_list_slight(5),
+                    this->m_tex_man.sampler_shadow_map().get()
                 );
             }
 
-            this->m_cmdBuffers.init(this->m_logiDevice.get(), this->m_fbuf.getList(), this->m_cmdPool.pool());
+            this->m_cmdBuffers.init(this->m_logiDevice.get(), this->m_fbuf.getList().size(), this->m_cmdPool.pool());
             this->m_syncMas.init(this->m_logiDevice.get(), this->m_swapchainImages.size());
         }
 
@@ -295,8 +360,8 @@ namespace dal {
             this->m_pipeline.layout_composition(),
             this->m_swapchain.extent(),
             this->m_fbuf.getList(),
-            this->m_descPool.descset_composition(),
-            this->m_models
+            this->m_desc_man.descset_composition(),
+            this->m_scene.m_nodes.back().models()
         );
     }
 
@@ -367,12 +432,15 @@ namespace dal {
     }
 
     void VulkanMaster::load_models() {
+        auto& node = this->m_scene.m_nodes.back();
+
         // Floor
         {
             const auto mdoel_data = dal::get_horizontal_plane(500, 500);
-            auto& model = this->m_models.emplace_back();
+            auto& model = node.add_model();
+            model.init(this->m_logiDevice.get());
 
-            auto& inst = model.add_instance();
+            auto& inst = model.add_instance(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
 
             auto& unit = model.add_unit();
             unit.set_mesh(
@@ -388,12 +456,7 @@ namespace dal {
             unit.m_material.m_material_data.m_metallic = mdoel_data.m_material.m_metallic;
 
             unit.m_material.set_material(
-                this->m_descPool.pool(),
-                this->m_swapchainImages.size(),
-                this->m_descSetLayout.layout_deferred(),
-                this->m_uniformBufs.buffers(),
                 this->m_tex_grass->view.get(),
-                this->m_tex_man.sampler_1().get(),
                 this->m_logiDevice.get(),
                 this->m_physDevice.get()
             );
@@ -403,10 +466,12 @@ namespace dal {
         {
             const auto model_data = dal::get_aabb_box();
 
-            auto& model = this->m_models.emplace_back();
+            auto& model = node.add_model();
+            model.init(this->m_logiDevice.get());
 
-            auto& inst = model.add_instance();
+            auto& inst = model.add_instance(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
             inst.transform().m_pos.x = 2;
+            inst.update_ubuf(this->m_logiDevice.get());
 
             auto& unit = model.add_unit();
             unit.set_mesh(
@@ -422,29 +487,24 @@ namespace dal {
             unit.m_material.m_material_data.m_metallic = model_data.m_material.m_metallic;
 
             unit.m_material.set_material(
-                this->m_descPool.pool(),
-                this->m_swapchainImages.size(),
-                this->m_descSetLayout.layout_deferred(),
-                this->m_uniformBufs.buffers(),
                 this->m_tex_tile->view.get(),
-                this->m_tex_man.sampler_1().get(),
                 this->m_logiDevice.get(),
                 this->m_physDevice.get()
             );
         }
 
-        // Yuri
+        // Sphere
         {
-            auto& model = this->m_models.emplace_back();
+            auto& model = node.add_model();
+            model.init(this->m_logiDevice.get());
 
-            auto& inst1 = model.add_instance();
-            inst1.transform().m_scale = 0.02;
+            for (int i = 0; i < 8; ++i) {
+                auto& inst = model.add_instance(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
+                inst.transform().m_scale = 0.3;
+                inst.update_ubuf(this->m_logiDevice.get());
+            }
 
-            auto& inst2 = model.add_instance();
-            inst2.transform().m_scale = 0.02;
-            inst2.transform().m_pos.x = -1;
-
-            for (const auto& model_data : get_test_model()) {
+            for (const auto& model_data : load_dmd_model("sphere.dmd")) {
                 auto& unit = model.add_unit();
 
                 unit.set_mesh(
@@ -468,27 +528,24 @@ namespace dal {
                 unit.m_material.m_material_data.m_metallic = model_data.m_material.m_metallic;
 
                 unit.m_material.set_material(
-                    this->m_descPool.pool(),
-                    this->m_swapchainImages.size(),
-                    this->m_descSetLayout.layout_deferred(),
-                    this->m_uniformBufs.buffers(),
                     tex->view.get(),
-                    this->m_tex_man.sampler_1().get(),
                     this->m_logiDevice.get(),
                     this->m_physDevice.get()
                 );
             }
         }
 
-        // Irin
+        // Monkey
         {
-            auto& model = this->m_models.emplace_back();
+            auto& model = node.add_model();
+            model.init(this->m_logiDevice.get());
 
-            auto& inst2 = model.add_instance();
-            inst2.transform().m_scale = 0.8;
-            inst2.transform().m_pos.x = -2;
+            auto& inst = model.add_instance(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
+            inst.transform().m_scale = 1;
+            inst.transform().m_pos = glm::vec3{ -0, 0.5, 0 };
+            inst.update_ubuf(this->m_logiDevice.get());
 
-            for (const auto& model_data : load_dmd_model("irin.dmd")) {
+            for (const auto& model_data : load_dmd_model("monkey.dmd")) {
                 auto& unit = model.add_unit();
 
                 unit.set_mesh(
@@ -512,12 +569,48 @@ namespace dal {
                 unit.m_material.m_material_data.m_metallic = model_data.m_material.m_metallic;
 
                 unit.m_material.set_material(
-                    this->m_descPool.pool(),
-                    this->m_swapchainImages.size(),
-                    this->m_descSetLayout.layout_deferred(),
-                    this->m_uniformBufs.buffers(),
                     tex->view.get(),
-                    this->m_tex_man.sampler_1().get(),
+                    this->m_logiDevice.get(),
+                    this->m_physDevice.get()
+                );
+            }
+        }
+
+        // Honoka
+        {
+            auto& model = node.add_model();
+            model.init(this->m_logiDevice.get());
+
+            auto& inst = model.add_instance(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
+            inst.transform().m_scale = 0.5;
+            inst.transform().m_pos = glm::vec3{ -1.5, 0, 0 };
+            inst.update_ubuf(this->m_logiDevice.get());
+
+            for (const auto& model_data : load_dmd_model("honoka_basic_3.dmd")) {
+                auto& unit = model.add_unit();
+
+                unit.set_mesh(
+                    model_data.m_vertices,
+                    model_data.m_indices,
+                    this->m_cmdPool,
+                    this->m_logiDevice.get(),
+                    this->m_physDevice.get(),
+                    this->m_logiDevice.graphicsQ()
+                );
+
+                const auto& tex = this->m_tex_man.request_texture(
+                    model_data.m_material.m_albedo_map.c_str(),
+                    this->m_cmdPool,
+                    this->m_logiDevice.get(),
+                    this->m_physDevice,
+                    this->m_logiDevice.graphicsQ()
+                );
+
+                unit.m_material.m_material_data.m_roughness = model_data.m_material.m_roughness;
+                unit.m_material.m_material_data.m_metallic = model_data.m_material.m_metallic;
+
+                unit.m_material.set_material(
+                    tex->view.get(),
                     this->m_logiDevice.get(),
                     this->m_physDevice.get()
                 );
@@ -529,6 +622,123 @@ namespace dal {
         this->m_needResize = true;
         this->m_scrWidth = w;
         this->m_scrHeight = h;
+    }
+
+    void VulkanMaster::submit_render_to_shadow_maps(const uint32_t swapchain_index) {
+        VkPipelineStageFlags shadow_map_wait_stages = 0;
+        VkSubmitInfo submit_info{ };
+        submit_info.pNext = NULL;
+        submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submit_info.waitSemaphoreCount = 0;
+        submit_info.pWaitSemaphores = NULL;
+        submit_info.signalSemaphoreCount = 0;
+        submit_info.pSignalSemaphores = nullptr;
+        submit_info.pWaitDstStageMask = 0;
+        submit_info.commandBufferCount = 1;
+
+        for (auto& dlight : this->m_scene.m_nodes.back().lights().dlights()) {
+            submit_info.pCommandBuffers = &dlight.cmd_buf_at(swapchain_index);
+
+            const auto submit_result = vkQueueSubmit(this->m_logiDevice.graphicsQ(), 1, &submit_info, nullptr);
+            if ( submit_result != VK_SUCCESS ) {
+                throw std::runtime_error("failed to submit draw command buffer!");
+            }
+        }
+
+        for (auto& slight : this->m_scene.m_nodes.back().lights().slights()) {
+            submit_info.pCommandBuffers = &slight.cmd_buf_at(swapchain_index);
+
+            const auto submit_result = vkQueueSubmit(this->m_logiDevice.graphicsQ(), 1, &submit_info, nullptr);
+            if ( submit_result != VK_SUCCESS ) {
+                throw std::runtime_error("failed to submit draw command buffer!");
+            }
+        }
+    }
+
+    void VulkanMaster::udpate_uniform_buffers(const uint32_t swapchain_index) {
+        {
+            U_PerFrame_InDeferred data_per_frame_in_deferred;
+            data_per_frame_in_deferred.proj = ::make_perspective_proj_mat(this->m_swapchain.extent());
+            data_per_frame_in_deferred.view = this->camera().make_view_mat();
+
+            this->m_ubuf_per_frame_in_deferred.copy_to_buffer(
+                swapchain_index,
+                data_per_frame_in_deferred,
+                this->m_logiDevice.get()
+            );
+        }
+
+        {
+            constexpr double RADIUS = 5;
+
+            const auto plight_count = this->m_scene.m_nodes.back().lights().plight_count();
+            for (size_t i = 0; i < plight_count; ++i) {
+                const auto rotate_phase_diff = 2.0 * M_PI / static_cast<double>(plight_count);
+                this->m_scene.m_nodes.back().lights().plight_at(i).m_pos = glm::vec4{
+                    RADIUS * std::cos(dal::getTimeInSec() + rotate_phase_diff * i),
+                    4,
+                    RADIUS * std::sin(dal::getTimeInSec() + rotate_phase_diff * i),
+                    1
+                };
+            }
+        }
+
+        {
+            constexpr double RADIUS = 2;
+            constexpr double SPEED = 2;
+            const glm::vec3 CENTER{ 0, 3, 2 };
+
+            auto& model = this->m_scene.m_nodes.back().model_at(2);
+            const float phase_per_one = 2.0 * M_PI / static_cast<double>(model.instances().size());
+
+            for (size_t i = 0; i < model.instances().size(); ++i) {
+                auto& inst = model.instances().at(i);
+
+                inst.transform().m_pos = CENTER;
+                inst.transform().m_pos.x += RADIUS * std::cos(SPEED * dal::getTimeInSec() + phase_per_one * i);
+                inst.transform().m_pos.y +=    0.5 * std::sin(SPEED * dal::getTimeInSec() + phase_per_one * i);
+                inst.transform().m_pos.z += RADIUS * std::sin(SPEED * dal::getTimeInSec() + phase_per_one * i + M_PI);
+
+                inst.update_ubuf(swapchain_index, this->m_logiDevice.get());
+            }
+
+        }
+
+        {
+            constexpr double SPEED = 0.1;
+
+            auto& sun_light = this->m_scene.m_nodes.back().lights().dlights().at(0);
+            sun_light.m_direc = glm::vec3(glm::vec3{
+                std::cos(SPEED * dal::getTimeInSec()),
+                std::sin(SPEED * dal::getTimeInSec()),
+                -0.3,
+            });
+            sun_light.update_ubuf_at(swapchain_index, this->m_logiDevice.get());
+
+            auto& moon_light = this->m_scene.m_nodes.back().lights().dlights().at(1);
+            moon_light.m_direc = glm::vec3(glm::vec3{
+                std::cos(SPEED * dal::getTimeInSec() + M_PI),
+                std::sin(SPEED * dal::getTimeInSec() + M_PI),
+                -0.3,
+            });
+            moon_light.update_ubuf_at(swapchain_index, this->m_logiDevice.get());
+        }
+
+        {
+            constexpr double SPEED = 0.8;
+
+            this->m_scene.m_nodes.back().lights().slight_at(0).m_direc = glm::normalize(glm::vec3{
+                std::sin(SPEED * dal::getTimeInSec()),
+                std::cos(SPEED * dal::getTimeInSec()),
+                1
+            });
+            this->m_scene.m_nodes.back().lights().slight_at(0).update_ubuf_at(swapchain_index, this->m_logiDevice.get());
+        }
+
+        U_PerFrame_InComposition data;
+        data.m_view_pos = glm::vec4{ this->camera().m_pos, 1 };
+        this->m_scene.m_nodes.back().lights().fill_uniform_data(data);
+        this->m_ubuf_per_frame_in_composition.copy_to_buffer(swapchain_index, data, this->m_logiDevice.get());
     }
 
 }

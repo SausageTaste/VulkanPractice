@@ -30,6 +30,7 @@ add_executable(vulkan_practice
     model_data.h        model_data.cpp
     model_render.h      model_render.cpp
     view_camera.h       view_camera.cpp
+    data_tensor.h
 )
 target_compile_features(vulkan_practice PUBLIC cxx_std_17)
 

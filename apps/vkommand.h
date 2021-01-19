@@ -16,7 +16,11 @@ namespace dal {
         std::vector<VkCommandBuffer> m_buffers;
 
     public:
-        void init(VkDevice logiDevice, const std::vector<VkFramebuffer>& swapChainFbufs, VkCommandPool cmdPool);
+        void init(
+            const VkDevice logiDevice,
+            const size_t swapchain_count,
+            const VkCommandPool cmdPool
+        );
         void destroy(const VkDevice logiDevice, const VkCommandPool cmdPool);
 
         void record(

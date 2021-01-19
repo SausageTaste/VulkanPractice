@@ -31,7 +31,7 @@ Umm... nothing interesting at the moment.
 I'm focusing only on Vulkan, which is rendering engine.
 Game engine aspects like control, resource importing, scene management are not in my priority.
 
-![main_screenshot](./screenshot/2021-01-12.png)
+![main_screenshot](./screenshot/2021-01-20.jpg)
 
 This simple scene took 3485 lines of codes already!
 Anything else cannot be considered as viable goals at this rate.

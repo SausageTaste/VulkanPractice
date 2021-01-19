@@ -140,7 +140,12 @@ namespace {
         return viewportState;
     }
 
-    auto create_info_rasterizer(const VkCullModeFlags cull_mode) {
+    auto create_info_rasterizer(
+        const VkCullModeFlags cull_mode,
+        const bool enable_bias = VK_FALSE,
+        const float bias_constant = 0,
+        const float bias_slope = 0
+    ) {
         VkPipelineRasterizationStateCreateInfo rasterizer = {};
         rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 
@@ -150,10 +155,10 @@ namespace {
         rasterizer.lineWidth = 1;  // GPU feature, wideLines required for lines thicker than 1.
         rasterizer.cullMode = cull_mode;
         rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-        rasterizer.depthBiasEnable = VK_FALSE;  // Maybe this is used to deal with shadow acne?
-        rasterizer.depthBiasConstantFactor = 0;  // Optional
+        rasterizer.depthBiasEnable = enable_bias;  // Maybe this is used to deal with shadow acne?
+        rasterizer.depthBiasConstantFactor = bias_constant;
+        rasterizer.depthBiasSlopeFactor = bias_slope;
         rasterizer.depthBiasClamp = 0;  // Optional
-        rasterizer.depthBiasSlopeFactor = 0;  // Optiona
 
         return rasterizer;
     }
@@ -319,8 +324,7 @@ namespace {
         const auto dynamicState = ::create_info_dynamic_state(dynamicStates.data(), dynamicStates.size());
 
         // Pipeline layout
-        const auto push_consts = ::create_info_push_constant<dal::PushedConstValues>();
-        const auto pipelineLayout = ::create_pipeline_layout(&descriptorSetLayout, 1, push_consts.data(), push_consts.size(), device);
+        const auto pipelineLayout = ::create_pipeline_layout(&descriptorSetLayout, 1, nullptr, 0, device);
 
         // Pipeline, finally
         VkGraphicsPipelineCreateInfo pipelineInfo{};
@@ -416,6 +420,76 @@ namespace {
         return std::make_pair(pipelineLayout, graphicsPipeline);
     }
 
+    auto createGraphicsPipeline_shadow(const VkDevice device, VkRenderPass renderPass, const VkExtent2D& extent, const VkDescriptorSetLayout descriptorSetLayout) {
+        // Shaders
+        const auto vertShaderCode = dal::readFile(dal::get_res_path() + "/shader/shadow_map_v.spv");
+        const auto fragShaderCode = dal::readFile(dal::get_res_path() + "/shader/shadow_map_f.spv");
+        const ShaderModule vert_shader_module(device, vertShaderCode.data(), vertShaderCode.size());
+        const ShaderModule frag_shader_module(device, fragShaderCode.data(), fragShaderCode.size());
+        std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = ::create_info_shader_stage(vert_shader_module, frag_shader_module);
+
+        // Vertex input
+        const auto bindingDesc = dal::getBindingDesc();
+        const auto attribDesc = dal::getAttributeDescriptions();
+        auto vertexInputInfo = ::create_vertex_input_state(&bindingDesc, 1, attribDesc.data(), attribDesc.size());
+
+        // Input assembly
+        const auto inputAssembly = ::create_info_input_assembly();
+
+        // Viewports and scissors
+        const auto [viewport, scissor] = ::create_info_viewport_scissor(extent);
+        const auto viewportState = ::create_info_viewport_state(&viewport, 1, &scissor, 1);
+
+        // Rasterizer
+        auto rasterizer = ::create_info_rasterizer(VK_CULL_MODE_NONE, true, 4, 1.5);
+
+        // Multisampling
+        const auto multisampling = ::create_info_multisampling();
+
+        // Color blending
+        const auto colorBlendAttachments = ::create_info_color_blend_attachment<0, false>();
+        const auto colorBlending = ::create_info_color_blend(
+            colorBlendAttachments.data(), colorBlendAttachments.size(), false
+        );
+
+        // Depth, stencil
+        const auto depthStencil = ::create_info_depth_stencil(true);
+
+        // Dynamic state
+        constexpr std::array<VkDynamicState, 0> dynamicStates{};
+        const auto dynamicState = ::create_info_dynamic_state(dynamicStates.data(), dynamicStates.size());
+
+        // Pipeline layout
+        const auto push_consts = ::create_info_push_constant<dal::PushedConstValues>();
+        const auto pipelineLayout = ::create_pipeline_layout(&descriptorSetLayout, 1, push_consts.data(), push_consts.size(), device);
+
+        // Pipeline, finally
+        VkGraphicsPipelineCreateInfo pipelineInfo{};
+        pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+        pipelineInfo.stageCount = shaderStages.size();
+        pipelineInfo.pStages = shaderStages.data();
+        pipelineInfo.pVertexInputState = &vertexInputInfo;
+        pipelineInfo.pInputAssemblyState = &inputAssembly;
+        pipelineInfo.pViewportState = &viewportState;
+        pipelineInfo.pRasterizationState = &rasterizer;
+        pipelineInfo.pMultisampleState = &multisampling;
+        pipelineInfo.pDepthStencilState = &depthStencil;
+        pipelineInfo.pColorBlendState = &colorBlending;
+        pipelineInfo.pDynamicState = &dynamicState;
+        pipelineInfo.layout = pipelineLayout;
+        pipelineInfo.renderPass = renderPass;
+        pipelineInfo.subpass = 0;
+        pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
+        pipelineInfo.basePipelineIndex = -1; // Optional
+
+        VkPipeline graphicsPipeline = VK_NULL_HANDLE;
+        if ( vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS ) {
+            throw std::runtime_error("failed to create graphics pipeline!");
+        }
+
+        return std::make_pair(pipelineLayout, graphicsPipeline);
+    }
+
 }
 
 
@@ -425,12 +499,16 @@ namespace dal {
     void ShaderPipeline::init(
         const VkDevice device,
         const VkRenderPass renderPass,
+        const VkRenderPass shadow_renderpass,
         const VkExtent2D& extent,
+        const VkExtent2D& shadow_extent,
         const VkDescriptorSetLayout desc_layout_deferred,
-        const VkDescriptorSetLayout desc_layout_composition
+        const VkDescriptorSetLayout desc_layout_composition,
+        const VkDescriptorSetLayout desc_layout_shadow
     ) {
         std::tie(this->m_layout_deferred, this->m_pipeline_deferred) = ::createGraphicsPipeline_deferred(device, renderPass, extent, desc_layout_deferred);
         std::tie(this->m_layout_composition, this->m_pipeline_composition) = ::createGraphicsPipeline_composition(device, renderPass, extent, desc_layout_composition);
+        std::tie(this->m_layout_shadow, this->m_pipeline_shadow) = ::createGraphicsPipeline_shadow(device, shadow_renderpass, shadow_extent, desc_layout_shadow);
     }
 
     void ShaderPipeline::destroy(VkDevice device) {
@@ -442,6 +520,10 @@ namespace dal {
             vkDestroyPipelineLayout(device, this->m_layout_composition, nullptr);
             this->m_layout_composition = VK_NULL_HANDLE;
         }
+        if (VK_NULL_HANDLE != this->m_layout_shadow) {
+            vkDestroyPipelineLayout(device, this->m_layout_shadow, nullptr);
+            this->m_layout_shadow = VK_NULL_HANDLE;
+        }
 
         if (VK_NULL_HANDLE != this->m_pipeline_deferred) {
             vkDestroyPipeline(device, this->m_pipeline_deferred, nullptr);
@@ -450,6 +532,10 @@ namespace dal {
         if (VK_NULL_HANDLE != this->m_pipeline_composition) {
             vkDestroyPipeline(device, this->m_pipeline_composition, nullptr);
             this->m_pipeline_composition = VK_NULL_HANDLE;
+        }
+        if (VK_NULL_HANDLE != this->m_pipeline_shadow) {
+            vkDestroyPipeline(device, this->m_pipeline_shadow, nullptr);
+            this->m_pipeline_shadow = VK_NULL_HANDLE;
         }
     }
 
