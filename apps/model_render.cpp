@@ -145,7 +145,7 @@ namespace dal {
 namespace dal {
 
     void ModelVK::DescSet2D::init(const VkDevice logi_device) {
-        this->m_pool.init(128, 128, 128, 128, logi_device);
+        this->m_pool.init(512, 512, 512, 512, logi_device);
     }
 
     void ModelVK::DescSet2D::destroy(const VkDevice logi_device) {

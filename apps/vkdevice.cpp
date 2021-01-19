@@ -580,11 +580,11 @@ namespace dal {
             model.init(this->m_logiDevice.get());
 
             auto& inst = model.add_instance(this->m_swapchainImages.size(), this->m_logiDevice.get(), this->m_physDevice.get());
-            inst.transform().m_scale = 0.02;
-            inst.transform().m_pos = glm::vec3{ -1, 0, 0 };
+            inst.transform().m_scale = 0.5;
+            inst.transform().m_pos = glm::vec3{ -1.5, 0, 0 };
             inst.update_ubuf(this->m_logiDevice.get());
 
-            for (const auto& model_data : load_dmd_model("yuri_cso2.dmd")) {
+            for (const auto& model_data : load_dmd_model("honoka_basic_3.dmd")) {
                 auto& unit = model.add_unit();
 
                 unit.set_mesh(
