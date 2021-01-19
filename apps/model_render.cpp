@@ -5,6 +5,7 @@
 #include "util_vulkan.h"
 
 
+// DescSetTensor_Shadow
 namespace dal {
 
     void DescSetTensor_Shadow::init(const VkDevice logi_device) {
@@ -77,6 +78,7 @@ namespace dal {
 }
 
 
+// MaterialVK
 namespace dal {
 
     void MaterialVK::destroy(const VkDevice logi_device) {
@@ -96,6 +98,7 @@ namespace dal {
 }
 
 
+// RenderUnitVK
 namespace dal {
 
     void RenderUnitVK::set_mesh(
@@ -113,6 +116,7 @@ namespace dal {
 }
 
 
+// ModelInstance
 namespace dal {
 
     void ModelInstance::init(const uint32_t swapchain_count, const VkDevice logi_device, const VkPhysicalDevice phys_device) {
@@ -142,6 +146,7 @@ namespace dal {
 }
 
 
+// ModelVK :: DescSet2D
 namespace dal {
 
     void ModelVK::DescSet2D::init(const VkDevice logi_device) {
@@ -193,6 +198,7 @@ namespace dal {
 }
 
 
+// ModelVK
 namespace dal {
 
     void ModelVK::destroy(const VkDevice logi_device) {
@@ -242,6 +248,7 @@ namespace dal {
 }
 
 
+// DepthMap
 namespace dal {
 
     void DepthMap::init(
@@ -286,6 +293,11 @@ namespace dal {
         }
     }
 
+}
+
+
+// DirectionalLight
+namespace dal {
 
     void DirectionalLight::init(
         const uint32_t swapchain_count,
@@ -418,6 +430,11 @@ namespace dal {
         return proj_mat * view_mat;
     }
 
+}
+
+
+// LightManager
+namespace dal {
 
     void LightManager::destroy(const VkCommandPool cmd_pool, const VkDevice logi_device) {
         for (auto& dlight : this->m_dlights) {
@@ -465,6 +482,7 @@ namespace dal {
 }
 
 
+// SceneNode
 namespace dal {
 
     void SceneNode::init(const VkSurfaceKHR surface, const VkDevice logi_device, const VkPhysicalDevice phys_device) {
@@ -535,6 +553,11 @@ namespace dal {
         }
     }
 
+}
+
+
+// Scene
+namespace dal {
 
     void Scene::destroy(const VkDevice logi_device) {
         for (auto& node : this->m_nodes) {
