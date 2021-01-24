@@ -17,14 +17,11 @@ project("vulkanpractice")
 # Throws resolve failure of ALooper_pollAll without this
 set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -u ANativeActivity_onCreate")
 
-add_library( # Sets the name of the library.
-             native-lib
-
-             # Sets the library as a shared library.
-             SHARED
-
-             # Provides a relative path to your source file(s).
-             native-lib.cpp )
+add_library(native-lib SHARED
+        native-lib.cpp
+        vulkan_wrapper.h       vulkan_wrapper.cpp
+)
+target_compile_definitions(native-lib PRIVATE VK_USE_PLATFORM_ANDROID_KHR)
 
 # Searches for a specified prebuilt library and stores the path as a
 # variable. Because CMake includes system libraries in the search path by
