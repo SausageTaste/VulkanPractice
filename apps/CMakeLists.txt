@@ -5,8 +5,13 @@ project(Vulkan-Practice
 )
 
 
-add_executable(vulkan_practice
-    main.cpp
+set(extern_dir ${CMAKE_CURRENT_SOURCE_DIR}/../extern)
+
+
+# Static library
+#-----------------------------------------------------------------------------------
+
+add_library(vulkan_practice STATIC
     vkwindow.h          vkwindow.cpp
     vkdevice.h          vkdevice.cpp
     konst.h
@@ -32,27 +37,60 @@ add_executable(vulkan_practice
     view_camera.h       view_camera.cpp
     data_tensor.h
 )
+target_include_directories(vulkan_practice PUBLIC .)
 target_compile_features(vulkan_practice PUBLIC cxx_std_17)
 
 
-# Library
+# External libraries
+#-----------------------------------------------------------------------------------
 
-set(extern_dir ${CMAKE_CURRENT_SOURCE_DIR}/../extern)
+if (WIN32)
 
-add_subdirectory(${extern_dir}/glfw ${CMAKE_CURRENT_BINARY_DIR}/glfw)
-target_link_libraries(vulkan_practice PRIVATE glfw)
+    if (NOT TARGET glfw)
+        add_subdirectory(${extern_dir}/glfw ${CMAKE_CURRENT_BINARY_DIR}/glfw)
+    endif()
+    target_link_libraries(vulkan_practice PUBLIC glfw)
 
-add_subdirectory(${extern_dir}/io_scene_dalbaragi ${CMAKE_CURRENT_BINARY_DIR}/io_scene_dalbaragi)
-target_link_libraries(vulkan_practice PRIVATE dalbaragi_model_parser)
+    find_package(Vulkan REQUIRED)
+    target_link_libraries(vulkan_practice PUBLIC Vulkan::Vulkan)
+    target_compile_definitions(vulkan_practice PUBLIC VK_USE_PLATFORM_WIN32_KHR)
+
+elseif(ANDROID)
+
+    target_compile_definitions(vulkan_practice PUBLIC VK_USE_PLATFORM_ANDROID_KHR)
+
+endif()
+
+
+if (NOT TARGET dalbaragi_model_parser)
+    add_subdirectory(${extern_dir}/io_scene_dalbaragi ${CMAKE_CURRENT_BINARY_DIR}/io_scene_dalbaragi)
+endif()
+
+if (NOT TARGET glm)
+    add_subdirectory(${extern_dir}/glm ${CMAKE_CURRENT_BINARY_DIR}/glm)
+endif()
+
+
+target_link_libraries(vulkan_practice
+    PRIVATE
+        dalbaragi_model_parser
+    PUBLIC
+        glm
+)
+
 target_include_directories(vulkan_practice PRIVATE ${extern_dir}/io_scene_dalbaragi/cpp)
-
-add_subdirectory(${extern_dir}/glm ${CMAKE_CURRENT_BINARY_DIR}/glm)
-target_include_directories(vulkan_practice PRIVATE ${extern_dir}/glm)
-target_link_libraries(vulkan_practice PRIVATE glm)
-
 target_include_directories(vulkan_practice PRIVATE ${extern_dir}/stb)
 
-find_package(Vulkan REQUIRED)
-target_compile_definitions(vulkan_practice PRIVATE VK_USE_PLATFORM_WIN32_KHR)
-target_include_directories(vulkan_practice PRIVATE Vulkan::Vulkan)
-target_link_libraries(vulkan_practice PRIVATE Vulkan::Vulkan)
+
+# Execuable
+#-----------------------------------------------------------------------------------
+
+add_executable(vulkan_practice_app
+    main.cpp
+)
+target_compile_features(vulkan_practice_app PUBLIC cxx_std_17)
+
+target_link_libraries(vulkan_practice_app
+    PRIVATE
+        vulkan_practice
+)
